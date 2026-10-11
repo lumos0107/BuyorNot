@@ -337,6 +337,19 @@ textarea.input {
   color: var(--muted);
 }
 
+/* 계산 근거: 한 줄씩, 숫자는 자릿수가 맞게 */
+.steps {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.steps li + li {
+  margin-top: 4px;
+}
+
 .app-footer {
   margin-top: 32px;
   font-size: 13px;
