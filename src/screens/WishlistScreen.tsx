@@ -147,13 +147,19 @@ export function WishlistScreen({
           }}
         />
       ) : null}
+      {/* 처음 연 사람이 바로 둘러볼 수 있게, 비어 있을 때 예시 물건 넣기를 담기 폼 위에 둔다 (2026-10-11 제작자 요청) */}
+      {considering.length === 0 && onAddDemo ? (
+        <div className="example-bar">
+          <span className="note">처음이라면 예시로 둘러보세요.</span>
+          <Button onClick={onAddDemo}>예시 물건 넣기</Button>
+        </div>
+      ) : null}
       {/* 담기 폼은 짧아서 고민 중인 물건이 있어도 맨 위에 둔다 (F24) */}
       <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} />
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
           <p className="note">사고 싶은 물건을 담아 두면 고민 기간이 지난 뒤 다시 물어봐요.</p>
-          {onAddDemo ? <Button onClick={onAddDemo}>예시 물건 넣기</Button> : null}
         </div>
       ) : (
         <section className="stack" aria-label="고민 중인 물건 목록">

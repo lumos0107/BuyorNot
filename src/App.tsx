@@ -77,6 +77,7 @@ export default function App() {
         </TabPanel>
         <TabPanel id="compare" hidden={screen !== 'compare'}>
           <CompareScreen
+            startWithExample
             onGoToWishlist={() => setScreen('wishlist')}
             onAddToWishlist={(next) => {
               setDraft(next)

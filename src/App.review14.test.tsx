@@ -97,6 +97,8 @@ describe('0원 결과는 담을 수 없음 (낮음)', () => {
     await user.click(screen.getByRole('tab', { name: '가격 비교' }))
     await user.click(screen.getByRole('tab', { name: '묶음상품 비교' }))
     const panel = within(screen.getByRole('tabpanel', { name: '묶음상품 비교' }))
+    // 앱에서는 예시가 채워진 채로 열리므로 비우고 시작한다
+    await user.click(panel.getByRole('button', { name: '초기화' }))
     const a = within(panel.getByRole('group', { name: '상품 A' }))
     const b = within(panel.getByRole('group', { name: '상품 B' }))
     await user.type(a.getByLabelText('가격'), '0')

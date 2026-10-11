@@ -495,6 +495,37 @@ a {
   white-space: nowrap;
 }
 
+/* 가격 비교의 이럴 때 써요: 예시 두 칸을 나란히 */
+.intro-sides {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+}
+
+.intro-side {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.intro-title {
+  font-weight: 600;
+}
+
+.intro-vs {
+  align-self: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.intro-conclusion {
+  font-weight: 600;
+  color: var(--accent);
+}
+
 /* 오늘의 고민 (F22) */
 .gomin-note {
   border: 1px solid var(--line);

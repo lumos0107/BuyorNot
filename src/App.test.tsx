@@ -56,12 +56,13 @@ describe('메뉴와 탭 이동', () => {
     await user.click(tab('가격 비교'))
     await user.click(tab('묶음상품 비교'))
     const priceA = within(screen.getByRole('group', { name: '상품 A' })).getByLabelText('가격')
-    await user.type(priceA, '6000')
+    await user.clear(priceA)
+    await user.type(priceA, '6100')
 
     await user.click(tab('고민 중인 물건'))
     await user.click(tab('가격 비교'))
     expect(screen.getByRole('tab', { name: '묶음상품 비교', selected: true })).toBeInTheDocument()
-    expect(within(screen.getByRole('group', { name: '상품 A' })).getByLabelText('가격')).toHaveValue('6000')
+    expect(within(screen.getByRole('group', { name: '상품 A' })).getByLabelText('가격')).toHaveValue('6100')
   })
 })
 

@@ -32,8 +32,11 @@ const KINDS: readonly TabItem<CompareKind>[] = [
 export function CompareScreen({
   onGoToWishlist,
   onAddToWishlist,
+  startWithExample = false,
 }: {
   onGoToWishlist?: () => void
+  /** 처음부터 예시 값을 채워 결과가 바로 보이게 한다 (앱 화면에서 켠다, 2026-10-11 제작자 요청) */
+  startWithExample?: boolean
   /** 비교 결과를 고민 목록에 담기 (F21) */
   onAddToWishlist?: (draft: WishDraft) => void
 }) {
@@ -43,13 +46,13 @@ export function CompareScreen({
       <h2 className="screen-title">가격 비교</h2>
       <Tabs label="가격 비교 종류" tabs={KINDS} value={kind} onChange={setKind} sub />
       <TabPanel id="discount" hidden={kind !== 'discount'}>
-        <DiscountCompare onAdd={onAddToWishlist} />
+        <DiscountCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />
       </TabPanel>
       <TabPanel id="bundle" hidden={kind !== 'bundle'}>
-        <BundleCompare onAdd={onAddToWishlist} />
+        <BundleCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />
       </TabPanel>
       <TabPanel id="shipping" hidden={kind !== 'shipping'}>
-        <ShippingCompare />
+        <ShippingCompare startWithExample={startWithExample} />
       </TabPanel>
       {onGoToWishlist ? (
         // 비교해 봐도 필요한 소비인지 확실하지 않으면 먼저 담아 둔다 (PRD #4). 입력값은 넘기지 않는다
@@ -81,9 +84,9 @@ const EMPTY_DISCOUNT: DiscountRawInput = { price: '', coupon: 'rate', value: '',
 const EXAMPLE_DISCOUNT_A: DiscountRawInput = { price: '80000', coupon: 'rate', value: '15', minOrder: '', maxDiscount: '10000', shipping: '3000' }
 const EXAMPLE_DISCOUNT_B: DiscountRawInput = { price: '80000', coupon: 'amount', value: '8000', minOrder: '', maxDiscount: '', shipping: '0' }
 
-function DiscountCompare({ onAdd }: { onAdd?: (draft: WishDraft) => void }) {
-  const [a, setA] = useState(fresh(EMPTY_DISCOUNT))
-  const [b, setB] = useState(fresh(EMPTY_DISCOUNT))
+function DiscountCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft) => void; startWithExample: boolean }) {
+  const [a, setA] = useState(() => (startWithExample ? filled(EXAMPLE_DISCOUNT_A) : fresh(EMPTY_DISCOUNT)))
+  const [b, setB] = useState(() => (startWithExample ? filled(EXAMPLE_DISCOUNT_B) : fresh(EMPTY_DISCOUNT)))
 
   const checkedA = validateDiscountInput(a.form)
   const checkedB = validateDiscountInput(b.form)
@@ -93,27 +96,24 @@ function DiscountCompare({ onAdd }: { onAdd?: (draft: WishDraft) => void }) {
   return (
     <div className="stack">
       <h3 className="section-title">할인 비교</h3>
+      <ExampleIntro
+        sides={[
+          ['A안', ['80,000원', '15% 쿠폰 (최대 10,000원)', '배송비 3,000원']],
+          ['B안', ['80,000원', '8,000원 쿠폰', '배송비 0원']],
+        ]}
+        conclusion="할인율은 A안이 커 보여도, 결제액은 B안이 1,000원 적어요"
+        onExample={() => {
+          setA(filled(EXAMPLE_DISCOUNT_A))
+          setB(filled(EXAMPLE_DISCOUNT_B))
+        }}
+        onReset={() => {
+          setA(fresh(EMPTY_DISCOUNT))
+          setB(fresh(EMPTY_DISCOUNT))
+        }}
+      />
       <div className="ab-grid">
         <DiscountCard name="A안" state={a} errors={checkedA.errors} onChange={setA} />
         <DiscountCard name="B안" state={b} errors={checkedB.errors} onChange={setB} />
-      </div>
-      <div className="btn-row">
-        <Button
-          onClick={() => {
-            setA(filled(EXAMPLE_DISCOUNT_A))
-            setB(filled(EXAMPLE_DISCOUNT_B))
-          }}
-        >
-          예시 넣기
-        </Button>
-        <Button
-          onClick={() => {
-            setA(fresh(EMPTY_DISCOUNT))
-            setB(fresh(EMPTY_DISCOUNT))
-          }}
-        >
-          초기화
-        </Button>
       </div>
       <div aria-live="polite">{sideA && sideB ? <DiscountResultCard a={sideA} b={sideB} onAdd={onAdd} /> : null}</div>
     </div>
@@ -299,9 +299,9 @@ const EXAMPLE_BUNDLE_B: BundleRawInput = { price: '5400', unit: 'L', size: '1.5'
 
 const KIND_LABEL = { weight: '무게', volume: '부피', count: '개수' } as const
 
-function BundleCompare({ onAdd }: { onAdd?: (draft: WishDraft) => void }) {
-  const [a, setA] = useState(fresh(EMPTY_BUNDLE))
-  const [b, setB] = useState(fresh(EMPTY_BUNDLE))
+function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft) => void; startWithExample: boolean }) {
+  const [a, setA] = useState(() => (startWithExample ? filled(EXAMPLE_BUNDLE_A) : fresh(EMPTY_BUNDLE)))
+  const [b, setB] = useState(() => (startWithExample ? filled(EXAMPLE_BUNDLE_B) : fresh(EMPTY_BUNDLE)))
 
   const checkedA = validateBundleInput(a.form)
   const checkedB = validateBundleInput(b.form)
@@ -313,6 +313,21 @@ function BundleCompare({ onAdd }: { onAdd?: (draft: WishDraft) => void }) {
   return (
     <div className="stack">
       <h3 className="section-title">묶음상품 비교</h3>
+      <ExampleIntro
+        sides={[
+          ['A안', ['900mL × 2개', '6,000원', '100mL당 333원']],
+          ['B안', ['1.5L × 1개', '5,400원', '100mL당 360원']],
+        ]}
+        conclusion="100mL당은 A안이 싸지만, 오늘 내는 돈은 B안이 600원 적어요"
+        onExample={() => {
+          setA(filled(EXAMPLE_BUNDLE_A))
+          setB(filled(EXAMPLE_BUNDLE_B))
+        }}
+        onReset={() => {
+          setA(fresh(EMPTY_BUNDLE))
+          setB(fresh(EMPTY_BUNDLE))
+        }}
+      />
       <div className="ab-grid">
         <BundleCard name="상품 A" state={a} errors={checkedA.errors} onChange={setA} unitErrorId={kindMismatch ? mismatchId : undefined} />
         <BundleCard name="상품 B" state={b} errors={checkedB.errors} onChange={setB} unitErrorId={kindMismatch ? mismatchId : undefined} />
@@ -323,24 +338,6 @@ function BundleCompare({ onAdd }: { onAdd?: (draft: WishDraft) => void }) {
           종류의 단위를 골라 주세요.
         </p>
       ) : null}
-      <div className="btn-row">
-        <Button
-          onClick={() => {
-            setA(filled(EXAMPLE_BUNDLE_A))
-            setB(filled(EXAMPLE_BUNDLE_B))
-          }}
-        >
-          예시 넣기
-        </Button>
-        <Button
-          onClick={() => {
-            setA(fresh(EMPTY_BUNDLE))
-            setB(fresh(EMPTY_BUNDLE))
-          }}
-        >
-          초기화
-        </Button>
-      </div>
       {/* 결과가 자동으로 바뀌므로 보조기기에 알린다 */}
       <div aria-live="polite">{result?.ok ? <BundleResultCard result={result} onAdd={onAdd} /> : null}</div>
     </div>
@@ -476,8 +473,8 @@ const EMPTY_SHIPPING: ShippingRawInput = { price: '', shipping: '', threshold: '
 // AC26 예시: 27,000원 + 배송비 3,000원, 무료배송 기준 30,000원, 8,000원 추가
 const EXAMPLE_SHIPPING: ShippingRawInput = { price: '27000', shipping: '3000', threshold: '30000', add: '8000' }
 
-function ShippingCompare() {
-  const [state, setState] = useState(fresh(EMPTY_SHIPPING))
+function ShippingCompare({ startWithExample }: { startWithExample: boolean }) {
+  const [state, setState] = useState(() => (startWithExample ? filled(EXAMPLE_SHIPPING) : fresh(EMPTY_SHIPPING)))
   const { form, touched } = state
   const checked = validateShippingInput(form)
   const result = checked.value ? compareFreeShipping(checked.value) : null
@@ -503,6 +500,15 @@ function ShippingCompare() {
     <div className="stack">
       <h3 className="section-title">무료배송 채우기</h3>
       <p className="note">무료배송 기준을 맞추려고 물건을 더 담으면 총지출이 어떻게 바뀌는지 봐요.</p>
+      <ExampleIntro
+        sides={[
+          ['지금', ['장바구니 27,000원', '배송비 3,000원', '총 30,000원']],
+          ['더 담으면', ['8,000원어치 추가', '30,000원부터 무료배송', '총 35,000원']],
+        ]}
+        conclusion="배송비 3,000원을 아끼려다 총지출이 5,000원 늘어요"
+        onExample={() => setState(filled(EXAMPLE_SHIPPING))}
+        onReset={() => setState(fresh(EMPTY_SHIPPING))}
+      />
       <fieldset className="card stack">
         <legend className="card-title">주문 정보</legend>
         {field('price', '현재 상품 금액', '지금 장바구니의 상품 금액 (배송비 제외)')}
@@ -510,10 +516,6 @@ function ShippingCompare() {
         {field('threshold', '무료배송 기준 금액')}
         {field('add', '추가할 상품 금액', '여러 개면 합쳐서')}
       </fieldset>
-      <div className="btn-row">
-        <Button onClick={() => setState(filled(EXAMPLE_SHIPPING))}>예시 넣기</Button>
-        <Button onClick={() => setState(fresh(EMPTY_SHIPPING))}>초기화</Button>
-      </div>
       <div aria-live="polite">{result ? <ShippingResultCard result={result} /> : null}</div>
     </div>
   )
@@ -560,5 +562,51 @@ function ShippingResultCard({ result }: { result: ShippingResult }) {
       <p className="price price-lg">{shippingVerdict(result)}</p>
       <p className="note">총지출은 상품 금액과 배송비를 더한 금액이에요. 추가하는 물건이 정말 필요한지는 직접 판단해 주세요.</p>
     </section>
+  )
+}
+
+// 이럴 때 써요 (2026-10-11 제작자 요청): 무엇을 비교하는 도구인지 예시 두 칸과 결론 한 줄로 먼저 보여준다.
+// 예시 넣기·초기화도 입력칸 위에 둔다(입력칸 10여 개 아래에 있어 찾기 어렵던 문제)
+function ExampleIntro({
+  sides,
+  conclusion,
+  onExample,
+  onReset,
+}: {
+  sides: [[string, string[]], [string, string[]]]
+  conclusion: string
+  onExample: () => void
+  onReset: () => void
+}) {
+  return (
+    <section className="card stack example-intro" aria-label="이럴 때 써요">
+      <p className="field-label">이럴 때 써요</p>
+      <div className="intro-sides">
+        <IntroSide title={sides[0][0]} lines={sides[0][1]} />
+        <span className="intro-vs" aria-hidden="true">
+          vs
+        </span>
+        <IntroSide title={sides[1][0]} lines={sides[1][1]} />
+      </div>
+      <p className="intro-conclusion">{conclusion}</p>
+      <p className="note">예시 넣기로 아래 칸을 이 값으로 채울 수 있어요. 내 값으로 바꾸거나 초기화로 비워 보세요.</p>
+      <div className="btn-row">
+        <Button onClick={onExample}>예시 넣기</Button>
+        <Button onClick={onReset}>초기화</Button>
+      </div>
+    </section>
+  )
+}
+
+function IntroSide({ title, lines }: { title: string; lines: string[] }) {
+  return (
+    <div className="intro-side">
+      <p className="intro-title">{title}</p>
+      <ul className="plain-list">
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    </div>
   )
 }
