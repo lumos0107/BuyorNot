@@ -203,9 +203,9 @@ React·TypeScript·Vite로 만든다. 할인 비교와 묶음상품 비교가 �
 
 계산·시각 규칙은 화면 컴포넌트와 분리한 순수 함수로 만들고, Vitest로 검증 사례를 자동 테스트한다. 타입 검사로는 타입 실수만 잡을 수 있으므로 원 단위 내림, 할인 상한, 단위 환산 같은 규칙은 테스트로 확인한다. 로컬 실행은 `npm run dev`, 테스트는 `npm test`, 배포용 빌드는 `npm run build`로 한다.
 
-결과물은 웹사이트 링크로 제출한다. main 브랜치에 push하면 GitHub Actions가 빌드해 GitHub Pages(https://lumos0107.github.io/BuyorNot/)에 자동으로 배포한다. Vite의 `base`는 저장소 경로(`/BuyorNot/`)로 설정한다. 화면 전환은 React 상태로 처리해, GitHub Pages에서 새로고침해도 404가 나지 않게 한다.
+결과물은 웹사이트 링크로 제출한다. main 브랜치에 push하면 GitHub Actions가 빌드해 GitHub Pages(https://lumos0107.github.io/BuyorNot/)에 자동으로 배포한다. Vite의 `base`는 저장소 경로(`/BuyorNot/`)로 설정한다. 화면 전환은 React 상태로 처리해, GitHub Pages에서 새로고침해도 404가 나지 않게 한다. Pages의 Source는 Vite 파일을 처음 push하기 전에 GitHub Actions로 바꾼다.
 
-GitHub 저장소는 Public이어야 한다. 원격 저장소 연결은 확인했으나 공개 설정은 별도 확인 대상이다. Todo의 작은 작업 묶음이 끝날 때마다 검증 후 commit·push하고, 작업이 길어지면 실행 가능한 중간 상태를 나눠 올린다.
+GitHub 저장소는 Public이어야 하며, 2026-10-11에 Public 설정과 원격 연결·push를 확인했다. Todo의 작은 작업 묶음이 끝날 때마다 검증 후 commit·push하고, 작업이 길어지면 실행 가능한 중간 상태를 나눠 올린다.
 
 발표 산출물은 서비스 소개와 시연, 이 PRD와 Todo, 개발 중 GitHub 이력, 실제 경험한 바이브 코딩의 장단점, 개선점과 결론이다. AI 요청·결과·오류·수정 이유를 작업마다 남긴다.
 
