@@ -83,14 +83,14 @@ describe('화면 연결과 안내', () => {
     expect(screen.getByRole('form', { name: '물건 담기' })).toBeInTheDocument()
   })
 
-  it('목록이 비어 있으면 예시 물건을 넣어 재검토 가능 상태를 바로 볼 수 있다', async () => {
+  it('목록이 비어 있으면 예시 물건을 넣어 고민 중인 물건을 바로 볼 수 있다 (F27: 예시 둘은 같은 단계)', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     const panel = within(screen.getByRole('tabpanel'))
     const articles = panel.getAllByRole('article')
     expect(articles.length).toBeGreaterThanOrEqual(2)
-    expect(panel.getByText('재검토 가능')).toBeInTheDocument()
+    expect(panel.getAllByText(/^고민 중 · \d일 남음$/)).toHaveLength(2)
     expect(panel.getAllByText(/^\(예시\)/).length).toBe(articles.length)
     // 예시도 보통 기록처럼 저장된다
     expect(localStorage.getItem(STORAGE_KEY)).toContain('(예시)')

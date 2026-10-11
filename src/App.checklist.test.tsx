@@ -76,9 +76,10 @@ describe('담을 때 질문 6개', () => {
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
     render(<App />)
-    const answers = within(card('캠핑 의자').getByRole('list', { name: '답한 것' }))
-    expect(answers.getByText('할인 때문은 아니에요')).toBeInTheDocument()
-    expect(answers.getByText('놓을 곳과 쓸 시간이 있어요')).toBeInTheDocument()
-    expect(answers.getByText('대신하기 어려워요')).toBeInTheDocument()
+    // F27: 카드 체크리스트에 질문과 답이 함께 보인다
+    const rows = within(card('캠핑 의자').getByRole('list', { name: '체크리스트' })).getAllByRole('listitem')
+    expect(rows[3]).toHaveTextContent('할인·한정 때문인가요?아니요다시 답하기')
+    expect(rows[4]).toHaveTextContent('놓을 곳과 쓸 시간이 있나요?있어요다시 답하기')
+    expect(rows[5]).toHaveTextContent('빌리거나 중고로 대신할 수 있나요?어려워요다시 답하기')
   })
 })

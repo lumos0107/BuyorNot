@@ -296,7 +296,7 @@ export function reconsiderItem(item: WishItem, now: Date): WishItem {
 /** 시연용 예시 기록인지: 이름이 "(예시)"로 시작한다 (예시 물건·예시 구독 공통) */
 export const isExample = (name: string) => name.startsWith('(예시)')
 
-// 발표·시연용 가상 데이터. 재검토 가능한 것, 고민 중인 것, 이미 결정한 것을 하나씩 만든다. 보통 기록처럼 저장된다.
+// 발표·시연용 가상 데이터. 고민 중인 것 둘과 이미 결정한 것 둘을 만든다. 보통 기록처럼 저장된다.
 export function demoItems(now: Date, nextId: () => string): WishItem[] {
   const ago = (days: number) => new Date(now.getTime() - days * DAY_MS)
   const make = (
@@ -330,10 +330,10 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
     }
   }
   return [
-    // 담을 때 답한 것과 고민하는 동안 줄어든 정도가 있어 재검토 카드·사기 전 점검·오늘의 고민(F09, F15, F22)을 시연할 수 있다
-    make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 3, undefined, { haveOne: 'yes', useInMonth: 'unsure', alternative: 'no' }, { start: 4, checks: [[3, 3], [2, 2]] }),
-    // 아직 답하지 않은 질문이 있어 카드의 생각해 볼 질문을 시연할 수 있다
-    make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 1, 7, undefined, undefined, { start: 3, checks: [] }),
+    // 고민 중인 예시 둘은 같은 단계로 맞춘다 (F27): 체크리스트 3/6, 펼친 첫 질문은 문제 설명, 며칠에 걸친 정도 기록.
+    // 사기 전 점검·오늘의 고민(F15, F22)과 체크리스트를 시연할 수 있다
+    make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 7, undefined, { haveOne: 'yes', useInMonth: 'unsure', alternative: 'no' }, { start: 4, checks: [[3, 3], [2, 2]] }),
+    make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 2, 7, undefined, { haveOne: 'no', useInMonth: 'yes', spaceTime: 'yes' }, { start: 3, checks: [[1, 3]] }),
     // 고민하는 동안 정도가 줄어 포기한 기록과, 줄지 않아 산 기록 (결정 기록의 고민 효과)
     make('게이밍 키보드', 149000, '세일이라 담았는데 지금 키보드도 멀쩡해서', 7, 3, { status: 'skipped', daysAgo: 3 }, undefined, { start: 5, checks: [[6, 4], [4, 2]] }),
     // 구매 후 7일이 지나 회고를 물을 수 있는 기록 (F12)

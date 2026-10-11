@@ -463,26 +463,6 @@ a {
   gap: 4px;
 }
 
-.answers {
-  font-size: 14px;
-  color: var(--muted);
-  border-left: 3px solid var(--line);
-  padding-left: 10px;
-}
-
-/* 답 옆의 다시 답하기 (F22): 한 줄에 놓아 목록이 길어지지 않게 */
-.answers li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.answers li .link-btn {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
 /* 띄어쓰기 없는 긴 답·이름도 칸 안에서 줄을 바꾼다 (낱말 단위 줄바꿈의 예외, GPT 코드 검토) */
 .answer-text,
 .card-row .card-title {
@@ -632,4 +612,61 @@ details > summary {
   .ab-grid {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* 카드 체크리스트 (F27): 질문 6개를 한 줄씩. 답한 줄은 질문 아래 답, 펼친 줄은 그 자리에서 답한다 */
+.checklist {
+  gap: 0;
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.check-row:first-child {
+  border-top: 0;
+}
+
+.check-row .answer-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check-row .link-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.check-answer {
+  color: var(--muted);
+}
+
+.check-open {
+  flex: 1;
+  min-width: 0;
+}
+
+.check-mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  color: var(--surface);
+}
+
+.check-mark.is-done {
+  background: var(--accent);
+  border-color: var(--accent);
 }

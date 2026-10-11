@@ -38,7 +38,7 @@ describe('담기 폼 줄이기 (F24, AC43)', () => {
     await fillBasics(user)
     await user.click(form().getByRole('button', { name: '담아 두기' }))
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0]).not.toHaveProperty('answers')
-    expect(within(card('전기 포트').getByRole('region', { name: '오늘의 고민' })).getByText('생각해 볼 질문 · 6개 남음')).toBeInTheDocument()
+    expect(within(card('전기 포트').getByRole('region', { name: '오늘의 고민' })).getByText('체크리스트 0/6')).toBeInTheDocument()
   })
 
   it('링크가 잘못돼 담지 못하면 접힌 링크 영역을 펼치고 그 입력으로 포커스를 옮긴다', async () => {

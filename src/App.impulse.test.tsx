@@ -128,14 +128,15 @@ describe('사기 전에 한 번 더 (F15, AC29)', () => {
 })
 
 describe('시연용 예시 데이터 (F15)', () => {
-  it('예시 헤드폰은 담을 때 답이 있어, 카드에 답이 보이고 구매함을 누르면 걸리는 점 2개를 보여준다', async () => {
+  it('예시 헤드폰은 답이 있고 아직 고민 중이라, 구매함을 누르면 걸리는 점 3개를 보여준다 (F27: 예시 둘은 고민 중)', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
-    expect(card('(예시) 무선 헤드폰').getByRole('list', { name: '답한 것' })).toBeInTheDocument()
+    expect(card('(예시) 무선 헤드폰').getByText('체크리스트 3/6')).toBeInTheDocument()
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매함' }))
     const check = within(card('(예시) 무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
-    expect(check.getByText('사기 전에 한 번 더 · 걸리는 점 2개')).toBeInTheDocument()
+    expect(check.getByText('사기 전에 한 번 더 · 걸리는 점 3개')).toBeInTheDocument()
+    expect(check.getByText('고민 기간이 3일 남았어요')).toBeInTheDocument()
     expect(check.getByText("'지금 쓰는 게 있어요'라고 답했어요")).toBeInTheDocument()
     expect(check.getByText("'한 달 뒤에도 쓸까요?'에 '모르겠어요'라고 답했어요")).toBeInTheDocument()
   })

@@ -55,10 +55,11 @@ describe('담을 때 질문 (F09)', () => {
     unmount()
     setup()
     await passTime(25 * HOUR)
-    const answers = within(card('무선 헤드폰').getByRole('list', { name: '답한 것' }))
-    expect(answers.getByText('지금 쓰는 게 없어요')).toBeInTheDocument()
-    expect(answers.getByText('없으면 생기는 문제: 출퇴근길에 음악을 못 들어요')).toBeInTheDocument()
-    expect(answers.getByText('한 달 뒤에도 쓸지: 모르겠어요')).toBeInTheDocument()
+    // F27: 답은 카드 체크리스트에 질문과 함께 보인다
+    const rows = within(card('무선 헤드폰').getByRole('list', { name: '체크리스트' })).getAllByRole('listitem')
+    expect(rows[0]).toHaveTextContent('없으면 어떤 문제가 있나요?출퇴근길에 음악을 못 들어요다시 답하기')
+    expect(rows[1]).toHaveTextContent('한 달 뒤에도 쓸까요?모르겠어요다시 답하기')
+    expect(rows[2]).toHaveTextContent('지금 쓰는 게 있나요?없어요다시 답하기')
   })
 
   it('AC20: 일부만 답하면 답한 것만 보이고, 답하지 않아도 담긴다', async () => {
@@ -70,10 +71,12 @@ describe('담을 때 질문 (F09)', () => {
     await fillBasics(user, '로봇청소기')
     await user.click(form().getByRole('button', { name: '담아 두기' }))
     await passTime(25 * HOUR)
-    const answers = within(card('무선 헤드폰').getByRole('list', { name: '답한 것' }))
-    expect(answers.getAllByRole('listitem')).toHaveLength(1)
-    expect(answers.getByText('없으면 생기는 문제: 음악')).toBeInTheDocument()
-    expect(card('로봇청소기').queryByRole('list', { name: '답한 것' })).not.toBeInTheDocument()
+    expect(card('무선 헤드폰').getByText('체크리스트 1/6')).toBeInTheDocument()
+    expect(card('무선 헤드폰').getAllByRole('button', { name: /다시 답하기$/ })).toHaveLength(1)
+    expect(within(card('무선 헤드폰').getByRole('list', { name: '체크리스트' })).getAllByRole('listitem')[0]).toHaveTextContent(
+      '없으면 어떤 문제가 있나요?음악다시 답하기',
+    )
+    expect(card('로봇청소기').getByText('체크리스트 0/6')).toBeInTheDocument()
   })
 
   it('AC20: 문제 설명이 201자면 오류를 보여주고 저장하지 않는다', async () => {
@@ -85,7 +88,7 @@ describe('담을 때 질문 (F09)', () => {
     await user.paste('가'.repeat(201))
     await user.click(note('무선 헤드폰').getByRole('button', { name: '답하기' }))
     expect(problem).toHaveAccessibleDescription(/200자/)
-    expect(card('무선 헤드폰').queryByRole('list', { name: '답한 것' })).not.toBeInTheDocument()
+    expect(card('무선 헤드폰').queryByRole('button', { name: /다시 답하기$/ })).not.toBeInTheDocument()
   })
 })
 

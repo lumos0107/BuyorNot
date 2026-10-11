@@ -115,7 +115,7 @@ describe('갖고 싶은 정도 (F22, AC36)', () => {
 describe('생각해 볼 질문 (F22, AC37)', () => {
   it('답하지 않은 물건은 문제 설명부터 묻고, 빈 답은 오류, 답하면 다음 질문으로 포커스를 옮긴다', async () => {
     const user = setup(thing())
-    expect(note('무선 헤드폰').getByText('생각해 볼 질문 · 6개 남음')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('체크리스트 0/6')).toBeInTheDocument()
     const input = note('무선 헤드폰').getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' })
     await user.click(note('무선 헤드폰').getByRole('button', { name: '답하기' }))
     expect(input).toHaveAttribute('aria-invalid', 'true')
@@ -124,7 +124,7 @@ describe('생각해 볼 질문 (F22, AC37)', () => {
     await user.type(input, ' 출퇴근 때 못 들어요 ')
     await user.click(note('무선 헤드폰').getByRole('button', { name: '답하기' }))
     expect(saved()[0].answers).toEqual({ problem: '출퇴근 때 못 들어요' })
-    expect(note('무선 헤드폰').getByText('생각해 볼 질문 · 5개 남음')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('체크리스트 1/6')).toBeInTheDocument()
     expect(note('무선 헤드폰').getByText('한 달 뒤에도 쓸까요?')).toHaveFocus()
   })
 
@@ -151,13 +151,14 @@ describe('생각해 볼 질문 (F22, AC37)', () => {
     const user = setup(thing({ answers: { problem: '음악' } }))
     await user.click(note('무선 헤드폰').getByRole('button', { name: '쓸 것 같아요' }))
     expect(saved()[0].answers).toEqual({ problem: '음악', useInMonth: 'yes' })
-    expect(note('무선 헤드폰').getByText('생각해 볼 질문 · 4개 남음')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('체크리스트 2/6')).toBeInTheDocument()
     expect(note('무선 헤드폰').getByText('지금 쓰는 게 있나요?')).toHaveFocus()
   })
 
   it('이유에 할인 문구가 있어도 카드에서는 할인 질문을 묻는다', () => {
     setup(thing({ reason: '세일이라서' }))
-    expect(note('무선 헤드폰').getByText('생각해 볼 질문 · 6개 남음')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('체크리스트 0/6')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByRole('button', { name: '‘할인·한정 때문인가요?’ 답하기' })).toBeInTheDocument()
   })
 
   it('할인 질문에 아니요라고 답하면 점검에서 이유의 할인 문구를 근거로 세지 않는다', async () => {
@@ -172,17 +173,18 @@ describe('생각해 볼 질문 (F22, AC37)', () => {
   it('모두 답하면 질문 칸이 사라지고 오늘의 고민 제목으로 포커스를 옮긴다', async () => {
     const user = setup(thing({ answers: { problem: '음악', useInMonth: 'yes', haveOne: 'no', saleDriven: 'no', spaceTime: 'yes' } }))
     await user.click(note('무선 헤드폰').getByRole('button', { name: '어려워요' }))
-    expect(note('무선 헤드폰').queryByText(/생각해 볼 질문/)).not.toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('체크리스트 6/6')).toBeInTheDocument()
+    expect(note('무선 헤드폰').queryByRole('button', { name: '어려워요' })).not.toBeInTheDocument()
     expect(note('무선 헤드폰').getByText('오늘의 고민')).toHaveFocus()
   })
 
-  it('답한 것은 고민 중에도 보이고, 다시 답하기를 누르면 그 답이 지워져 질문으로 돌아간다', async () => {
+  it('답한 것은 고민 중에도 체크리스트에 보이고, 다시 답하기를 누르면 그 답이 지워져 질문으로 돌아간다 (F27)', async () => {
     const user = setup(thing({ answers: { problem: '음악', useInMonth: 'yes', haveOne: 'yes' } }))
-    const answers = within(card('무선 헤드폰').getByRole('list', { name: '답한 것' }))
-    expect(answers.getByText('지금 쓰는 게 있어요')).toBeInTheDocument()
-    await user.click(answers.getByRole('button', { name: '‘지금 쓰는 게 있어요’ 다시 답하기' }))
+    const answers = within(card('무선 헤드폰').getByRole('list', { name: '체크리스트' }))
+    expect(answers.getByText('있어요')).toBeInTheDocument()
+    await user.click(answers.getByRole('button', { name: '‘지금 쓰는 게 있나요?’ 다시 답하기' }))
     expect(saved()[0].answers).toEqual({ problem: '음악', useInMonth: 'yes' })
-    expect(note('무선 헤드폰').getByText('생각해 볼 질문 · 4개 남음')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('체크리스트 2/6')).toBeInTheDocument()
     expect(note('무선 헤드폰').getByText('지금 쓰는 게 있나요?')).toHaveFocus()
   })
 

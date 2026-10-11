@@ -4,7 +4,7 @@ import { DESIRE_LEVELS, DESIRE_TEXT, desireTrend } from '../logic/desire'
 import type { WishDraft } from '../logic/draft'
 import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
-import { CHOICES, QUESTION_TEXT, cardQuestions, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
+import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
 import {
@@ -12,7 +12,6 @@ import {
   EXTEND_DAYS,
   coolingDays,
   isExample,
-  answerLines,
   formatRemaining,
   reviewState,
   sortConsidering,
@@ -463,19 +462,6 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
         ) : null}
       </p>
       <p>처음 적은 이유: {item.reason}</p>
-      {/* 답한 것 (F09, F22): 고민 중에도 보이고, 잘못 누른 답은 다시 답하기로 지워 질문으로 돌린다 */}
-      {answerLines(item.answers).length > 0 ? (
-        <ul className="plain-list answers" aria-label="답한 것">
-          {answerLines(item.answers).map(({ key, text }) => (
-            <li key={key}>
-              <span className="answer-text">{text}</span>{' '}
-              <button type="button" className="link-btn" aria-label={`‘${text}’ 다시 답하기`} onClick={() => answerAndFocus(key, undefined)}>
-                다시 답하기
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
       <GominNote item={item} now={now} focusTick={noteFocus} onCheckDesire={(level) => onCheckDesire(item.id, level)} onAnswer={answerAndFocus} />
       <CompareLinks name={item.name} />
 
@@ -724,7 +710,8 @@ function DesireScale({
   )
 }
 
-// 오늘의 고민 (F22): 오늘 갖고 싶은 정도와, 아직 답하지 않은 질문 하나. 하루에 하나로 제한하지 않는다
+// 오늘의 고민 (F22): 오늘 갖고 싶은 정도와 체크리스트 (F27). 질문 6개를 늘 목록으로 보여주고,
+// 답한 것은 답과 다시 답하기, 펼친 질문 하나(고른 것, 없으면 답하지 않은 첫 질문)는 그 자리에서 답한다
 function GominNote({
   item,
   now,
@@ -734,21 +721,27 @@ function GominNote({
 }: {
   item: WishItem
   now: Date
-  /** 늘어나면 지금 보이는 질문 문장(없으면 제목)으로 포커스를 옮긴다 */
+  /** 늘어나면 지금 펼친 질문 문장(없으면 제목)으로 포커스를 옮긴다 */
   focusTick: number
   onCheckDesire: (level: DesireLevel) => void
-  onAnswer: (key: QuestionKey, value: Answers[QuestionKey]) => void
+  /** 값 없이 부르면 다시 답하기(답을 지운다) */
+  onAnswer: (key: QuestionKey, value: Answers[QuestionKey] | undefined) => void
 }) {
   const today = formatDate(now.toISOString())
   const todayLevel = item.desireChecks?.find((check) => check.day === today)?.level
   const questions = cardQuestions(item)
+  // 답하기·다시 답하기로 고른 질문. 답하면 다시 답하지 않은 첫 질문을 펼친다
+  const [picked, setPicked] = useState<QuestionKey | null>(null)
+  const openKey = picked && questions.includes(picked) ? picked : (questions[0] ?? null)
+  const [pickTick, setPickTick] = useState(0)
   const titleRef = useRef<HTMLParagraphElement>(null)
   const questionRef = useRef<HTMLParagraphElement>(null)
   useEffect(() => {
-    if (focusTick === 0) return
+    if (focusTick === 0 && pickTick === 0) return
     const target = questionRef.current ?? titleRef.current
     target?.focus()
-  }, [focusTick])
+  }, [focusTick, pickTick])
+  const answered = QUESTION_ORDER.length - questions.length
 
   return (
     <section className="gomin-note stack" aria-label="오늘의 고민">
@@ -756,35 +749,89 @@ function GominNote({
         오늘의 고민
       </p>
       <DesireScale legend="지금 얼마나 갖고 싶나요?" name={`desire-${item.id}`} value={todayLevel} trend={desireTrend(item)} onChange={onCheckDesire} />
-      {questions.length > 0 ? (
-        <NextQuestion
-          key={questions[0]}
-          questionKey={questions[0]}
-          remaining={questions.length}
-          questionRef={questionRef}
-          onAnswer={(value) => onAnswer(questions[0], value)}
-        />
-      ) : null}
+      <p className="field-label">{`체크리스트 ${answered}/${QUESTION_ORDER.length}`}</p>
+      <ul className="plain-list checklist" aria-label="체크리스트">
+        {QUESTION_ORDER.map((key) => {
+          const label = answerLabel(item.answers, key)
+          if (label !== null)
+            return (
+              <li key={key} className="check-row is-done">
+                <CheckMark done />
+                <span className="answer-text">
+                  <span className="check-question">{QUESTION_TEXT[key]}</span>
+                  <span className="check-answer">{label}</span>
+                </span>
+                <button
+                  type="button"
+                  className="link-btn"
+                  aria-label={`‘${QUESTION_TEXT[key]}’ 다시 답하기`}
+                  onClick={() => {
+                    setPicked(key)
+                    onAnswer(key, undefined)
+                  }}
+                >
+                  다시 답하기
+                </button>
+              </li>
+            )
+          if (key === openKey)
+            return (
+              <li key={key} className="check-row is-open">
+                <CheckMark />
+                <OpenQuestion questionKey={key} questionRef={questionRef} onAnswer={(value) => onAnswer(key, value)} />
+              </li>
+            )
+          return (
+            <li key={key} className="check-row">
+              <CheckMark />
+              <span className="answer-text">
+                <span className="check-question">{QUESTION_TEXT[key]}</span>
+              </span>
+              <button
+                type="button"
+                className="link-btn"
+                aria-label={`‘${QUESTION_TEXT[key]}’ 답하기`}
+                onClick={() => {
+                  setPicked(key)
+                  setPickTick((n) => n + 1)
+                }}
+              >
+                답하기
+              </button>
+            </li>
+          )
+        })}
+      </ul>
     </section>
   )
 }
 
-// 생각해 볼 질문 하나 (F22): 선택형은 버튼을 누르면 바로, 문제 설명은 입력 후 "답하기"로 저장한다
-function NextQuestion({
+// 체크 표시 (Tabler check 아이콘). 상태는 행의 답·버튼 문구로 읽히므로 화면 읽기에서 뺀다
+function CheckMark({ done = false }: { done?: boolean }) {
+  return (
+    <span className={done ? 'check-mark is-done' : 'check-mark'} aria-hidden="true">
+      {done ? (
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12l5 5l10 -10" />
+        </svg>
+      ) : null}
+    </span>
+  )
+}
+
+// 펼친 질문 (F22, F27): 선택형은 버튼을 누르면 바로, 문제 설명은 입력 후 "답하기"로 저장한다
+function OpenQuestion({
   questionKey,
-  remaining,
   questionRef,
   onAnswer,
 }: {
   questionKey: QuestionKey
-  remaining: number
   questionRef: Ref<HTMLParagraphElement>
   onAnswer: (value: Answers[QuestionKey]) => void
 }) {
   const textId = useId()
   return (
-    <div className="stack">
-      <p className="note">{`생각해 볼 질문 · ${remaining}개 남음`}</p>
+    <div className="stack check-open">
       <p id={textId} className="field-label" tabIndex={-1} ref={questionRef}>
         {QUESTION_TEXT[questionKey]}
       </p>

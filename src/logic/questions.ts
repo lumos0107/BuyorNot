@@ -73,3 +73,11 @@ export function validateProblem(raw: string): { value?: string; error?: string }
   if (trimmed.length > NOTE_MAX) return { error: `메모는 ${NOTE_MAX}자 이하로 적어 주세요` }
   return { value: trimmed }
 }
+
+/** 카드 체크리스트에 보일 답 (F27): 선택형은 버튼 문구, 문제 설명은 적은 글. 답하지 않았으면 null */
+export function answerLabel(answers: Answers | undefined, key: QuestionKey): string | null {
+  if (!answers || !hasAnswer(answers, key)) return null
+  if (key === 'problem') return answers.problem!.trim()
+  const value = answers[key]
+  return (CHOICES[key] as readonly (readonly [string, string])[]).find(([choice]) => choice === value)?.[1] ?? null
+}
