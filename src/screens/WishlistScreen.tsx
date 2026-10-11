@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
+import type { WishDraft } from '../logic/draft'
 import { impulseSignals, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
 import { sameRecord } from '../logic/records'
@@ -47,9 +48,26 @@ type Props = {
   onReconsider?: (id: string) => void
   /** 사기 전 점검에서 금액을 시간으로 보여줄 때 쓴다 (결정 기록의 시급 설정) */
   hourlyWage?: number | null
+  /** 가격 비교에서 가져온 가격과 이유 (F21) */
+  draft?: WishDraft | null
+  onDraftUsed?: () => void
 }
 
-export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, onRemove, onAddDemo, onRemoveExamples, onReconsider, hourlyWage = null }: Props) {
+export function WishlistScreen({
+  items,
+  now,
+  onAdd,
+  onEdit,
+  onDecide,
+  onExtend,
+  onRemove,
+  onAddDemo,
+  onRemoveExamples,
+  onReconsider,
+  hourlyWage = null,
+  draft = null,
+  onDraftUsed,
+}: Props) {
   const considering = sortConsidering(items, now)
   const exampleCount = items.filter((item) => isExample(item.name)).length
   // 결정·삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다 (키보드 사용자가 위치를 잃지 않게)
@@ -99,7 +117,7 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
           }}
         />
       ) : null}
-      <AddForm onAdd={onAdd} items={items} now={now} />
+      <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} />
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
@@ -151,13 +169,40 @@ const EMPTY_ADD: AddRaw = { name: '', price: '', reason: '', url: '', preset: 3,
 type AnswersRaw = Omit<Answers, 'problem'> & { problem: string }
 const EMPTY_ANSWERS: AnswersRaw = { problem: '' }
 
-function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; items: WishItem[]; now: Date }) {
+function AddForm({
+  onAdd,
+  items,
+  now,
+  draft,
+  onDraftUsed,
+}: {
+  onAdd: (input: NewWishInput) => void
+  items: WishItem[]
+  now: Date
+  draft: WishDraft | null
+  onDraftUsed?: () => void
+}) {
   const [raw, setRaw] = useState<AddRaw>(EMPTY_ADD)
   const [answers, setAnswers] = useState<AnswersRaw>(EMPTY_ANSWERS)
   const [attempted, setAttempted] = useState(false)
   const problemCheck = validateNote(answers.problem)
   const questionsRef = useRef<HTMLDetailsElement>(null)
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
+  // 가격 비교에서 고른 쪽의 가격과 이유를 채우고 상품명으로 포커스를 옮긴다 (F21). 적던 상품명은 지우지 않는다.
+  // 새 비교 값은 그리는 중에 알아차려 폼에 넣고(이전 값 기억), 포커스 이동과 알림은 그린 뒤에 한다
+  const [fromCompare, setFromCompare] = useState(false)
+  const [appliedDraft, setAppliedDraft] = useState<WishDraft | null>(null)
+  if (draft && draft !== appliedDraft) {
+    setAppliedDraft(draft)
+    setRaw((r) => ({ ...r, price: String(draft.price), reason: draft.reason }))
+    setAttempted(false)
+    setFromCompare(true)
+  }
+  useEffect(() => {
+    if (!draft) return
+    formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+    onDraftUsed?.()
+  }, [draft, onDraftUsed, formRef])
   const similar = findSimilar(raw.name, items, now)
   const days = raw.preset === 'custom' ? raw.customDays : String(raw.preset)
   const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url })
@@ -177,11 +222,17 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
     setRaw(EMPTY_ADD)
     setAnswers(EMPTY_ANSWERS)
     setAttempted(false)
+    setFromCompare(false)
   }
 
   return (
     <form className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate ref={formRef}>
       <p className="card-title">물건 담기</p>
+      {fromCompare ? (
+        <p className="note" role="status">
+          가격 비교에서 가격과 이유를 가져왔어요. 상품명을 적고 담아 두세요.
+        </p>
+      ) : null}
       <TextField
         label="상품명"
         placeholder="예: 무선 헤드폰"

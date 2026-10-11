@@ -169,6 +169,12 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
       }
       setStatus(write(items))
     },
+    /** 백업 불러오기 (F20): 사용자가 확인했으므로 지금 기록을 파일의 기록으로 바꾼다 */
+    replaceAll: (next: WishItem[]) => {
+      setItems(next)
+      setStatus(write(next))
+      setNow(new Date())
+    },
     /** 다른 탭 내용을 불러왔다는 알림을 닫는다 */
     dismissNotice: () => setStatus({ kind: 'ok' }),
   }

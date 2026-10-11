@@ -10,6 +10,13 @@ const EMPTY: Settings = { schemaVersion: 1, hourlyWage: null }
 
 const isWage = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= WAGE_MIN && (v as number) <= WAGE_MAX
 
+/** 저장·백업된 설정 값이 올바른지 (F20 백업 불러오기에서 엄격하게 쓴다) */
+export function isValidSettings(v: unknown): v is Settings {
+  if (typeof v !== 'object' || v === null) return false
+  const o = v as Record<string, unknown>
+  return o.schemaVersion === 1 && (o.hourlyWage === null || isWage(o.hourlyWage))
+}
+
 export function validateWage(raw: string): { value?: number | null; error?: string } {
   if (raw.trim() === '') return { value: null }
   const parsed = parseInteger(raw)

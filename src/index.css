@@ -506,6 +506,16 @@ details > summary {
   font-size: 15px;
 }
 
+/* 백업 파일 고르기: 기본 파일 입력에 44px 높이와 여백만 맞춘다 */
+.file-input {
+  padding: 8px 12px;
+}
+
+/* 앱 맨 아래 백업·복원 칸은 메뉴 화면과 간격을 둔다 */
+.app > details.card {
+  margin-top: 24px;
+}
+
 .app-footer {
   margin-top: 32px;
   font-size: 13px;

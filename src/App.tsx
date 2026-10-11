@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import type { WishDraft } from './logic/draft'
+import { BackupSection } from './screens/BackupSection'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { SubscriptionScreen } from './screens/SubscriptionScreen'
@@ -21,6 +23,8 @@ const SCREENS: readonly TabItem<Screen>[] = [
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('wishlist')
+  // 가격 비교에서 고른 쪽을 고민 목록의 담기 폼에 채운다 (F21)
+  const [draft, setDraft] = useState<WishDraft | null>(null)
   const wishlist = useWishlist()
   const settings = useSettings()
   const subscriptions = useSubscriptions()
@@ -65,10 +69,18 @@ export default function App() {
             onRemoveExamples={wishlist.removeExamples}
             onReconsider={wishlist.reconsider}
             hourlyWage={settings.hourlyWage}
+            draft={draft}
+            onDraftUsed={() => setDraft(null)}
           />
         </TabPanel>
         <TabPanel id="compare" hidden={screen !== 'compare'}>
-          <CompareScreen onGoToWishlist={() => setScreen('wishlist')} />
+          <CompareScreen
+            onGoToWishlist={() => setScreen('wishlist')}
+            onAddToWishlist={(next) => {
+              setDraft(next)
+              setScreen('wishlist')
+            }}
+          />
         </TabPanel>
         <TabPanel id="history" hidden={screen !== 'history'}>
           <HistoryScreen
@@ -98,6 +110,15 @@ export default function App() {
           />
         </TabPanel>
       </main>
+
+      <BackupSection
+        data={{ items: wishlist.items, hourlyWage: settings.hourlyWage, subscriptions: subscriptions.items }}
+        onImport={(data) => {
+          wishlist.replaceAll(data.items)
+          settings.setHourlyWage(data.hourlyWage)
+          subscriptions.replaceAll(data.subscriptions)
+        }}
+      />
 
       <footer className="app-footer">
         기록은 이 브라우저에만 저장돼요. 브라우저 데이터를 지우거나 다른 기기에서 열면 보이지 않아요.

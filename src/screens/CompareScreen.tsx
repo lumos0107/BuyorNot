@@ -16,6 +16,7 @@ import {
   type ShippingRawInput,
   type ShippingResult,
 } from '../logic/shipping'
+import { bundleDraft, discountDraft, type WishDraft } from '../logic/draft'
 import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
 import { TabPanel, Tabs, type TabItem } from '../ui/Tabs'
@@ -28,17 +29,24 @@ const KINDS: readonly TabItem<CompareKind>[] = [
   { id: 'shipping', label: '무료배송 채우기' },
 ]
 
-export function CompareScreen({ onGoToWishlist }: { onGoToWishlist?: () => void }) {
+export function CompareScreen({
+  onGoToWishlist,
+  onAddToWishlist,
+}: {
+  onGoToWishlist?: () => void
+  /** 비교 결과를 고민 목록에 담기 (F21) */
+  onAddToWishlist?: (draft: WishDraft) => void
+}) {
   const [kind, setKind] = useState<CompareKind>('discount')
   return (
     <div className="stack">
       <h2 className="screen-title">가격 비교</h2>
       <Tabs label="가격 비교 종류" tabs={KINDS} value={kind} onChange={setKind} sub />
       <TabPanel id="discount" hidden={kind !== 'discount'}>
-        <DiscountCompare />
+        <DiscountCompare onAdd={onAddToWishlist} />
       </TabPanel>
       <TabPanel id="bundle" hidden={kind !== 'bundle'}>
-        <BundleCompare />
+        <BundleCompare onAdd={onAddToWishlist} />
       </TabPanel>
       <TabPanel id="shipping" hidden={kind !== 'shipping'}>
         <ShippingCompare />
@@ -73,7 +81,7 @@ const EMPTY_DISCOUNT: DiscountRawInput = { price: '', coupon: 'rate', value: '',
 const EXAMPLE_DISCOUNT_A: DiscountRawInput = { price: '80000', coupon: 'rate', value: '15', minOrder: '', maxDiscount: '10000', shipping: '3000' }
 const EXAMPLE_DISCOUNT_B: DiscountRawInput = { price: '80000', coupon: 'amount', value: '8000', minOrder: '', maxDiscount: '', shipping: '0' }
 
-function DiscountCompare() {
+function DiscountCompare({ onAdd }: { onAdd?: (draft: WishDraft) => void }) {
   const [a, setA] = useState(fresh(EMPTY_DISCOUNT))
   const [b, setB] = useState(fresh(EMPTY_DISCOUNT))
 
@@ -107,7 +115,7 @@ function DiscountCompare() {
           초기화
         </Button>
       </div>
-      <div aria-live="polite">{sideA && sideB ? <DiscountResultCard a={sideA} b={sideB} /> : null}</div>
+      <div aria-live="polite">{sideA && sideB ? <DiscountResultCard a={sideA} b={sideB} onAdd={onAdd} /> : null}</div>
     </div>
   )
 }
@@ -207,7 +215,7 @@ function DiscountCard({ name, state, errors, onChange }: DiscountCardProps) {
   )
 }
 
-function DiscountResultCard({ a, b }: { a: DiscountSide; b: DiscountSide }) {
+function DiscountResultCard({ a, b, onAdd }: { a: DiscountSide; b: DiscountSide; onAdd?: (draft: WishDraft) => void }) {
   const comparison = compareDiscounts(a, b)
   const verdictText =
     comparison.cheaper === 'tie'
@@ -220,6 +228,12 @@ function DiscountResultCard({ a, b }: { a: DiscountSide; b: DiscountSide }) {
       <DiscountSideSummary name="A안" side={a} />
       <DiscountSideSummary name="B안" side={b} />
       <p className="price price-lg">{verdictText}</p>
+      {onAdd ? (
+        <div className="btn-row">
+          <Button onClick={() => onAdd(discountDraft('A안', a))}>A안으로 담기</Button>
+          <Button onClick={() => onAdd(discountDraft('B안', b))}>B안으로 담기</Button>
+        </div>
+      ) : null}
       <div className="stack">
         <p className="field-label">계산 근거</p>
         <ul className="steps" aria-label="A안 계산 근거">
@@ -264,7 +278,7 @@ const EXAMPLE_BUNDLE_B: BundleRawInput = { price: '5400', unit: 'L', size: '1.5'
 
 const KIND_LABEL = { weight: '무게', volume: '부피', count: '개수' } as const
 
-function BundleCompare() {
+function BundleCompare({ onAdd }: { onAdd?: (draft: WishDraft) => void }) {
   const [a, setA] = useState(fresh(EMPTY_BUNDLE))
   const [b, setB] = useState(fresh(EMPTY_BUNDLE))
 
@@ -307,7 +321,7 @@ function BundleCompare() {
         </Button>
       </div>
       {/* 결과가 자동으로 바뀌므로 보조기기에 알린다 */}
-      <div aria-live="polite">{result?.ok ? <BundleResultCard result={result} /> : null}</div>
+      <div aria-live="polite">{result?.ok ? <BundleResultCard result={result} onAdd={onAdd} /> : null}</div>
     </div>
   )
 }
@@ -380,7 +394,13 @@ function BundleCard({ name, state, errors, onChange, unitErrorId }: BundleCardPr
   )
 }
 
-function BundleResultCard({ result }: { result: Extract<ReturnType<typeof compareBundles>, { ok: true }> }) {
+function BundleResultCard({
+  result,
+  onAdd,
+}: {
+  result: Extract<ReturnType<typeof compareBundles>, { ok: true }>
+  onAdd?: (draft: WishDraft) => void
+}) {
   const { a, b, verdict } = result
   const percentLabel = formatFixed(verdict.percent, 1)
   const verdictText =
@@ -417,6 +437,12 @@ function BundleResultCard({ result }: { result: Extract<ReturnType<typeof compar
       <p className="field-label">{bundleSummary(verdict)}</p>
       {verdict.displayTie ? <p className="note">표시 단가는 같지만 아주 작은 차이가 있어요.</p> : null}
       <p className="note">가격만 비교한 결과예요. 품질이나 필요한 양은 따로 생각해 주세요.</p>
+      {onAdd ? (
+        <div className="btn-row">
+          <Button onClick={() => onAdd(bundleDraft('상품 A', a))}>상품 A로 담기</Button>
+          <Button onClick={() => onAdd(bundleDraft('상품 B', b))}>상품 B로 담기</Button>
+        </div>
+      ) : null}
     </section>
   )
 }
