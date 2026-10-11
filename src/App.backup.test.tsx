@@ -117,6 +117,18 @@ describe('백업·복원 (F20)', () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0].name).toBe('로봇청소기')
   })
 
+  it('5MB보다 큰 파일은 읽지 않고 알린다 (보안 점검: 큰 파일로 탭이 멈추지 않게)', async () => {
+    const user = await openBackup()
+    const read = vi.spyOn(FileReader.prototype, 'readAsText')
+    const input = screen.getByLabelText('백업 파일 불러오기')
+    await user.upload(input, new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'big.json', { type: 'application/json' }))
+    expect(await screen.findByText('백업 파일이 너무 커요. 5MB 이하의 살까말까 백업 파일을 골라 주세요.')).toBeInTheDocument()
+    expect(input).toHaveAccessibleDescription(/백업 파일이 너무 커요/)
+    expect(read).not.toHaveBeenCalled()
+    expect(screen.queryByRole('group', { name: '백업 불러오기 확인' })).not.toBeInTheDocument()
+    read.mockRestore()
+  })
+
   it('취소하면 아무것도 바꾸지 않고 파일 고르기로 돌아간다', async () => {
     const user = await openBackup()
     const input = screen.getByLabelText('백업 파일 불러오기')

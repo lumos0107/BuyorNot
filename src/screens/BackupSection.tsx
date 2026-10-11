@@ -12,6 +12,9 @@ type Props = {
 }
 
 const READ_ERROR = '백업 파일을 읽을 수 없어요. 살까말까에서 받은 백업 파일인지 확인해 주세요.'
+// 아주 큰 파일을 골라 탭이 멈추지 않게 읽기 전에 크기를 본다. 실제 백업은 이보다 훨씬 작다 (보안 점검)
+const MAX_BACKUP_BYTES = 5 * 1024 * 1024
+const SIZE_ERROR = '백업 파일이 너무 커요. 5MB 이하의 살까말까 백업 파일을 골라 주세요.'
 
 function readText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -53,6 +56,10 @@ export function BackupSection({ data, onImport }: Props) {
     setPending(null)
     setError(null)
     if (!file) return
+    if (file.size > MAX_BACKUP_BYTES) {
+      setError(SIZE_ERROR)
+      return
+    }
     const text = await readText(file).catch(() => '')
     if (seq !== readSeq.current) return
     const parsed = parseBackup(text)

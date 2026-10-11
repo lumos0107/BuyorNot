@@ -67,6 +67,7 @@
 - 같은 브라우저의 다른 탭에서 저장하면 열려 있는 탭도 그 내용으로 맞춥니다. 다른 탭이 먼저 저장한 내용을 말없이 덮어쓰지 않고, 그 내용을 불러온 뒤 알려 줍니다.
 - 저장된 데이터를 읽을 수 없으면 덮어쓰지 않고 안내한 뒤, 사용자가 확인했을 때만 초기화합니다. 저장에 실패하면 "다시 저장" 버튼을 보여줍니다.
 - 가격 비교의 입력값은 저장하지 않습니다.
+- GitHub Pages의 같은 주소(`lumos0107.github.io`) 아래 다른 페이지와는 브라우저 저장 공간을 함께 씁니다(브라우저가 주소의 경로가 아니라 출처 단위로 나누기 때문). 기록은 암호화하지 않으니, 함께 쓰는 기기에서는 백업 후 지우는 것이 좋습니다.
 
 ## 실행과 테스트
 
@@ -75,7 +76,7 @@ Node.js 24 기준입니다.
 ```bash
 npm ci            # 의존성 설치
 npm run dev       # 개발 서버 (http://localhost:5173/BuyorNot/)
-npm test          # 자동 테스트 (Vitest, 452개)
+npm test          # 자동 테스트 (Vitest, 453개)
 npm run build     # 타입 검사 + 빌드 → dist/
 npm run preview   # 빌드 결과 미리보기 (http://localhost:4173/BuyorNot/)
 npm run lint      # oxlint
@@ -86,6 +87,7 @@ main 브랜치에 push하면 GitHub Actions가 테스트 → 빌드 → GitHub P
 ## 기술 구성
 
 - React 19 · TypeScript 6 · Vite 8
+- 보안: 배포본에 콘텐츠 보안 정책(meta)으로 스크립트·스타일·글꼴·연결을 이 사이트로만 제한, 글꼴(Pretendard, OFL-1.1)은 외부 CDN 없이 함께 배포, 배포 권한은 deploy 작업에만, 사용자 링크는 http·https만 받음, 백업 파일은 5MB까지
 - Vitest 5 + Testing Library: 계산·시각 규칙은 순수 함수 단위 테스트, 화면은 사용자 조작 기준 테스트
 - localStorage, GitHub Pages
 
