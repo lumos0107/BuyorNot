@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatWon } from '../logic/number'
 import { sameRecord } from '../logic/records'
-import { usageInfo } from '../logic/usage'
+import { usageInfo, validateUsageInput } from '../logic/usage'
 import {
+  type UsageEntry,
   daysUntil,
   isCancelCandidate,
   lastUsedOf,
@@ -40,12 +41,14 @@ type Props = {
   onRemoveExamples: () => void
   /** "오늘 썼어요" (F19) */
   onToggleUse: (id: string) => void
+  /** 사용량 적기·지우기 (F25) */
+  onSetUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) => void
   onRetry: () => void
   onReset: () => void
   onDismiss: () => void
 }
 
-export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRemoveExamples, onToggleUse, onRetry, onReset, onDismiss }: Props) {
+export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRemoveExamples, onToggleUse, onSetUsage, onRetry, onReset, onDismiss }: Props) {
   const sorted = sortSubscriptions(items, today)
   const s = subscriptionSummary(items, today)
   const exampleCount = items.filter((sub) => isExample(sub.name)).length
@@ -120,7 +123,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       ) : (
         <section className="stack" aria-label="구독 목록">
           {sorted.map((sub) => (
-            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} onToggleUse={onToggleUse} />
+            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} onToggleUse={onToggleUse} onSetUsage={onSetUsage} />
           ))}
         </section>
       )}
@@ -303,14 +306,24 @@ function SubscriptionCard({
   onEdit,
   onRemove,
   onToggleUse,
+  onSetUsage,
 }: {
   sub: Subscription
   today: Date
   onEdit: (id: string, input: SubscriptionInput) => void
   onRemove: (id: string) => void
   onToggleUse: (id: string) => void
+  onSetUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) => void
 }) {
   const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete'>('view')
+  // 사용량 적기 폼 (F25). 닫으면 연 버튼으로 포커스를 돌려보낸다
+  const [usageOpen, setUsageOpen] = useState(false)
+  const usageRef = useRef<HTMLButtonElement>(null)
+  const closeUsage = () => {
+    setUsageOpen(false)
+    // 폼이 사라진 뒤 버튼으로 (같은 버튼의 이름이 '사용량 다시 적기'로 바뀔 수 있다)
+    queueMicrotask(() => usageRef.current?.focus())
+  }
   // 수정·삭제 확인을 닫으면 연 버튼으로 포커스를 돌려보낸다
   const editRef = useRef<HTMLButtonElement>(null)
   const deleteRef = useRef<HTMLButtonElement>(null)
@@ -379,13 +392,26 @@ function SubscriptionCard({
         다음 결제 {next} · D-{dday}
       </p>
       <p className="card-meta">{lastUsed ? `마지막 사용 ${lastUsed}` : '사용 기록 없음'}</p>
-      {usage ? <p className="card-meta">{`사용량(${usage.source === 'manual' ? '직접 기록' : '예시'}): ${usage.text}`}</p> : null}
+      {usage ? <p className="card-meta">{`사용량(${usageLabel(usage)}): ${usage.text}`}</p> : null}
       {sub.memo ? <p>{sub.memo}</p> : null}
       <div className="btn-row">
         <Button aria-pressed={usedToday} onClick={() => onToggleUse(sub.id)}>
           오늘 썼어요
         </Button>
+        <Button ref={usageRef} aria-expanded={usageOpen} onClick={() => setUsageOpen(true)}>
+          {sub.usageEntry ? '사용량 다시 적기' : '사용량 적기'}
+        </Button>
       </div>
+      {usageOpen ? (
+        <UsageEntryForm
+          sub={sub}
+          onSave={(input) => {
+            onSetUsage(sub.id, input)
+            closeUsage()
+          }}
+          onCancel={closeUsage}
+        />
+      ) : null}
       {mode === 'confirm-delete' ? (
         <DeleteConfirm name={sub.name} onConfirm={() => onRemove(sub.id)} onCancel={() => close('delete')} />
       ) : (
@@ -408,5 +434,89 @@ function SubscriptionCard({
         </div>
       )}
     </article>
+  )
+}
+
+// 사용량 표시 이름 (F16·F19·F25)
+function usageLabel(usage: NonNullable<ReturnType<typeof usageInfo>>): string {
+  if (usage.source === 'entered') {
+    const [, month, day] = usage.day.split('-').map(Number)
+    return `${month}/${day}에 적음${usage.stale ? ' · 다시 적어 주세요' : ''}`
+  }
+  return usage.source === 'manual' ? '직접 기록' : '예시'
+}
+
+// 사용량 적기 (F25): 스크린 타임·주문 내역에서 본 최근 30일 사용 시간(시간) 또는 횟수(번)를 적는다
+function UsageEntryForm({
+  sub,
+  onSave,
+  onCancel,
+}: {
+  sub: Subscription
+  /** null이면 적은 사용량을 지운다 */
+  onSave: (input: Pick<UsageEntry, 'kind' | 'value'> | null) => void
+  onCancel: () => void
+}) {
+  const entry = sub.usageEntry
+  const [kind, setKind] = useState<UsageEntry['kind']>(entry?.kind ?? (sub.exampleUseCount !== undefined ? 'count' : 'minutes'))
+  const [raw, setRaw] = useState(entry ? String(entry.kind === 'minutes' ? Math.round((entry.value / 60) * 10) / 10 : entry.value) : '')
+  const [error, setError] = useState<string | undefined>()
+  const { ref, focusFirstError } = useFocusFirstError<HTMLFormElement>()
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const checked = validateUsageInput(kind, raw)
+    if (checked.error || checked.value === undefined) {
+      setError(checked.error)
+      focusFirstError()
+      return
+    }
+    onSave({ kind, value: checked.value })
+  }
+  return (
+    <form className="stack" aria-label="사용량 적기" onSubmit={submit} noValidate ref={ref}>
+      <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="field-label">무엇으로 적을까요?</legend>
+        <div className="radio-group">
+          {(
+            [
+              ['minutes', '사용 시간'],
+              ['count', '사용 횟수'],
+            ] as const
+          ).map(([value, label]) => (
+            <label key={value}>
+              <input
+                type="radio"
+                name={`usage-kind-${sub.id}`}
+                checked={kind === value}
+                onChange={() => {
+                  setKind(value)
+                  setError(undefined)
+                }}
+              />{' '}
+              {label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <TextField
+        label={kind === 'minutes' ? '최근 30일 사용 시간 (시간)' : '최근 30일 사용 횟수 (번)'}
+        inputMode={kind === 'minutes' ? 'decimal' : 'numeric'}
+        hint="스크린 타임(디지털 웰빙)에서 본 최근 30일 사용 시간이나, 배달·쇼핑 앱 주문 내역에서 센 횟수를 적어 주세요."
+        autoFocus
+        value={raw}
+        error={error}
+        onChange={(e) => {
+          setRaw(e.target.value)
+          setError(undefined)
+        }}
+      />
+      <div className="btn-row">
+        <Button variant="primary" type="submit">
+          저장
+        </Button>
+        {entry ? <Button onClick={() => onSave(null)}>지우기</Button> : null}
+        <Button onClick={onCancel}>취소</Button>
+      </div>
+    </form>
   )
 }

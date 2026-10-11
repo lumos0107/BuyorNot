@@ -32,7 +32,8 @@ describe('구독 사용량 (예시, F16)', () => {
     expect(card('(예시) 음악 스트리밍').getByText('사용량(예시): 최근 30일 사용 없음')).toBeInTheDocument()
     expect(card('(예시) 배민클럽').getByText('사용량(예시): 최근 30일 6번 사용 · 1번에 약 670원')).toBeInTheDocument()
     expect(card('(예시) 쿠팡 와우 멤버십').getByText('사용량(예시): 최근 30일 1번 사용 · 1번에 약 7,890원')).toBeInTheDocument()
-    expect(card('(예시) 클라우드 저장공간').queryByText(/사용량/)).not.toBeInTheDocument()
+    // '사용량 적기' 버튼(F25)이 아니라 사용량 표시 줄이 없는지 본다
+    expect(card('(예시) 클라우드 저장공간').queryByText(/^사용량\(/)).not.toBeInTheDocument()
     const summary = within(screen.getByRole('region', { name: '구독 요약' }))
     expect(summary.getByText('월 46,280원')).toBeInTheDocument()
     expect(summary.getByText('연 555,360원')).toBeInTheDocument()
@@ -46,7 +47,7 @@ describe('구독 사용량 (예시, F16)', () => {
     await user.type(form.getByLabelText('요금'), '9500')
     await user.type(form.getByLabelText('결제일 (매월)'), '10')
     await user.click(form.getByRole('button', { name: '구독 추가' }))
-    expect(card('티빙').queryByText(/사용량/)).not.toBeInTheDocument()
+    expect(card('티빙').queryByText(/^사용량\(/)).not.toBeInTheDocument()
     expect(screen.queryByText(/시연용 숫자예요/)).not.toBeInTheDocument()
   })
 })

@@ -23,9 +23,14 @@ export type Subscription = {
   exampleUseCount?: number
   /** "오늘 썼어요"로 기록한 날 (F19, 'YYYY-MM-DD' 날짜순). 최근 90일만 남긴다 */
   useDates?: string[]
+  /** 사용자가 직접 적은 최근 30일 사용량 (F25) */
+  usageEntry?: UsageEntry
   createdAt: string
   updatedAt: string
 }
+
+/** 직접 적은 최근 30일 사용량 (F25): 사용 시간(분) 또는 사용 횟수, 적은 날(기기 현지 날짜) */
+export type UsageEntry = { kind: 'minutes' | 'count'; value: number; day: string }
 
 export const SUBS_KEY = 'buyornot.subscriptions.v1'
 export const SUB_NAME_MAX = 40
@@ -82,19 +87,21 @@ export function nextBillingDate(sub: Subscription, today: Date): string {
   }
 }
 
-/** 마지막 사용일: 직접 적은 날과 "오늘 썼어요"로 기록한 날 중 늦은 날 (F19) */
+/** 마지막 사용일: 직접 적은 날, "오늘 썼어요"로 기록한 날(F19), 1 이상의 사용량을 적은 날(F25) 중 가장 늦은 날 */
 export function lastUsedOf(sub: Subscription): string | null {
   // 빈 배열도 복원 검증을 통과하므로 기록이 없는 것으로 본다
-  const recorded = sub.useDates && sub.useDates.length > 0 ? sub.useDates.reduce((a, b) => (b > a ? b : a)) : null
-  if (!sub.lastUsedDate) return recorded
-  if (!recorded) return sub.lastUsedDate
-  return recorded > sub.lastUsedDate ? recorded : sub.lastUsedDate
+  const days = [sub.lastUsedDate, ...(sub.useDates ?? [])]
+  // 사용량을 1 이상 적었으면 최근 30일 안에 썼다는 뜻이라 적은 날을 사용한 날로 본다(실제보다 늦게 잡힐 수 있다)
+  if (sub.usageEntry && sub.usageEntry.value > 0) days.push(sub.usageEntry.day)
+  const known = days.filter((d): d is string => Boolean(d))
+  return known.length > 0 ? known.reduce((a, b) => (b > a ? b : a)) : null
 }
 
 /** 해지 후보: 기록상 31일 이상 안 쓴 구독. 사용 기록이 없으면 후보가 아니라 확인 필요다 (F14, F23) */
 export function isCancelCandidate(sub: Subscription, today: Date): boolean {
   const last = lastUsedOf(sub)
-  if (!last) return false
+  // 사용 기록이 없으면 확인 필요다. 다만 사용량을 0으로 적었으면 30일 동안 안 쓴 것이라 후보다 (F25)
+  if (!last) return sub.usageEntry?.value === 0
   const used = parseDay(last)
   return !used || calendarDaysBetween(used, today) >= CANCEL_AFTER_DAYS
 }
@@ -114,7 +121,7 @@ export function toggleUseToday(sub: Subscription, today: Date, now: Date): Subsc
 
 /** 사용 기록(마지막 사용일·오늘 썼어요)이 없어 쓰는지 알 수 없는 구독 (F23 "확인 필요") */
 export function needsUsageCheck(sub: Subscription): boolean {
-  return lastUsedOf(sub) === null
+  return lastUsedOf(sub) === null && !sub.usageEntry
 }
 
 export type SubscriptionSummary = {
@@ -223,7 +230,7 @@ export function createSubscription(input: SubscriptionInput, now: Date, id: stri
 
 export function updateSubscription(sub: Subscription, input: SubscriptionInput, now: Date): Subscription {
   // 예시 사용량(F16)과 "오늘 썼어요" 기록(F19)은 입력 폼에 없으므로 고쳐도 그대로 둔다
-  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates }
+  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates, usageEntry: sub.usageEntry }
   return cleanSub({ id: sub.id, ...input, ...usage, createdAt: sub.createdAt, updatedAt: now.toISOString() })
 }
 
@@ -236,6 +243,15 @@ function cleanSub(sub: Subscription): Subscription {
   if (out.exampleUsageMinutes === undefined) delete out.exampleUsageMinutes
   if (out.exampleUseCount === undefined) delete out.exampleUseCount
   if (!out.useDates || out.useDates.length === 0) delete out.useDates
+  if (out.usageEntry === undefined) delete out.usageEntry
+  return out
+}
+
+/** 사용량 적기·지우기 (F25). 적은 날은 기기 현지 날짜 */
+export function setUsageEntry(sub: Subscription, input: Pick<UsageEntry, 'kind' | 'value'> | null, now: Date): Subscription {
+  const out: Subscription = { ...sub, updatedAt: now.toISOString() }
+  if (input) out.usageEntry = { kind: input.kind, value: input.value, day: toDayIso(now) }
+  else delete out.usageEntry
   return out
 }
 
@@ -314,6 +330,12 @@ function isSubscription(v: unknown): v is Subscription {
   if (o.exampleUsageMinutes !== undefined && !isIntIn(o.exampleUsageMinutes, USAGE_MAX_MINUTES)) return false
   if (o.exampleUseCount !== undefined && !isIntIn(o.exampleUseCount, USE_COUNT_MAX)) return false
   if (o.exampleUsageMinutes !== undefined && o.exampleUseCount !== undefined) return false
+  // 직접 적은 사용량(F25): 사용 시간(분)은 0~43,200, 횟수는 0~999 정수, 적은 날은 실제 날짜
+  if (o.usageEntry !== undefined) {
+    const e = o.usageEntry as Record<string, unknown> | null
+    if (typeof e !== 'object' || e === null || !isDay(e.day)) return false
+    if (e.kind === 'minutes' ? !isIntIn(e.value, USAGE_MAX_MINUTES) : e.kind === 'count' ? !isIntIn(e.value, USE_COUNT_MAX) : true) return false
+  }
   // "오늘 썼어요" 기록(F19): 실제 날짜 배열, 중복 없음
   if (o.useDates !== undefined) {
     if (!Array.isArray(o.useDates) || o.useDates.length > 400 || !o.useDates.every(isDay)) return false

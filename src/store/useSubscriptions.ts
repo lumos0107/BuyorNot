@@ -6,6 +6,8 @@ import {
   demoSubscriptions,
   parseSubscriptions,
   toggleUseToday,
+  setUsageEntry,
+  type UsageEntry,
   updateSubscription,
   type Subscription,
   type SubscriptionInput,
@@ -107,6 +109,9 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
     remove: (id: string) => commit(items.filter((sub) => sub.id !== id)),
     /** "오늘 썼어요" 기록을 켜고 끈다 (F19) */
     toggleUse: (id: string) => commit(items.map((sub) => (sub.id === id ? toggleUseToday(sub, new Date(), new Date()) : sub))),
+    /** 사용량 적기·지우기 (F25) */
+    setUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) =>
+      commit(items.map((sub) => (sub.id === id ? setUsageEntry(sub, input, new Date()) : sub))),
     /** 예시 구독만 지운다 */
     removeExamples: () => commit(items.filter((sub) => !isExample(sub.name))),
     addDemo: () => commit([...demoSubscriptions(new Date(), newId), ...items]),
