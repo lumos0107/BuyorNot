@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatWon } from '../logic/number'
 import { sameRecord } from '../logic/records'
-import { usageText } from '../logic/usage'
+import { usageInfo } from '../logic/usage'
 import {
   daysUntil,
   isCancelCandidate,
+  lastUsedOf,
   monthlyEquivalent,
   nextBillingDate,
   sortSubscriptions,
@@ -36,12 +37,14 @@ type Props = {
   onRemove: (id: string) => void
   onAddDemo: () => void
   onRemoveExamples: () => void
+  /** "오늘 썼어요" (F19) */
+  onToggleUse: (id: string) => void
   onRetry: () => void
   onReset: () => void
   onDismiss: () => void
 }
 
-export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRemoveExamples, onRetry, onReset, onDismiss }: Props) {
+export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRemoveExamples, onToggleUse, onRetry, onReset, onDismiss }: Props) {
   const sorted = sortSubscriptions(items, today)
   const s = subscriptionSummary(items, today)
   const exampleCount = items.filter((sub) => isExample(sub.name)).length
@@ -97,8 +100,8 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
             </p>
           ) : null}
           <p className="note">연 구독은 12로 나눈 값을 월에 더해 보여줘요. 연 합계는 실제 요금으로 계산해요.</p>
-          {items.some((sub) => usageText(sub) !== null) ? (
-            <p className="note">사용량은 아직 예시 구독에만 예시 숫자로 보여줘요. 실제 사용량은 휴대폰 앱으로 만들 때 연결할 계획이에요.</p>
+          {items.some((sub) => usageInfo(sub, today)?.source === 'example') ? (
+            <p className="note">(예시)는 시연용 숫자예요. '오늘 썼어요'를 누르면 직접 기록한 횟수로 바뀌어요. 자동 연동은 휴대폰 앱으로 만들 때 할 계획이에요.</p>
           ) : null}
         </section>
       ) : null}
@@ -112,7 +115,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       ) : (
         <section className="stack" aria-label="구독 목록">
           {sorted.map((sub) => (
-            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} />
+            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} onToggleUse={onToggleUse} />
           ))}
         </section>
       )}
@@ -294,11 +297,13 @@ function SubscriptionCard({
   today,
   onEdit,
   onRemove,
+  onToggleUse,
 }: {
   sub: Subscription
   today: Date
   onEdit: (id: string, input: SubscriptionInput) => void
   onRemove: (id: string) => void
+  onToggleUse: (id: string) => void
 }) {
   const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete'>('view')
   // 수정·삭제 확인을 닫으면 연 버튼으로 포커스를 돌려보낸다
@@ -320,7 +325,9 @@ function SubscriptionCard({
   const next = nextBillingDate(sub, today)
   const dday = daysUntil(next, today)
   const candidate = isCancelCandidate(sub, today)
-  const usage = usageText(sub)
+  const usage = usageInfo(sub, today)
+  const lastUsed = lastUsedOf(sub)
+  const usedToday = sub.useDates?.includes(toDayIso(today)) ?? false
   const priceText =
     sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월 ${formatWon(monthlyEquivalent(sub))}`
 
@@ -362,9 +369,14 @@ function SubscriptionCard({
       <p className="card-meta">
         다음 결제 {next} · D-{dday}
       </p>
-      <p className="card-meta">{sub.lastUsedDate ? `마지막 사용 ${sub.lastUsedDate}` : '사용 기록 없음'}</p>
-      {usage ? <p className="card-meta">사용량(예시): {usage}</p> : null}
+      <p className="card-meta">{lastUsed ? `마지막 사용 ${lastUsed}` : '사용 기록 없음'}</p>
+      {usage ? <p className="card-meta">{`사용량(${usage.source === 'manual' ? '직접 기록' : '예시'}): ${usage.text}`}</p> : null}
       {sub.memo ? <p>{sub.memo}</p> : null}
+      <div className="btn-row">
+        <Button aria-pressed={usedToday} onClick={() => onToggleUse(sub.id)}>
+          오늘 썼어요
+        </Button>
+      </div>
       {mode === 'confirm-delete' ? (
         <DeleteConfirm name={sub.name} onConfirm={() => onRemove(sub.id)} onCancel={() => close('delete')} />
       ) : (

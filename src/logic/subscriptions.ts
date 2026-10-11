@@ -21,6 +21,8 @@ export type Subscription = {
   exampleUsageMinutes?: number
   /** 시연용 예시 사용 횟수: 최근 30일 (배달·쇼핑 멤버십의 주문 등, F16) */
   exampleUseCount?: number
+  /** "오늘 썼어요"로 기록한 날 (F19, 'YYYY-MM-DD' 날짜순). 최근 90일만 남긴다 */
+  useDates?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -31,6 +33,8 @@ export const CANCEL_AFTER_DAYS = 31
 /** 예시 사용량의 범위: 30일 = 43,200분, 횟수 999번 */
 export const USAGE_MAX_MINUTES = 30 * 24 * 60
 export const USE_COUNT_MAX = 999
+/** "오늘 썼어요" 기록을 남기는 기간 (F19) */
+export const USE_LOG_KEEP_DAYS = 90
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const toIso = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`
@@ -78,10 +82,32 @@ export function nextBillingDate(sub: Subscription, today: Date): string {
   }
 }
 
+/** 마지막 사용일: 직접 적은 날과 "오늘 썼어요"로 기록한 날 중 늦은 날 (F19) */
+export function lastUsedOf(sub: Subscription): string | null {
+  const recorded = sub.useDates?.reduce((a, b) => (b > a ? b : a)) ?? null
+  if (!sub.lastUsedDate) return recorded
+  if (!recorded) return sub.lastUsedDate
+  return recorded > sub.lastUsedDate ? recorded : sub.lastUsedDate
+}
+
 export function isCancelCandidate(sub: Subscription, today: Date): boolean {
-  if (!sub.lastUsedDate) return true
-  const used = parseDay(sub.lastUsedDate)
+  const last = lastUsedOf(sub)
+  if (!last) return true
+  const used = parseDay(last)
   return !used || calendarDaysBetween(used, today) >= CANCEL_AFTER_DAYS
+}
+
+/** "오늘 썼어요": 오늘을 기록하고, 이미 있으면 지운다. 90일보다 오래된 기록은 정리한다 (F19) */
+export function toggleUseToday(sub: Subscription, today: Date, now: Date): Subscription {
+  const day = toDayIso(today)
+  const kept = (sub.useDates ?? []).filter((d) => {
+    const parsed = parseDay(d)
+    return parsed !== null && calendarDaysBetween(parsed, today) <= USE_LOG_KEEP_DAYS
+  })
+  const next = kept.includes(day) ? kept.filter((d) => d !== day) : [...kept, day].sort()
+  const out: Subscription = { ...sub, useDates: next, updatedAt: now.toISOString() }
+  if (next.length === 0) delete out.useDates
+  return out
 }
 
 export type SubscriptionSummary = {
@@ -186,8 +212,8 @@ export function createSubscription(input: SubscriptionInput, now: Date, id: stri
 }
 
 export function updateSubscription(sub: Subscription, input: SubscriptionInput, now: Date): Subscription {
-  // 예시 사용량(F16)은 입력 폼에 없으므로 고쳐도 그대로 둔다
-  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount }
+  // 예시 사용량(F16)과 "오늘 썼어요" 기록(F19)은 입력 폼에 없으므로 고쳐도 그대로 둔다
+  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates }
   return cleanSub({ id: sub.id, ...input, ...usage, createdAt: sub.createdAt, updatedAt: now.toISOString() })
 }
 
@@ -199,6 +225,7 @@ function cleanSub(sub: Subscription): Subscription {
   if (!out.memo) delete out.memo
   if (out.exampleUsageMinutes === undefined) delete out.exampleUsageMinutes
   if (out.exampleUseCount === undefined) delete out.exampleUseCount
+  if (!out.useDates || out.useDates.length === 0) delete out.useDates
   return out
 }
 
@@ -277,6 +304,11 @@ function isSubscription(v: unknown): v is Subscription {
   if (o.exampleUsageMinutes !== undefined && !isIntIn(o.exampleUsageMinutes, USAGE_MAX_MINUTES)) return false
   if (o.exampleUseCount !== undefined && !isIntIn(o.exampleUseCount, USE_COUNT_MAX)) return false
   if (o.exampleUsageMinutes !== undefined && o.exampleUseCount !== undefined) return false
+  // "오늘 썼어요" 기록(F19): 실제 날짜 배열, 중복 없음
+  if (o.useDates !== undefined) {
+    if (!Array.isArray(o.useDates) || o.useDates.length > 400 || !o.useDates.every(isDay)) return false
+    if (new Set(o.useDates).size !== o.useDates.length) return false
+  }
   return isTimestamp(o.createdAt) && isTimestamp(o.updatedAt)
 }
 

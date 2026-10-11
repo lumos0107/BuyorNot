@@ -43,17 +43,23 @@ type Props = {
   onAddDemo?: () => void
   /** 예시만 지우기 (결정 기록의 예시 포함) */
   onRemoveExamples?: () => void
+  /** 결정 직후 되돌리기 (F18) */
+  onReconsider?: (id: string) => void
   /** 사기 전 점검에서 금액을 시간으로 보여줄 때 쓴다 (결정 기록의 시급 설정) */
   hourlyWage?: number | null
 }
 
-export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, onRemove, onAddDemo, onRemoveExamples, hourlyWage = null }: Props) {
+export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, onRemove, onAddDemo, onRemoveExamples, onReconsider, hourlyWage = null }: Props) {
   const considering = sortConsidering(items, now)
   const exampleCount = items.filter((item) => isExample(item.name)).length
   // 결정·삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다 (키보드 사용자가 위치를 잃지 않게)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  // 결정 직후에는 "되돌리기"를 보여준다 (F18). 다음 결정이 생기면 바뀐다
+  const [undo, setUndo] = useState<{ id: string; name: string; decision: Decision } | null>(null)
   const decide = (id: string, decision: Decision, note?: string) => {
+    const target = items.find((item) => item.id === id)
     onDecide(id, decision, note)
+    if (target && onReconsider) setUndo({ id, name: target.name, decision })
     headingRef.current?.focus()
   }
   const remove = (id: string) => {
@@ -65,6 +71,24 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
         고민 중인 물건
       </h2>
+      <div role="status" aria-label="결정 알림" className={undo ? undefined : 'similar-empty'}>
+        {undo ? (
+          <div className="example-bar">
+            <span className="note">{`‘${undo.name}’${josa(undo.name, '을/를')} ${undo.decision === 'purchased' ? '구매함으로' : '구매 포기로'} 옮겼어요.`}</span>
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => {
+                onReconsider?.(undo.id)
+                setUndo(null)
+                headingRef.current?.focus()
+              }}
+            >
+              되돌리기
+            </button>
+          </div>
+        ) : null}
+      </div>
       {onRemoveExamples && exampleCount > 0 ? (
         <ExampleBar
           label="예시만 지우기"

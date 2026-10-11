@@ -5,6 +5,7 @@ import {
   createSubscription,
   demoSubscriptions,
   parseSubscriptions,
+  toggleUseToday,
   updateSubscription,
   type Subscription,
   type SubscriptionInput,
@@ -104,6 +105,8 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
     edit: (id: string, input: SubscriptionInput) =>
       commit(items.map((sub) => (sub.id === id ? updateSubscription(sub, input, new Date()) : sub))),
     remove: (id: string) => commit(items.filter((sub) => sub.id !== id)),
+    /** "오늘 썼어요" 기록을 켜고 끈다 (F19) */
+    toggleUse: (id: string) => commit(items.map((sub) => (sub.id === id ? toggleUseToday(sub, new Date(), new Date()) : sub))),
     /** 예시 구독만 지운다 */
     removeExamples: () => commit(items.filter((sub) => !isExample(sub.name))),
     addDemo: () => commit([...demoSubscriptions(new Date(), newId), ...items]),

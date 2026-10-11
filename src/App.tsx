@@ -63,6 +63,7 @@ export default function App() {
             onRemove={wishlist.remove}
             onAddDemo={wishlist.addDemo}
             onRemoveExamples={wishlist.removeExamples}
+            onReconsider={wishlist.reconsider}
             hourlyWage={settings.hourlyWage}
           />
         </TabPanel>
@@ -76,6 +77,7 @@ export default function App() {
             hourlyWage={settings.hourlyWage}
             onWageChange={settings.setHourlyWage}
             onReview={wishlist.review}
+            onReconsider={wishlist.reconsider}
             onRemove={wishlist.remove}
           />
         </TabPanel>
@@ -89,6 +91,7 @@ export default function App() {
             onRemove={subscriptions.remove}
             onAddDemo={subscriptions.addDemo}
             onRemoveExamples={subscriptions.removeExamples}
+            onToggleUse={subscriptions.toggleUse}
             onRetry={subscriptions.retrySave}
             onReset={subscriptions.resetStorage}
             onDismiss={subscriptions.dismissNotice}

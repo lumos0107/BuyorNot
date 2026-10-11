@@ -257,6 +257,16 @@ export function nextReviewDelay(items: readonly WishItem[], now: Date): number |
   return upcoming.length > 0 ? Math.min(...upcoming) : null
 }
 
+/** 결정을 되돌려 다시 고민 중으로 (F18). 결정 시각·결정 메모·회고는 지우고, 고민 기간·연장·답은 그대로 둔다.
+ *  고민 기간이 이미 지났으면 바로 재검토 가능이다 */
+export function reconsiderItem(item: WishItem, now: Date): WishItem {
+  const next: WishItem = { ...item, status: 'considering', decidedAt: null, updatedAt: now.toISOString() }
+  delete next.decisionNote
+  delete next.satisfaction
+  delete next.reviewNote
+  return next
+}
+
 /** 시연용 예시 기록인지: 이름이 "(예시)"로 시작한다 (예시 물건·예시 구독 공통) */
 export const isExample = (name: string) => name.startsWith('(예시)')
 

@@ -36,7 +36,7 @@ describe('구독 사용량 (예시, F16)', () => {
     const summary = within(screen.getByRole('region', { name: '구독 요약' }))
     expect(summary.getByText('월 46,280원')).toBeInTheDocument()
     expect(summary.getByText('연 555,360원')).toBeInTheDocument()
-    expect(summary.getByText('사용량은 아직 예시 구독에만 예시 숫자로 보여줘요. 실제 사용량은 휴대폰 앱으로 만들 때 연결할 계획이에요.')).toBeInTheDocument()
+    expect(summary.getByText("(예시)는 시연용 숫자예요. '오늘 썼어요'를 누르면 직접 기록한 횟수로 바뀌어요. 자동 연동은 휴대폰 앱으로 만들 때 할 계획이에요.")).toBeInTheDocument()
   })
 
   it('직접 넣은 구독에는 사용량을 보여주지 않는다', async () => {
@@ -47,6 +47,6 @@ describe('구독 사용량 (예시, F16)', () => {
     await user.type(form.getByLabelText('결제일 (매월)'), '10')
     await user.click(form.getByRole('button', { name: '구독 추가' }))
     expect(card('티빙').queryByText(/사용량/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/사용량은 아직 예시 구독에만/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/시연용 숫자예요/)).not.toBeInTheDocument()
   })
 })

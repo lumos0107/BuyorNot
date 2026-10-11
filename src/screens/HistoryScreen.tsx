@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
-import { formatWon } from '../logic/number'
+import { formatWon, josa } from '../logic/number'
 import { validateWage } from '../logic/settings'
 import { sameRecord } from '../logic/records'
 import { historySummary, reviewDue } from '../logic/summary'
@@ -17,6 +17,8 @@ type Props = {
   hourlyWage: number | null
   onWageChange: (wage: number | null) => void
   onReview: (id: string, satisfaction: Satisfaction, note?: string) => void
+  /** 다시 고민하기 (F18) */
+  onReconsider: (id: string) => void
   onRemove: (id: string) => void
 }
 type Filter = 'all' | 'purchased' | 'skipped'
@@ -27,11 +29,16 @@ const SATISFACTION_TEXT: Record<Satisfaction, string> = {
   regret: '후회해요',
 }
 
-export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, onRemove }: Props) {
+export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, onReconsider, onRemove }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const headingRef = useRef<HTMLHeadingElement>(null)
   const remove = (id: string) => {
     onRemove(id)
+    headingRef.current?.focus()
+  }
+  // 다시 고민하기로 카드가 결정 기록에서 사라지면 포커스를 화면 제목으로 옮긴다
+  const reconsider = (id: string) => {
+    onReconsider(id)
     headingRef.current?.focus()
   }
   const history = sortHistory(items)
@@ -71,7 +78,7 @@ export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, 
           ) : (
             <section className="stack" aria-label="결정 기록 목록">
               {shown.map((item) => (
-                <HistoryCard key={item.id} item={item} now={now} onReview={onReview} onRemove={remove} />
+                <HistoryCard key={item.id} item={item} now={now} onReview={onReview} onReconsider={reconsider} onRemove={remove} />
               ))}
             </section>
           )}
@@ -143,14 +150,26 @@ function HistoryCard({
   item,
   now,
   onReview,
+  onReconsider,
   onRemove,
 }: {
   item: WishItem
   now: Date
   onReview: (id: string, satisfaction: Satisfaction, note?: string) => void
+  onReconsider: (id: string) => void
   onRemove: (id: string) => void
 }) {
   const [confirming, setConfirming] = useState(false)
+  // 다시 고민하기 확인 (F18): 취소하면 누른 버튼으로 포커스를 돌려보낸다
+  const [reconsidering, setReconsidering] = useState(false)
+  const reconsiderRef = useRef<HTMLButtonElement>(null)
+  const returnToReconsider = useRef(false)
+  useEffect(() => {
+    if (!reconsidering && returnToReconsider.current) {
+      reconsiderRef.current?.focus()
+      returnToReconsider.current = false
+    }
+  }, [reconsidering])
   const [editingRetro, setEditingRetro] = useState(false)
   // 회고를 저장하거나 고치기를 취소하면 "회고 고치기" 버튼으로 포커스를 옮긴다 (누른 버튼·폼이 사라지므로)
   const retroRef = useRef<HTMLButtonElement>(null)
@@ -245,8 +264,30 @@ function HistoryCard({
             setConfirming(false)
           }}
         />
+      ) : reconsidering ? (
+        <div className="stack" role="group" aria-label="다시 고민하기 확인">
+          <p className="field-label">
+            {`‘${item.name}’${josa(item.name, '을/를')} 다시 고민 중으로 옮길까요?${item.decisionNote || item.satisfaction ? ' 결정 메모와 회고는 지워져요.' : ''}`}
+          </p>
+          <div className="btn-row">
+            <Button variant="primary" autoFocus onClick={() => onReconsider(item.id)}>
+              옮기기
+            </Button>
+            <Button
+              onClick={() => {
+                returnToReconsider.current = true
+                setReconsidering(false)
+              }}
+            >
+              취소
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="card-actions">
+          <button type="button" className="link-btn" ref={reconsiderRef} onClick={() => setReconsidering(true)}>
+            다시 고민하기
+          </button>
           <button type="button" className="link-btn" ref={deleteRef} onClick={() => setConfirming(true)}>
             삭제
           </button>
