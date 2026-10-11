@@ -41,14 +41,17 @@ async function passTime(ms: number) {
 }
 
 describe('담을 때 질문 (F09)', () => {
-  it('AC20: 세 질문에 답하고 담으면, 새로고침 뒤 재검토 가능 카드에 답이 보인다', async () => {
+  // F24: 질문은 담기 폼 대신 카드의 오늘의 고민에서 하나씩 답한다
+  const note = (name: string) => within(card(name).getByRole('region', { name: '오늘의 고민' }))
+
+  it('AC20: 세 질문에 카드에서 답하면, 새로고침 뒤 재검토 가능 카드에 답이 보인다', async () => {
     const { user, unmount } = setup()
     await fillBasics(user)
-    await user.click(form().getByText('한 번만 생각해 볼까요? (선택)'))
-    await user.click(within(form().getByRole('group', { name: '지금 쓰는 게 있나요?' })).getByRole('radio', { name: '없어요' }))
-    await user.type(form().getByLabelText('없으면 어떤 문제가 있나요?'), '출퇴근길에 음악을 못 들어요')
-    await user.click(within(form().getByRole('group', { name: '한 달 뒤에도 쓸까요?' })).getByRole('radio', { name: '모르겠어요' }))
     await user.click(form().getByRole('button', { name: '담아 두기' }))
+    await user.type(note('무선 헤드폰').getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' }), '출퇴근길에 음악을 못 들어요')
+    await user.click(note('무선 헤드폰').getByRole('button', { name: '답하기' }))
+    await user.click(note('무선 헤드폰').getByRole('button', { name: '모르겠어요' }))
+    await user.click(note('무선 헤드폰').getByRole('button', { name: '없어요' }))
     unmount()
     setup()
     await passTime(25 * HOUR)
@@ -61,27 +64,28 @@ describe('담을 때 질문 (F09)', () => {
   it('AC20: 일부만 답하면 답한 것만 보이고, 답하지 않아도 담긴다', async () => {
     const { user } = setup()
     await fillBasics(user)
-    await user.click(form().getByText('한 번만 생각해 볼까요? (선택)'))
-    await user.click(within(form().getByRole('group', { name: '지금 쓰는 게 있나요?' })).getByRole('radio', { name: '있어요' }))
     await user.click(form().getByRole('button', { name: '담아 두기' }))
+    await user.type(note('무선 헤드폰').getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' }), '음악')
+    await user.click(note('무선 헤드폰').getByRole('button', { name: '답하기' }))
     await fillBasics(user, '로봇청소기')
     await user.click(form().getByRole('button', { name: '담아 두기' }))
     await passTime(25 * HOUR)
     const answers = within(card('무선 헤드폰').getByRole('list', { name: '답한 것' }))
     expect(answers.getAllByRole('listitem')).toHaveLength(1)
-    expect(answers.getByText('지금 쓰는 게 있어요')).toBeInTheDocument()
+    expect(answers.getByText('없으면 생기는 문제: 음악')).toBeInTheDocument()
     expect(card('로봇청소기').queryByRole('list', { name: '답한 것' })).not.toBeInTheDocument()
   })
 
-  it('AC20: 문제 설명이 201자면 오류를 보여주고 담지 않는다', async () => {
+  it('AC20: 문제 설명이 201자면 오류를 보여주고 저장하지 않는다', async () => {
     const { user } = setup()
     await fillBasics(user)
-    await user.click(form().getByText('한 번만 생각해 볼까요? (선택)'))
-    const problem = form().getByLabelText('없으면 어떤 문제가 있나요?')
-    await user.type(problem, '가'.repeat(201))
     await user.click(form().getByRole('button', { name: '담아 두기' }))
+    const problem = note('무선 헤드폰').getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' })
+    await user.click(problem)
+    await user.paste('가'.repeat(201))
+    await user.click(note('무선 헤드폰').getByRole('button', { name: '답하기' }))
     expect(problem).toHaveAccessibleDescription(/200자/)
-    expect(screen.queryByRole('article', { name: '무선 헤드폰' })).not.toBeInTheDocument()
+    expect(card('무선 헤드폰').queryByRole('list', { name: '답한 것' })).not.toBeInTheDocument()
   })
 })
 

@@ -29,21 +29,20 @@ describe('화면 보완', () => {
     await user.click(form().getByRole('button', { name: '담아 두기' }))
   }
 
-  it('질문 영역을 접은 채 오류가 나면 다시 펼치고 그 입력으로 포커스를 옮긴다', async () => {
+  it('링크 영역을 접은 채 오류가 나면 다시 펼치고 그 입력으로 포커스를 옮긴다', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.type(form().getByLabelText('상품명'), '무선 헤드폰')
     await user.type(form().getByLabelText('가격'), '129000')
     await user.type(form().getByLabelText('사고 싶은 이유'), '이유')
-    await user.click(form().getByText('한 번만 생각해 볼까요? (선택)'))
-    await user.click(form().getByLabelText('없으면 어떤 문제가 있나요?'))
-    await user.paste('가'.repeat(201))
-    await user.click(form().getByText('한 번만 생각해 볼까요? (선택)'))
-    expect(form().getByLabelText('없으면 어떤 문제가 있나요?')).not.toBeVisible()
+    await user.click(form().getByText('상품 링크 (선택)'))
+    await user.type(form().getByLabelText('링크 (선택)'), 'abc')
+    await user.click(form().getByText('상품 링크 (선택)'))
+    expect(form().getByLabelText('링크 (선택)')).not.toBeVisible()
     await user.click(form().getByRole('button', { name: '담아 두기' }))
-    const problem = form().getByLabelText('없으면 어떤 문제가 있나요?')
-    expect(problem).toBeVisible()
-    expect(problem).toHaveFocus()
+    const link = form().getByLabelText('링크 (선택)')
+    expect(link).toBeVisible()
+    expect(link).toHaveFocus()
   })
 
   it('결정하면 카드가 사라지므로 포커스를 화면 제목으로 옮긴다', async () => {

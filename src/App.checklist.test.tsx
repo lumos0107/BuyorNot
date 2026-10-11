@@ -22,21 +22,33 @@ afterEach(() => {
 const card = (name: string) => within(screen.getByRole('article', { name }))
 
 describe('담을 때 질문 6개', () => {
-  it('새 질문 3개에 답하고 담으면 저장되고, 구매함을 누를 때 점검의 근거가 된다', async () => {
+  it('새 질문 3개에 카드에서 답하면 저장되고, 구매함을 누를 때 점검의 근거가 된다 (F24: 담기 폼 대신 카드에서)', async () => {
+    const T = Date.now()
+    const item = {
+      id: 'c1',
+      name: '캠핑 의자',
+      priceKrw: 89000,
+      reason: '캠핑 가려고',
+      url: null,
+      createdAt: new Date(T - 2 * 86400000).toISOString(),
+      updatedAt: new Date(T - 2 * 86400000).toISOString(),
+      reviewAt: new Date(T - 86400000).toISOString(),
+      status: 'considering',
+      decidedAt: null,
+      answers: { problem: '바닥에 앉아요', useInMonth: 'yes', haveOne: 'no' },
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
     const user = userEvent.setup()
     render(<App />)
-    const form = within(screen.getByRole('form', { name: '물건 담기' }))
-    await user.type(form.getByLabelText('상품명'), '캠핑 의자')
-    await user.type(form.getByLabelText('가격'), '89000')
-    await user.type(form.getByLabelText('사고 싶은 이유'), '캠핑 가려고')
-    await user.click(form.getByText('한 번만 생각해 볼까요? (선택)'))
-    const group = (name: string) => within(form.getByRole('group', { name }))
-    await user.click(group('할인·한정 때문인가요?').getByRole('radio', { name: '네' }))
-    await user.click(group('놓을 곳과 쓸 시간이 있나요?').getByRole('radio', { name: '없어요' }))
-    await user.click(group('빌리거나 중고로 대신할 수 있나요?').getByRole('radio', { name: '대신할 수 있어요' }))
-    await user.click(form.getByRole('button', { name: '담아 두기' }))
+    const note = () => within(card('캠핑 의자').getByRole('region', { name: '오늘의 고민' }))
+    await user.click(note().getByRole('button', { name: '네' }))
+    await user.click(note().getByRole('button', { name: '없어요' }))
+    await user.click(note().getByRole('button', { name: '대신할 수 있어요' }))
 
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0].answers).toEqual({
+      problem: '바닥에 앉아요',
+      useInMonth: 'yes',
+      haveOne: 'no',
       saleDriven: 'yes',
       spaceTime: 'no',
       alternative: 'yes',

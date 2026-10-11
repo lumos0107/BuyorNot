@@ -203,13 +203,13 @@
         <h2>범위를 먼저 좁히고, 검증 사례를 숫자로 적었다</h2>
         <div class="cols">
           <div class="card">
-            <h3>PRD v0.16</h3>
+            <h3>PRD v0.17</h3>
             <ul class="small">
               <li>1차 P0: 고민 목록, 할인 비교, 묶음상품 비교, 저장·검증·모바일</li>
               <li>2차 F07~F14: 연장·메모·질문·비슷한 기록·필터·요약·회고·무료배송·구독</li>
               <li>3차 F15~F21(제작자 요청): 사기 전 점검·구독 사용량·되돌리기·백업 등</li>
-              <li>4차 F22~F23(제작자 요청): 고민 노트, 비교 문구·구독 확인 필요</li>
-              <li>검증 사례 AC01~AC42: 입력값과 기대 결과를 원·날짜 단위로 명시</li>
+              <li>4차 F22~F24(제작자 요청): 고민 노트, 비교 문구·구독 확인 필요, 담기 폼 줄이기</li>
+              <li>검증 사례 AC01~AC43: 입력값과 기대 결과를 원·날짜 단위로 명시</li>
             </ul>
           </div>
           <div class="card">
@@ -236,9 +236,9 @@
           <span class="step">Claude: 대조 후 반영 또는 반론</span>
         </div>
         <div class="cols-3">
-          <div class="card"><p class="num">452</p><p>자동 테스트(1차 115). 계산·시각 규칙은 순수 함수, 화면은 사용자 조작 기준. 화면은 실제 Chrome 캡처로 확인</p></div>
+          <div class="card"><p class="num">458</p><p>자동 테스트(1차 115). 계산·시각 규칙은 순수 함수, 화면은 사용자 조작 기준. 화면은 실제 Chrome 캡처로 확인</p></div>
           <div class="card"><p class="num">12회</p><p>GPT 검토(1차 5·2차 3·3차 2·4차 2)와 후속 확인 5회. 지적 133건 중 124건 반영, 나머지는 근거를 들어 미반영·보류·제작자 결정</p></div>
-          <div class="card"><p class="num">21</p><p>코드 커밋(1차 5·2차 6·3차 5·4차 5), 문서 커밋은 따로. 단계마다 commit, 개발 기록(DEVLOG)에 요청·결과·오류·수정 이유</p></div>
+          <div class="card"><p class="num">23</p><p>코드 커밋(1차 5·2차 6·3차 5·4차 7), 문서 커밋은 따로. 단계마다 commit, 개발 기록(DEVLOG)에 요청·결과·오류·수정 이유</p></div>
         </div>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>9 / 16</span></div>
       </section>
@@ -388,7 +388,7 @@
       <section class="slide center">
         <p class="kicker">결론</p>
         <h2>살까말까는 구매를 대신 결정하지 않는다. 필요성, 실제 지출, 사용 기록을 확인하도록 돕는다</h2>
-        <p class="lead">이번에는 기능의 동작과 계산을 자동 테스트 452개와 화면 캡처로 검증했다(검증 사례 AC01~AC42). 앞으로 실제 사용자에게 입력이 번거롭지 않은지, 구매 판단에 도움이 되는지 확인하고 싶다</p>
+        <p class="lead">이번에는 기능의 동작과 계산을 자동 테스트 458개와 화면 캡처로 검증했다(검증 사례 AC01~AC43). 앞으로 실제 사용자에게 입력이 번거롭지 않은지, 구매 판단에 도움이 되는지 확인하고 싶다</p>
         <p class="muted">lumos0107.github.io/BuyorNot · github.com/lumos0107/BuyorNot</p>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>16 / 16</span></div>
       </section>

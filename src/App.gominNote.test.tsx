@@ -333,17 +333,15 @@ describe('결정 버튼과 목록 먼저 (F22, AC39)', () => {
     expect(buy.className).toBe(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }).className)
   })
 
-  it('고민 중인 물건이 있으면 목록이 담기 폼보다 위에 있고, 새 물건 담기를 누르면 상품명으로 포커스가 간다', async () => {
-    const user = setup(thing())
+  it('담기 폼은 고민 중인 물건이 있어도 맨 위에 있다 (F24로 바뀜: 목록 먼저와 새 물건 담기를 뺌)', () => {
+    setup(thing())
     const list = screen.getByRole('region', { name: '고민 중인 물건 목록' })
-    expect(list.compareDocumentPosition(screen.getByRole('form', { name: '물건 담기' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: '새 물건 담기' }))
-    expect(form().getByLabelText('상품명')).toHaveFocus()
+    expect(screen.getByRole('form', { name: '물건 담기' }).compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '새 물건 담기' })).not.toBeInTheDocument()
   })
 
-  it('고민 중인 물건이 없으면 담기 폼이 먼저이고 새 물건 담기가 없다', () => {
+  it('고민 중인 물건이 없으면 담기 폼 아래에 빈 목록 안내가 있다', () => {
     setup()
-    expect(screen.queryByRole('button', { name: '새 물건 담기' })).not.toBeInTheDocument()
     const empty = screen.getByText('아직 담아 둔 물건이 없어요.')
     expect(screen.getByRole('form', { name: '물건 담기' }).compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })

@@ -124,18 +124,18 @@ describe('GPT 10~11단계 검토 반영', () => {
   })
 
   describe('제출 실패 시 첫 오류로 포커스', () => {
-    it('상품명 오류와 질문 오류가 함께 있으면 질문 영역을 펼치고, 첫 오류 입력(상품명)으로 포커스를 옮긴다', async () => {
+    it('상품명 오류와 링크 오류가 함께 있으면 링크 영역을 펼치고, 첫 오류 입력(상품명)으로 포커스를 옮긴다', async () => {
       const user = userEvent.setup()
       render(<App />)
       await user.type(wishForm().getByLabelText('가격'), '129000')
       await user.type(wishForm().getByLabelText('사고 싶은 이유'), '이유')
-      const summaryToggle = wishForm().getByText('한 번만 생각해 볼까요? (선택)')
+      const summaryToggle = wishForm().getByText('상품 링크 (선택)')
       await user.click(summaryToggle)
-      await user.type(wishForm().getByLabelText('없으면 어떤 문제가 있나요?'), '가'.repeat(201))
+      await user.type(wishForm().getByLabelText('링크 (선택)'), 'abc')
       await user.click(summaryToggle)
       await user.click(wishForm().getByRole('button', { name: '담아 두기' }))
       expect(summaryToggle.closest('details')).toHaveAttribute('open')
-      expect(wishForm().getByLabelText('없으면 어떤 문제가 있나요?')).toHaveAccessibleDescription(/200자 이하/)
+      expect(wishForm().getByLabelText('링크 (선택)')).toHaveAccessibleDescription(/https:\/\//)
       expect(wishForm().getByLabelText('상품명')).toHaveFocus()
     })
 

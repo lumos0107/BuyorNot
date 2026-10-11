@@ -114,10 +114,6 @@ export function WishlistScreen({
   }
   const checkDesire = (id: string, level: DesireLevel) => watch(onCheckDesire(id, level))
   const answer = (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => watch(onAnswer(id, key, value))
-  // 고민 중인 물건이 있으면 목록을 담기 폼보다 먼저 보여준다(F22: 매일 오늘의 고민에 바로 닿게).
-  // 같은 key로 순서만 바꿔 담기 폼에 쓰던 내용이 사라지지 않게 한다
-  const addFormId = useId()
-  const addForm = <AddForm key="add" id={addFormId} onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} />
   return (
     <div className="stack">
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
@@ -151,45 +147,33 @@ export function WishlistScreen({
           }}
         />
       ) : null}
-      {considering.length === 0
-        ? [
-            addForm,
-            <div key="list" className="empty card stack">
-              <p>아직 담아 둔 물건이 없어요.</p>
-              <p className="note">사고 싶은 물건을 담아 두면 고민 기간이 지난 뒤 다시 물어봐요.</p>
-              {onAddDemo ? <Button onClick={onAddDemo}>예시 물건 넣기</Button> : null}
-            </div>,
-          ]
-        : [
-            <div key="bar" className="example-bar">
-              <span className="note">{`고민 중인 물건 ${considering.length}개`}</span>
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => document.getElementById(addFormId)?.querySelector<HTMLInputElement>('input')?.focus()}
-              >
-                새 물건 담기
-              </button>
-            </div>,
-            <section key="list" className="stack" aria-label="고민 중인 물건 목록">
-              {considering.map((item) => (
-                <WishCard
-                  key={item.id}
-                  item={item}
-                  items={items}
-                  now={now}
-                  hourlyWage={hourlyWage}
-                  onEdit={onEdit}
-                  onDecide={decide}
-                  onExtend={onExtend}
-                  onRemove={remove}
-                  onCheckDesire={checkDesire}
-                  onAnswer={answer}
-                />
-              ))}
-            </section>,
-            addForm,
-          ]}
+      {/* 담기 폼은 짧아서 고민 중인 물건이 있어도 맨 위에 둔다 (F24) */}
+      <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} />
+      {considering.length === 0 ? (
+        <div className="empty card stack">
+          <p>아직 담아 둔 물건이 없어요.</p>
+          <p className="note">사고 싶은 물건을 담아 두면 고민 기간이 지난 뒤 다시 물어봐요.</p>
+          {onAddDemo ? <Button onClick={onAddDemo}>예시 물건 넣기</Button> : null}
+        </div>
+      ) : (
+        <section className="stack" aria-label="고민 중인 물건 목록">
+          {considering.map((item) => (
+            <WishCard
+              key={item.id}
+              item={item}
+              items={items}
+              now={now}
+              hourlyWage={hourlyWage}
+              onEdit={onEdit}
+              onDecide={decide}
+              onExtend={onExtend}
+              onRemove={remove}
+              onCheckDesire={checkDesire}
+              onAnswer={answer}
+            />
+          ))}
+        </section>
+      )}
       <CoolingGuide />
     </div>
   )
@@ -215,18 +199,14 @@ function CoolingGuide() {
 type Preset = (typeof COOLING_PRESETS)[number] | 'custom'
 type AddRaw = { name: string; price: string; reason: string; url: string; preset: Preset; customDays: string }
 const EMPTY_ADD: AddRaw = { name: '', price: '', reason: '', url: '', preset: 3, customDays: '' }
-type AnswersRaw = Omit<Answers, 'problem'> & { problem: string }
-const EMPTY_ANSWERS: AnswersRaw = { problem: '' }
 
 function AddForm({
-  id,
   onAdd,
   items,
   now,
   draft,
   onDraftUsed,
 }: {
-  id: string
   onAdd: (input: NewWishInput) => void
   items: WishItem[]
   now: Date
@@ -234,12 +214,13 @@ function AddForm({
   onDraftUsed?: () => void
 }) {
   const [raw, setRaw] = useState<AddRaw>(EMPTY_ADD)
-  const [answers, setAnswers] = useState<AnswersRaw>(EMPTY_ANSWERS)
   // 담을 때 갖고 싶은 정도 (F22, 선택)
   const [desire, setDesire] = useState<DesireLevel | undefined>()
   const [attempted, setAttempted] = useState(false)
-  const problemCheck = validateNote(answers.problem)
-  const questionsRef = useRef<HTMLDetailsElement>(null)
+  // 링크는 접어 두고, 잘못돼 담지 못하면 펼친다 (F24)
+  const linkRef = useRef<HTMLDetailsElement>(null)
+  // 담은 직후, 적은 값이 언제 어디에 쓰이는지 알려 준다. 폼에 다시 입력하면 지운다 (F24)
+  const [added, setAdded] = useState<string | null>(null)
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   // 가격 비교에서 고른 쪽의 가격과 이유를 채우고 상품명으로 포커스를 옮긴다 (F21). 적던 상품명은 지우지 않는다.
   // 새 비교 값은 그리는 중에 알아차려 폼에 넣고(이전 값 기억), 포커스 이동과 알림은 그린 뒤에 한다
@@ -260,28 +241,39 @@ function AddForm({
   const days = raw.preset === 'custom' ? raw.customDays : String(raw.preset)
   const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url })
   const shown: WishFieldErrors = attempted ? errors : {}
-  const set = <K extends keyof AddRaw>(key: K, v: AddRaw[K]) => setRaw((r) => ({ ...r, [key]: v }))
+  const set = <K extends keyof AddRaw>(key: K, v: AddRaw[K]) => {
+    setRaw((r) => ({ ...r, [key]: v }))
+    setAdded(null)
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (!value || problemCheck.error) {
+    if (!value) {
       setAttempted(true)
-      // 접힌 질문 영역 안의 오류가 숨지 않게 펼치고, 폼에서 첫 번째 오류 입력으로 포커스를 옮긴다
-      if (problemCheck.error && questionsRef.current) questionsRef.current.open = true
+      // 접힌 링크 영역 안의 오류가 숨지 않게 펼치고, 폼에서 첫 번째 오류 입력으로 포커스를 옮긴다
+      if (errors.url && linkRef.current) linkRef.current.open = true
       focusFirstError()
       return
     }
-    onAdd({ ...value, answers: { ...answers, problem: problemCheck.value }, desire })
+    // 질문은 담기 폼에서 묻지 않고 카드의 오늘의 고민에서 하나씩 묻는다 (F24)
+    onAdd({ ...value, desire })
+    setAdded(
+      `‘${value.name}’${josa(value.name, '을/를')} 담았어요. ${value.days}일 뒤에 처음 적은 이유와 갖고 싶은 정도의 변화를 다시 보여 드릴게요. 그동안 카드의 오늘의 고민에서 질문에 하나씩 답해 보세요.`,
+    )
     setRaw(EMPTY_ADD)
-    setAnswers(EMPTY_ANSWERS)
     setDesire(undefined)
     setAttempted(false)
     setFromCompare(false)
   }
 
   return (
-    <form id={id} className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate ref={formRef}>
+    <form className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate ref={formRef}>
       <p className="card-title">물건 담기</p>
+      {added ? (
+        <p className="note" role="status" aria-label="담은 물건">
+          {added}
+        </p>
+      ) : null}
       {fromCompare ? (
         <p className="note" role="status">
           가격 비교에서 가격과 이유를 가져왔어요. 상품명을 적고 담아 두세요.
@@ -361,95 +353,17 @@ function AddForm({
           onChange={(e) => set('customDays', e.target.value)}
         />
       ) : null}
-      <TextField
-        label="링크 (선택)"
-        type="url"
-        inputMode="url"
-        placeholder="https://"
-        value={raw.url}
-        error={shown.url}
-        onChange={(e) => set('url', e.target.value)}
-      />
-      {/* 담을 때 질문 3개 (F09). 모두 선택 */}
-      <details className="questions" ref={questionsRef}>
-        <summary className="field-label">한 번만 생각해 볼까요? (선택)</summary>
-        <div className="stack">
-          <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-            <legend className="field-label">지금 쓰는 게 있나요?</legend>
-            <div className="radio-group">
-              {(['yes', 'no'] as const).map((v) => (
-                <label key={v}>
-                  <input
-                    type="radio"
-                    name="haveOne"
-                    checked={answers.haveOne === v}
-                    onChange={() => setAnswers((a) => ({ ...a, haveOne: v }))}
-                  />{' '}
-                  {v === 'yes' ? '있어요' : '없어요'}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <TextAreaField
-            label="없으면 어떤 문제가 있나요?"
-            placeholder="예: 출퇴근길에 음악을 못 들어요"
-            value={answers.problem}
-            error={attempted ? problemCheck.error : undefined}
-            onChange={(e) => setAnswers((a) => ({ ...a, problem: e.target.value }))}
-          />
-          <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-            <legend className="field-label">한 달 뒤에도 쓸까요?</legend>
-            <div className="radio-group">
-              {([
-                ['yes', '쓸 것 같아요'],
-                ['no', '아닐 것 같아요'],
-                ['unsure', '모르겠어요'],
-              ] as const).map(([v, label]) => (
-                <label key={v}>
-                  <input
-                    type="radio"
-                    name="useInMonth"
-                    checked={answers.useInMonth === v}
-                    onChange={() => setAnswers((a) => ({ ...a, useInMonth: v }))}
-                  />{' '}
-                  {label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          {/* 질문 6개 중 새 3개 (F09 확장): 답은 '사기 전에 한 번 더'(F15)의 근거가 된다 */}
-          <YesNoQuestion
-            legend="할인·한정 때문인가요?"
-            name="saleDriven"
-            options={[
-              ['yes', '네'],
-              ['no', '아니요'],
-            ]}
-            value={answers.saleDriven}
-            onChange={(v) => setAnswers((a) => ({ ...a, saleDriven: v }))}
-          />
-          <YesNoQuestion
-            legend="놓을 곳과 쓸 시간이 있나요?"
-            name="spaceTime"
-            options={[
-              ['yes', '있어요'],
-              ['no', '없어요'],
-            ]}
-            value={answers.spaceTime}
-            onChange={(v) => setAnswers((a) => ({ ...a, spaceTime: v }))}
-          />
-          <YesNoQuestion
-            legend="빌리거나 중고로 대신할 수 있나요?"
-            name="alternative"
-            options={[
-              ['yes', '대신할 수 있어요'],
-              ['no', '어려워요'],
-            ]}
-            value={answers.alternative}
-            onChange={(v) => setAnswers((a) => ({ ...a, alternative: v }))}
-          />
-          <p className="note">기간이 지나 다시 볼 때와 구매함을 누를 때 이 답을 함께 보여줘요.</p>
-        </div>
+      <details className="questions" ref={linkRef}>
+        <summary className="field-label">상품 링크 (선택)</summary>
+        <TextField
+          label="링크 (선택)"
+          type="url"
+          inputMode="url"
+          placeholder="https://"
+          value={raw.url}
+          error={shown.url}
+          onChange={(e) => set('url', e.target.value)}
+        />
       </details>
       <Button variant="primary" block type="submit">
         담아 두기
@@ -712,34 +626,6 @@ function DecisionForm({
         <Button onClick={onCancel}>취소</Button>
       </div>
     </form>
-  )
-}
-
-// 예/아니요로 답하는 선택 질문 (F09 확장)
-function YesNoQuestion({
-  legend,
-  name,
-  options,
-  value,
-  onChange,
-}: {
-  legend: string
-  name: string
-  options: [['yes', string], ['no', string]]
-  value: 'yes' | 'no' | undefined
-  onChange: (value: 'yes' | 'no') => void
-}) {
-  return (
-    <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-      <legend className="field-label">{legend}</legend>
-      <div className="radio-group">
-        {options.map(([v, label]) => (
-          <label key={v}>
-            <input type="radio" name={name} checked={value === v} onChange={() => onChange(v)} /> {label}
-          </label>
-        ))}
-      </div>
-    </fieldset>
   )
 }
 
