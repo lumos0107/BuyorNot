@@ -17,6 +17,10 @@ export type Subscription = {
   /** 마지막으로 쓴 날. 비어 있으면 해지 후보 */
   lastUsedDate: string | null
   memo?: string
+  /** 시연용 예시 사용 시간: 최근 30일, 분 (F16). 직접 넣은 구독에는 없다 */
+  exampleUsageMinutes?: number
+  /** 시연용 예시 사용 횟수: 최근 30일 (배달·쇼핑 멤버십의 주문 등, F16) */
+  exampleUseCount?: number
   createdAt: string
   updatedAt: string
 }
@@ -24,6 +28,9 @@ export type Subscription = {
 export const SUBS_KEY = 'buyornot.subscriptions.v1'
 export const SUB_NAME_MAX = 40
 export const CANCEL_AFTER_DAYS = 31
+/** 예시 사용량의 범위: 30일 = 43,200분, 횟수 999번 */
+export const USAGE_MAX_MINUTES = 30 * 24 * 60
+export const USE_COUNT_MAX = 999
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const toIso = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`
@@ -179,7 +186,9 @@ export function createSubscription(input: SubscriptionInput, now: Date, id: stri
 }
 
 export function updateSubscription(sub: Subscription, input: SubscriptionInput, now: Date): Subscription {
-  return cleanSub({ id: sub.id, ...input, createdAt: sub.createdAt, updatedAt: now.toISOString() })
+  // 예시 사용량(F16)은 입력 폼에 없으므로 고쳐도 그대로 둔다
+  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount }
+  return cleanSub({ id: sub.id, ...input, ...usage, createdAt: sub.createdAt, updatedAt: now.toISOString() })
 }
 
 // 주기에 맞지 않는 필드(월 구독의 갱신일 등)와 빈 메모는 저장하지 않는다
@@ -188,6 +197,8 @@ function cleanSub(sub: Subscription): Subscription {
   if (out.cycle === 'monthly') delete out.renewalDate
   else delete out.billingDay
   if (!out.memo) delete out.memo
+  if (out.exampleUsageMinutes === undefined) delete out.exampleUsageMinutes
+  if (out.exampleUseCount === undefined) delete out.exampleUseCount
   return out
 }
 
@@ -196,22 +207,42 @@ export function toDayIso(date: Date): string {
   return toIso(date.getFullYear(), date.getMonth() + 1, date.getDate())
 }
 
-// 발표·시연용 예시 구독. 월 구독 2개(하나는 해지 후보), 연 구독 1개
+// 발표·시연용 예시 구독: 월 구독 4개(하나는 해지 후보, 둘은 배달·쇼핑 멤버십)와 연 구독 1개.
+// 사용량은 예시 숫자다(F16): OTT·음악은 사용 시간, 배달·쇼핑 멤버십은 사용 횟수, 클라우드는 시간으로 보기 어려워 없음.
+// 쿠팡 와우는 최근에 썼지만(해지 후보 아님) 한 달에 한 번이라 한 번에 드는 돈이 크다는 것을 보여준다.
 export function demoSubscriptions(today: Date, nextId: () => string): Subscription[] {
   const shift = (days: number) => toDayIso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + days))
   const in3Months = toDayIso(new Date(today.getFullYear(), today.getMonth() + 3, Math.min(today.getDate(), 28)))
   return [
-    createSubscription({ name: '(예시) 넷플릭스', priceKrw: 13500, cycle: 'monthly', billingDay: 15, lastUsedDate: shift(-3) }, today, nextId()),
-    createSubscription(
-      { name: '(예시) 음악 스트리밍', priceKrw: 10900, cycle: 'monthly', billingDay: 1, lastUsedDate: null, memo: '요즘 거의 안 들음' },
-      today,
-      nextId(),
-    ),
+    {
+      ...createSubscription({ name: '(예시) 넷플릭스', priceKrw: 13500, cycle: 'monthly', billingDay: 15, lastUsedDate: shift(-3) }, today, nextId()),
+      exampleUsageMinutes: 1080,
+    },
+    {
+      ...createSubscription(
+        { name: '(예시) 음악 스트리밍', priceKrw: 10900, cycle: 'monthly', billingDay: 1, lastUsedDate: null, memo: '요즘 거의 안 들음' },
+        today,
+        nextId(),
+      ),
+      exampleUsageMinutes: 0,
+    },
     createSubscription(
       { name: '(예시) 클라우드 저장공간', priceKrw: 120000, cycle: 'yearly', renewalDate: in3Months, lastUsedDate: shift(-10) },
       today,
       nextId(),
     ),
+    {
+      ...createSubscription({ name: '(예시) 배민클럽', priceKrw: 3990, cycle: 'monthly', billingDay: 20, lastUsedDate: shift(-2) }, today, nextId()),
+      exampleUseCount: 6,
+    },
+    {
+      ...createSubscription(
+        { name: '(예시) 쿠팡 와우 멤버십', priceKrw: 7890, cycle: 'monthly', billingDay: 5, lastUsedDate: shift(-12), memo: '쿠팡이츠 무료배달 때문에 가입' },
+        today,
+        nextId(),
+      ),
+      exampleUseCount: 1,
+    },
   ]
 }
 
@@ -223,6 +254,7 @@ export type SubsLoadResult = { ok: true; store: SubscriptionStore } | { ok: fals
 const isString = (v: unknown): v is string => typeof v === 'string'
 const isDay = (v: unknown) => isString(v) && parseDay(v) !== null
 const isTimestamp = (v: unknown) => isString(v) && Number.isFinite(Date.parse(v))
+const isIntIn = (v: unknown, max: number) => Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max
 
 function isSubscription(v: unknown): v is Subscription {
   if (typeof v !== 'object' || v === null) return false
@@ -241,6 +273,10 @@ function isSubscription(v: unknown): v is Subscription {
   } else return false
   if (o.lastUsedDate !== null && !isDay(o.lastUsedDate)) return false
   if (o.memo !== undefined && !(isString(o.memo) && o.memo.length <= NOTE_MAX)) return false
+  // 예시 사용량(F16): 시간과 횟수 중 하나만, 범위 안의 정수
+  if (o.exampleUsageMinutes !== undefined && !isIntIn(o.exampleUsageMinutes, USAGE_MAX_MINUTES)) return false
+  if (o.exampleUseCount !== undefined && !isIntIn(o.exampleUseCount, USE_COUNT_MAX)) return false
+  if (o.exampleUsageMinutes !== undefined && o.exampleUseCount !== undefined) return false
   return isTimestamp(o.createdAt) && isTimestamp(o.updatedAt)
 }
 

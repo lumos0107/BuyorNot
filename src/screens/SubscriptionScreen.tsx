@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatWon } from '../logic/number'
 import { sameRecord } from '../logic/records'
+import { usageText } from '../logic/usage'
 import {
   daysUntil,
   isCancelCandidate,
@@ -21,6 +22,8 @@ import { Button } from '../ui/Button'
 import { TextAreaField, TextField } from '../ui/Field'
 import { ResetConfirm } from '../ui/ResetConfirm'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
+import { isExample } from '../logic/wishlist'
+import { ExampleBar } from '../ui/ExampleBar'
 import { DeleteConfirm } from './WishlistScreen'
 
 // PRD F14 구독 정리함: 등록·목록(D-n 순)·해지 후보·요약·수정·삭제. 알림은 없고 화면의 D-n만 보여준다.
@@ -32,14 +35,16 @@ type Props = {
   onEdit: (id: string, input: SubscriptionInput) => void
   onRemove: (id: string) => void
   onAddDemo: () => void
+  onRemoveExamples: () => void
   onRetry: () => void
   onReset: () => void
   onDismiss: () => void
 }
 
-export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRetry, onReset, onDismiss }: Props) {
+export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRemoveExamples, onRetry, onReset, onDismiss }: Props) {
   const sorted = sortSubscriptions(items, today)
   const s = subscriptionSummary(items, today)
+  const exampleCount = items.filter((sub) => isExample(sub.name)).length
   // 삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다
   const headingRef = useRef<HTMLHeadingElement>(null)
   const remove = (id: string) => {
@@ -63,6 +68,16 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           headingRef.current?.focus()
         }}
       />
+      {exampleCount > 0 ? (
+        <ExampleBar
+          label="예시 구독만 지우기"
+          message={`예시 구독 ${exampleCount}개를 지울까요? 직접 넣은 구독은 그대로예요.`}
+          onConfirm={() => {
+            onRemoveExamples()
+            headingRef.current?.focus()
+          }}
+        />
+      ) : null}
       {items.length > 0 ? (
         <section className="card stack" aria-label="구독 요약">
           <p className="card-title">요약</p>
@@ -82,13 +97,16 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
             </p>
           ) : null}
           <p className="note">연 구독은 12로 나눈 값을 월에 더해 보여줘요. 연 합계는 실제 요금으로 계산해요.</p>
+          {items.some((sub) => usageText(sub) !== null) ? (
+            <p className="note">사용량은 아직 예시 구독에만 예시 숫자로 보여줘요. 실제 사용량은 휴대폰 앱으로 만들 때 연결할 계획이에요.</p>
+          ) : null}
         </section>
       ) : null}
       <SubscriptionForm label="구독 담기" submitLabel="구독 추가" today={today} onSubmit={onAdd} resetAfterSubmit />
       {items.length === 0 ? (
         <div className="empty card stack">
           <p>아직 등록한 구독이 없어요.</p>
-          <p className="note">OTT·음악·클라우드처럼 매달 나가는 구독을 적어 두면 다음 결제일과 안 쓰는 구독을 보여줘요.</p>
+          <p className="note">OTT·음악·배달·쇼핑 멤버십처럼 매달 나가는 구독을 적어 두면 다음 결제일과 안 쓰는 구독을 보여줘요.</p>
           <Button onClick={onAddDemo}>예시 구독 넣기</Button>
         </div>
       ) : (
@@ -211,7 +229,7 @@ function SubscriptionForm({
   return (
     <form className="card stack" aria-label={label} onSubmit={submit} noValidate ref={formRef}>
       <p className="card-title">{label}</p>
-      <TextField label="구독 이름" autoFocus={autoFocus} placeholder="예: 넷플릭스" maxLength={40} value={raw.name} error={shown.name} onChange={(e) => set('name', e.target.value)} />
+      <TextField label="구독 이름" autoFocus={autoFocus} placeholder="예: 넷플릭스, 배민클럽" maxLength={40} value={raw.name} error={shown.name} onChange={(e) => set('name', e.target.value)} />
       <TextField label="요금" inputMode="numeric" placeholder="원" value={raw.price} error={shown.price} onChange={(e) => set('price', e.target.value)} />
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="field-label">결제 주기</legend>
@@ -302,6 +320,7 @@ function SubscriptionCard({
   const next = nextBillingDate(sub, today)
   const dday = daysUntil(next, today)
   const candidate = isCancelCandidate(sub, today)
+  const usage = usageText(sub)
   const priceText =
     sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월 ${formatWon(monthlyEquivalent(sub))}`
 
@@ -344,6 +363,7 @@ function SubscriptionCard({
         다음 결제 {next} · D-{dday}
       </p>
       <p className="card-meta">{sub.lastUsedDate ? `마지막 사용 ${sub.lastUsedDate}` : '사용 기록 없음'}</p>
+      {usage ? <p className="card-meta">사용량(예시): {usage}</p> : null}
       {sub.memo ? <p>{sub.memo}</p> : null}
       {mode === 'confirm-delete' ? (
         <DeleteConfirm name={sub.name} onConfirm={() => onRemove(sub.id)} onCancel={() => close('delete')} />

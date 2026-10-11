@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
+import { impulseSignals, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
@@ -7,6 +8,7 @@ import {
   COOLING_PRESETS,
   EXTEND_DAYS,
   coolingDays,
+  isExample,
   describeAnswers,
   formatRemaining,
   reviewState,
@@ -22,10 +24,11 @@ import {
   type WishPatchRaw,
 } from '../logic/wishlist'
 import { Button } from '../ui/Button'
+import { ExampleBar } from '../ui/ExampleBar'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
 
-// PRD F01 상품 등록·관리, F02 고민 기간과 결정, F07 연장, F08 결정 메모
+// PRD F01 상품 등록·관리, F02 고민 기간과 결정, F07 연장, F08 결정 메모, F15 사기 전에 한 번 더
 type Decision = 'purchased' | 'skipped'
 
 type Props = {
@@ -38,10 +41,15 @@ type Props = {
   onRemove: (id: string) => void
   /** 시연용 예시 데이터 넣기. 목록이 비어 있을 때만 보여준다 */
   onAddDemo?: () => void
+  /** 예시만 지우기 (결정 기록의 예시 포함) */
+  onRemoveExamples?: () => void
+  /** 사기 전 점검에서 금액을 시간으로 보여줄 때 쓴다 (결정 기록의 시급 설정) */
+  hourlyWage?: number | null
 }
 
-export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, onRemove, onAddDemo }: Props) {
+export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, onRemove, onAddDemo, onRemoveExamples, hourlyWage = null }: Props) {
   const considering = sortConsidering(items, now)
+  const exampleCount = items.filter((item) => isExample(item.name)).length
   // 결정·삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다 (키보드 사용자가 위치를 잃지 않게)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const decide = (id: string, decision: Decision, note?: string) => {
@@ -57,6 +65,16 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
         고민 중인 물건
       </h2>
+      {onRemoveExamples && exampleCount > 0 ? (
+        <ExampleBar
+          label="예시만 지우기"
+          message={`예시 물건 ${exampleCount}개를 지울까요? 결정 기록의 예시도 함께 지워지고, 직접 담은 물건은 그대로예요.`}
+          onConfirm={() => {
+            onRemoveExamples()
+            headingRef.current?.focus()
+          }}
+        />
+      ) : null}
       <AddForm onAdd={onAdd} items={items} now={now} />
       {considering.length === 0 ? (
         <div className="empty card stack">
@@ -70,7 +88,9 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
             <WishCard
               key={item.id}
               item={item}
+              items={items}
               now={now}
+              hourlyWage={hourlyWage}
               onEdit={onEdit}
               onDecide={decide}
               onExtend={onExtend}
@@ -104,7 +124,7 @@ function CoolingGuide() {
 type Preset = (typeof COOLING_PRESETS)[number] | 'custom'
 type AddRaw = { name: string; price: string; reason: string; url: string; preset: Preset; customDays: string }
 const EMPTY_ADD: AddRaw = { name: '', price: '', reason: '', url: '', preset: 3, customDays: '' }
-type AnswersRaw = { haveOne?: Answers['haveOne']; problem: string; useInMonth?: Answers['useInMonth'] }
+type AnswersRaw = Omit<Answers, 'problem'> & { problem: string }
 const EMPTY_ANSWERS: AnswersRaw = { problem: '' }
 
 function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; items: WishItem[]; now: Date }) {
@@ -129,7 +149,7 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
       focusFirstError()
       return
     }
-    onAdd({ ...value, answers: { haveOne: answers.haveOne, problem: problemCheck.value, useInMonth: answers.useInMonth } })
+    onAdd({ ...value, answers: { ...answers, problem: problemCheck.value } })
     setRaw(EMPTY_ADD)
     setAnswers(EMPTY_ANSWERS)
     setAttempted(false)
@@ -267,7 +287,38 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
               ))}
             </div>
           </fieldset>
-          <p className="note">기간이 지나 다시 볼 때 이 답을 함께 보여줘요.</p>
+          {/* 질문 6개 중 새 3개 (F09 확장): 답은 '사기 전에 한 번 더'(F15)의 근거가 된다 */}
+          <YesNoQuestion
+            legend="할인·한정 때문인가요?"
+            name="saleDriven"
+            options={[
+              ['yes', '네'],
+              ['no', '아니요'],
+            ]}
+            value={answers.saleDriven}
+            onChange={(v) => setAnswers((a) => ({ ...a, saleDriven: v }))}
+          />
+          <YesNoQuestion
+            legend="놓을 곳과 쓸 시간이 있나요?"
+            name="spaceTime"
+            options={[
+              ['yes', '있어요'],
+              ['no', '없어요'],
+            ]}
+            value={answers.spaceTime}
+            onChange={(v) => setAnswers((a) => ({ ...a, spaceTime: v }))}
+          />
+          <YesNoQuestion
+            legend="빌리거나 중고로 대신할 수 있나요?"
+            name="alternative"
+            options={[
+              ['yes', '대신할 수 있어요'],
+              ['no', '어려워요'],
+            ]}
+            value={answers.alternative}
+            onChange={(v) => setAnswers((a) => ({ ...a, alternative: v }))}
+          />
+          <p className="note">기간이 지나 다시 볼 때와 구매함을 누를 때 이 답을 함께 보여줘요.</p>
         </div>
       </details>
       <Button variant="primary" block type="submit">
@@ -281,7 +332,10 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
 
 type CardProps = {
   item: WishItem
+  /** 비슷한 기록을 찾을 전체 기록 (F15) */
+  items: WishItem[]
   now: Date
+  hourlyWage: number | null
   onEdit: (id: string, patch: WishPatch) => void
   onDecide: (id: string, decision: Decision, note?: string) => void
   onExtend: (id: string, days: number) => void
@@ -292,7 +346,7 @@ type CardMode = 'view' | 'edit' | 'confirm-delete' | 'extend' | 'decide-purchase
 
 type Trigger = 'purchased' | 'skipped' | 'extend' | 'edit' | 'delete'
 
-function WishCard({ item, now, onEdit, onDecide, onExtend, onRemove }: CardProps) {
+function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, onRemove }: CardProps) {
   const [mode, setMode] = useState<CardMode>('view')
   const state = reviewState(item.reviewAt, now)
   const extensions = item.extensions ?? 0
@@ -374,6 +428,15 @@ function WishCard({ item, now, onEdit, onDecide, onExtend, onRemove }: CardProps
       ) : mode === 'decide-purchased' || mode === 'decide-skipped' ? (
         <DecisionForm
           decision={mode === 'decide-purchased' ? 'purchased' : 'skipped'}
+          check={
+            mode === 'decide-purchased'
+              ? {
+                  signals: impulseSignals(item, items, now),
+                  questions: unansweredQuestions(item),
+                  hours: priceInHours(item.priceKrw, hourlyWage),
+                }
+              : undefined
+          }
           onConfirm={(note) => onDecide(item.id, mode === 'decide-purchased' ? 'purchased' : 'skipped', note)}
           onCancel={() => setMode('view')}
         />
@@ -443,10 +506,24 @@ function ExtendPicker({ onPick, onCancel }: { onPick: (days: number) => void; on
 }
 
 // 결정 메모(선택)를 적고 확인해야 결정이 저장된다 (F08)
-function DecisionForm({ decision, onConfirm, onCancel }: { decision: Decision; onConfirm: (note?: string) => void; onCancel: () => void }) {
+type ImpulseCheckData = { signals: ImpulseSignal[]; questions: string[]; hours: string | null }
+
+function DecisionForm({
+  decision,
+  check,
+  onConfirm,
+  onCancel,
+}: {
+  decision: Decision
+  /** 구매함일 때만: 사기 전 점검 (F15) */
+  check?: ImpulseCheckData
+  onConfirm: (note?: string) => void
+  onCancel: () => void
+}) {
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | undefined>()
   const label = decision === 'purchased' ? '구매함' : '구매 포기'
+  const checkId = useId()
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -460,9 +537,11 @@ function DecisionForm({ decision, onConfirm, onCancel }: { decision: Decision; o
 
   return (
     <form className="stack" aria-label={`${label} 확인`} onSubmit={submit} noValidate>
+      {check ? <ImpulseCheck id={checkId} {...check} /> : null}
       <TextAreaField
         label="결정 메모 (선택)"
         autoFocus
+        aria-describedby={check ? checkId : undefined}
         placeholder={decision === 'purchased' ? '왜 사기로 했나요?' : '왜 안 사기로 했나요?'}
         value={note}
         error={error}
@@ -478,6 +557,66 @@ function DecisionForm({ decision, onConfirm, onCancel }: { decision: Decision; o
         <Button onClick={onCancel}>취소</Button>
       </div>
     </form>
+  )
+}
+
+// 예/아니요로 답하는 선택 질문 (F09 확장)
+function YesNoQuestion({
+  legend,
+  name,
+  options,
+  value,
+  onChange,
+}: {
+  legend: string
+  name: string
+  options: [['yes', string], ['no', string]]
+  value: 'yes' | 'no' | undefined
+  onChange: (value: 'yes' | 'no') => void
+}) {
+  return (
+    <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+      <legend className="field-label">{legend}</legend>
+      <div className="radio-group">
+        {options.map(([v, label]) => (
+          <label key={v}>
+            <input type="radio" name={name} checked={value === v} onChange={() => onChange(v)} /> {label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
+// 사기 전에 한 번 더 (F15): 내 기록에서 찾은 근거만 보여주고 단정하지 않는다. 메모 입력이 이 내용을 설명으로 읽어 준다
+// 답하지 않은 질문은 걸리는 점으로 세지 않고, 중요한 순서로 3개까지 "한 번 생각해 볼 질문"으로 보여준다
+const QUESTIONS_SHOWN = 3
+
+function ImpulseCheck({ id, signals, questions, hours }: ImpulseCheckData & { id: string }) {
+  return (
+    <section className="impulse-check stack" aria-label="사기 전 점검" id={id}>
+      <p className="field-label">사기 전에 한 번 더 · {signals.length > 0 ? `걸리는 점 ${signals.length}개` : '걸리는 점이 없어요'}</p>
+      {signals.length > 0 ? (
+        <ul className="impulse-list" aria-label="걸리는 점">
+          {signals.map((signal) => (
+            <li key={signal.key}>{signal.text}</li>
+          ))}
+        </ul>
+      ) : null}
+      {hours ? <p>이 금액은 시급으로 약 {hours}시간이에요.</p> : null}
+      {questions.length > 0 ? (
+        <>
+          <p className="note">한 번 생각해 볼 질문</p>
+          <ul className="impulse-list" aria-label="한 번 생각해 볼 질문">
+            {questions.slice(0, QUESTIONS_SHOWN).map((question) => (
+              <li key={question}>{question}</li>
+            ))}
+          </ul>
+          {questions.length > QUESTIONS_SHOWN ? <p className="note">{`그 밖에 ${questions.length - QUESTIONS_SHOWN}개`}</p> : null}
+        </>
+      ) : null}
+      {signals.length > 0 ? <p className="note">그래도 필요하다면 사도 괜찮아요.</p> : null}
+    </section>
   )
 }
 

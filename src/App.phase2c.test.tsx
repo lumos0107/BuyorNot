@@ -40,14 +40,14 @@ async function passTime(ms: number) {
   })
 }
 
-describe('담을 때 질문 3개 (F09)', () => {
+describe('담을 때 질문 (F09)', () => {
   it('AC20: 세 질문에 답하고 담으면, 새로고침 뒤 재검토 가능 카드에 답이 보인다', async () => {
     const { user, unmount } = setup()
     await fillBasics(user)
     await user.click(form().getByText('한 번만 생각해 볼까요? (선택)'))
-    await user.click(form().getByRole('radio', { name: '없어요' }))
+    await user.click(within(form().getByRole('group', { name: '지금 쓰는 게 있나요?' })).getByRole('radio', { name: '없어요' }))
     await user.type(form().getByLabelText('없으면 어떤 문제가 있나요?'), '출퇴근길에 음악을 못 들어요')
-    await user.click(form().getByRole('radio', { name: '모르겠어요' }))
+    await user.click(within(form().getByRole('group', { name: '한 달 뒤에도 쓸까요?' })).getByRole('radio', { name: '모르겠어요' }))
     await user.click(form().getByRole('button', { name: '담아 두기' }))
     unmount()
     setup()
@@ -62,7 +62,7 @@ describe('담을 때 질문 3개 (F09)', () => {
     const { user } = setup()
     await fillBasics(user)
     await user.click(form().getByText('한 번만 생각해 볼까요? (선택)'))
-    await user.click(form().getByRole('radio', { name: '있어요' }))
+    await user.click(within(form().getByRole('group', { name: '지금 쓰는 게 있나요?' })).getByRole('radio', { name: '있어요' }))
     await user.click(form().getByRole('button', { name: '담아 두기' }))
     await fillBasics(user, '로봇청소기')
     await user.click(form().getByRole('button', { name: '담아 두기' }))

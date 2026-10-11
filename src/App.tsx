@@ -62,6 +62,8 @@ export default function App() {
             onExtend={wishlist.extend}
             onRemove={wishlist.remove}
             onAddDemo={wishlist.addDemo}
+            onRemoveExamples={wishlist.removeExamples}
+            hourlyWage={settings.hourlyWage}
           />
         </TabPanel>
         <TabPanel id="compare" hidden={screen !== 'compare'}>
@@ -86,6 +88,7 @@ export default function App() {
             onEdit={subscriptions.edit}
             onRemove={subscriptions.remove}
             onAddDemo={subscriptions.addDemo}
+            onRemoveExamples={subscriptions.removeExamples}
             onRetry={subscriptions.retrySave}
             onReset={subscriptions.resetStorage}
             onDismiss={subscriptions.dismissNotice}

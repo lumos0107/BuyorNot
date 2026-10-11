@@ -1,12 +1,5 @@
 import { useState } from 'react'
-import {
-  compareBundles,
-  unitKind,
-  validateBundleInput,
-  type BundleFieldErrors,
-  type BundleRawInput,
-  type Unit,
-} from '../logic/bundle'
+import { compareBundles, unitKind, validateBundleInput, type BundleFieldErrors, type BundleRawInput, type Unit, bundleSummary } from '../logic/bundle'
 import {
   calculateDiscount,
   compareDiscounts,
@@ -396,10 +389,6 @@ function BundleResultCard({ result }: { result: Extract<ReturnType<typeof compar
       : percentLabel === '0.0'
         ? `상품 ${verdict.cheaper}가 단가 아주 조금 낮아요`
         : `상품 ${verdict.cheaper}가 단가 ${percentLabel}% 낮아요`
-  const spendText =
-    verdict.spendMore === 'same'
-      ? '총지출은 같아요.'
-      : `총지출은 상품 ${verdict.spendMore}가 ${formatWon(verdict.spendDiff)} 더 커요.`
 
   return (
     <section className="card stack" aria-label="묶음상품 비교 결과">
@@ -425,8 +414,9 @@ function BundleResultCard({ result }: { result: Extract<ReturnType<typeof compar
         </li>
       </ul>
       <p className="price price-lg">{verdictText}</p>
+      <p className="field-label">{bundleSummary(verdict)}</p>
       {verdict.displayTie ? <p className="note">표시 단가는 같지만 아주 작은 차이가 있어요.</p> : null}
-      <p className="note">{spendText} 가격만 비교한 결과예요. 품질이나 필요한 양은 따로 생각해 주세요.</p>
+      <p className="note">가격만 비교한 결과예요. 품질이나 필요한 양은 따로 생각해 주세요.</p>
     </section>
   )
 }

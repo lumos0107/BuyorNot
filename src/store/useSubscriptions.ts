@@ -10,7 +10,7 @@ import {
   type SubscriptionInput,
   type SubsLoadResult,
 } from '../logic/subscriptions'
-import { newId } from '../logic/wishlist'
+import { isExample, newId } from '../logic/wishlist'
 import type { StorageStatus } from './useWishlist'
 
 // PRD F14 구독 정리함 저장: 물건 기록과 같은 규칙(손상 시 덮어쓰지 않음, 저장 실패는 알림)을 별도 키에 적용한다
@@ -104,6 +104,8 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
     edit: (id: string, input: SubscriptionInput) =>
       commit(items.map((sub) => (sub.id === id ? updateSubscription(sub, input, new Date()) : sub))),
     remove: (id: string) => commit(items.filter((sub) => sub.id !== id)),
+    /** 예시 구독만 지운다 */
+    removeExamples: () => commit(items.filter((sub) => !isExample(sub.name))),
     addDemo: () => commit([...demoSubscriptions(new Date(), newId), ...items]),
     retrySave: () => commit(items),
     // 직전에 다른 탭이 읽을 수 있는 구독을 저장했다면 덮어쓰지 않고 그 내용을 불러온다

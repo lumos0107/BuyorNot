@@ -33,7 +33,7 @@ describe('묶음상품 비교 화면', () => {
     expect(result.getByText('200.00원')).toBeInTheDocument()
     expect(result.getByText('300.00원')).toBeInTheDocument()
     expect(result.getByText('상품 A가 단가 33.3% 낮아요')).toBeInTheDocument()
-    expect(result.getByText(/총지출은 상품 A가 500원 더 커요/)).toBeInTheDocument()
+    expect(result.getByText('단가는 상품 A가 낮지만, 총지출은 상품 B가 500원 적어요')).toBeInTheDocument()
   })
 
   it('예시 넣기를 누르면 AC10 값이 채워지고 결과가 나온다', async () => {
@@ -45,6 +45,7 @@ describe('묶음상품 비교 화면', () => {
     expect(result.getByText('333.33원')).toBeInTheDocument()
     expect(result.getByText('360.00원')).toBeInTheDocument()
     expect(result.getByText('상품 A가 단가 7.4% 낮아요')).toBeInTheDocument()
+    expect(result.getByText('단가는 상품 A가 낮지만, 총지출은 상품 B가 600원 적어요')).toBeInTheDocument()
   })
 
   it('초기화를 누르면 입력과 결과가 사라진다', async () => {

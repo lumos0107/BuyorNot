@@ -1,4 +1,4 @@
-import { MAX_WON, formatFixed, parseDecimal, parseInteger } from './number'
+import { formatFixed, formatWon, MAX_WON, parseDecimal, parseInteger } from './number'
 
 // PRD F05 묶음상품 가성비 비교
 // 무게는 g, 부피는 mL로 환산해 100g·100mL당 가격을, 개수는 1개당 가격을 비교한다.
@@ -143,4 +143,18 @@ export function validateBundleInput(raw: BundleRawInput): { value?: BundleInput;
 
   if (Object.keys(errors).length > 0) return { errors }
   return { value: { price: price!, unit: raw.unit, size, count: count! }, errors }
+}
+
+/** 단가와 총지출을 한 문장으로 말한다 (F05 보강). 단가가 싼 쪽이 총지출은 더 클 수 있어, 엇갈리면 분명히 말한다 */
+export function bundleSummary(verdict: BundleVerdict): string {
+  const other = (side: 'A' | 'B') => (side === 'A' ? 'B' : 'A')
+  const diff = formatWon(verdict.spendDiff)
+  if (verdict.cheaper === 'tie') {
+    return verdict.spendMore === 'same' ? '단가도 총지출도 같아요' : `단가는 같고, 총지출은 상품 ${other(verdict.spendMore)}가 ${diff} 적어요`
+  }
+  if (verdict.spendMore === 'same') return `단가는 상품 ${verdict.cheaper}가 낮고, 총지출은 같아요`
+  if (verdict.spendMore === verdict.cheaper) {
+    return `단가는 상품 ${verdict.cheaper}가 낮지만, 총지출은 상품 ${other(verdict.cheaper)}가 ${diff} 적어요`
+  }
+  return `상품 ${verdict.cheaper}가 단가도 낮고, 총지출도 ${diff} 적어요`
 }

@@ -10,6 +10,12 @@ export type Answers = {
   haveOne?: 'yes' | 'no'
   problem?: string
   useInMonth?: 'yes' | 'no' | 'unsure'
+  /** 할인·한정 때문인가요? (F09 확장) */
+  saleDriven?: 'yes' | 'no'
+  /** 놓을 곳과 쓸 시간이 있나요? */
+  spaceTime?: 'yes' | 'no'
+  /** 빌리거나 중고로 대신할 수 있나요? */
+  alternative?: 'yes' | 'no'
 }
 
 /** 구매 후 회고 (F12) */
@@ -178,11 +184,17 @@ export function cleanAnswers(answers: Answers | undefined): Answers | undefined 
   const problem = answers.problem?.trim()
   if (problem) out.problem = problem
   if (answers.useInMonth) out.useInMonth = answers.useInMonth
+  if (answers.saleDriven) out.saleDriven = answers.saleDriven
+  if (answers.spaceTime) out.spaceTime = answers.spaceTime
+  if (answers.alternative) out.alternative = answers.alternative
   return Object.keys(out).length > 0 ? out : undefined
 }
 
 const HAVE_ONE_TEXT = { yes: '지금 쓰는 게 있어요', no: '지금 쓰는 게 없어요' } as const
 const USE_IN_MONTH_TEXT = { yes: '쓸 것 같아요', no: '아닐 것 같아요', unsure: '모르겠어요' } as const
+const SALE_DRIVEN_TEXT = { yes: '할인·한정 때문에 담았어요', no: '할인 때문은 아니에요' } as const
+const SPACE_TIME_TEXT = { yes: '놓을 곳과 쓸 시간이 있어요', no: '놓을 곳이나 쓸 시간이 없어요' } as const
+const ALTERNATIVE_TEXT = { yes: '빌리거나 중고로 대신할 수 있어요', no: '대신하기 어려워요' } as const
 
 /** 재검토 카드에 보여줄 답 문장 (F09) */
 export function describeAnswers(answers: Answers | undefined): string[] {
@@ -191,6 +203,9 @@ export function describeAnswers(answers: Answers | undefined): string[] {
   if (answers.haveOne) lines.push(HAVE_ONE_TEXT[answers.haveOne])
   if (answers.problem) lines.push(`없으면 생기는 문제: ${answers.problem}`)
   if (answers.useInMonth) lines.push(`한 달 뒤에도 쓸지: ${USE_IN_MONTH_TEXT[answers.useInMonth]}`)
+  if (answers.saleDriven) lines.push(SALE_DRIVEN_TEXT[answers.saleDriven])
+  if (answers.spaceTime) lines.push(SPACE_TIME_TEXT[answers.spaceTime])
+  if (answers.alternative) lines.push(ALTERNATIVE_TEXT[answers.alternative])
   return lines
 }
 
@@ -242,6 +257,9 @@ export function nextReviewDelay(items: readonly WishItem[], now: Date): number |
   return upcoming.length > 0 ? Math.min(...upcoming) : null
 }
 
+/** 시연용 예시 기록인지: 이름이 "(예시)"로 시작한다 (예시 물건·예시 구독 공통) */
+export const isExample = (name: string) => name.startsWith('(예시)')
+
 // 발표·시연용 가상 데이터. 재검토 가능한 것, 고민 중인 것, 이미 결정한 것을 하나씩 만든다. 보통 기록처럼 저장된다.
 export function demoItems(now: Date, nextId: () => string): WishItem[] {
   const ago = (days: number) => new Date(now.getTime() - days * DAY_MS)
@@ -252,6 +270,7 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
     createdDaysAgo: number,
     days: number,
     decided?: { status: 'purchased' | 'skipped'; daysAgo: number },
+    answers?: Answers,
   ): WishItem => {
     const created = ago(createdDaysAgo).toISOString()
     const decidedAt = decided ? ago(decided.daysAgo).toISOString() : null
@@ -266,10 +285,12 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
       reviewAt: reviewAtFrom(created, days),
       status: decided?.status ?? 'considering',
       decidedAt,
+      ...(answers ? { answers } : {}),
     }
   }
   return [
-    make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 3),
+    // 담을 때 답한 것이 있어 재검토 카드와 사기 전 점검(F09, F15)을 시연할 수 있다
+    make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 3, undefined, { haveOne: 'yes', useInMonth: 'unsure' }),
     make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 1, 7),
     make('게이밍 키보드', 149000, '세일이라 담았는데 지금 키보드도 멀쩡해서', 7, 3, { status: 'skipped', daysAgo: 3 }),
     // 구매 후 7일이 지나 회고를 물을 수 있는 기록 (F12)

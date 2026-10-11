@@ -71,6 +71,9 @@ function hasValidOptionalFields(o: Record<string, unknown>): boolean {
     if (a.haveOne !== undefined && !(isString(a.haveOne) && YES_NO.has(a.haveOne))) return false
     if (!isNote(a.problem)) return false
     if (a.useInMonth !== undefined && !(isString(a.useInMonth) && YES_NO_UNSURE.has(a.useInMonth))) return false
+    for (const key of ['saleDriven', 'spaceTime', 'alternative'] as const) {
+      if (a[key] !== undefined && !(isString(a[key]) && YES_NO.has(a[key]))) return false
+    }
   }
   return true
 }

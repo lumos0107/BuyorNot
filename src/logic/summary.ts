@@ -1,5 +1,5 @@
 import { formatFixed } from './number'
-import { validateNote, type Satisfaction, type WishItem } from './wishlist'
+import { isExample, validateNote, type Satisfaction, type WishItem } from './wishlist'
 
 // PRD F12 결정 기록 요약·구매 후 회고
 // 요약은 필터와 상관없이 전체 기록 기준이다. 구매 포기 금액은 등록 가격의 합이며 절약액이 아니다.
@@ -27,7 +27,7 @@ export function historySummary(items: readonly WishItem[], hourlyWage: number | 
     skippedCount: skipped.length,
     skippedTotal,
     hoursLabel: hourlyWage ? formatFixed(skippedTotal / hourlyWage, 1) : null,
-    includesExample: decided.some((item) => item.name.startsWith('(예시)')),
+    includesExample: decided.some((item) => isExample(item.name)),
     reviewedCount: reviewed.length,
     regretCount: reviewed.filter((item) => item.satisfaction === 'regret').length,
   }

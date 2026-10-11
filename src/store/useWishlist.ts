@@ -5,6 +5,7 @@ import {
   createItem,
   decideItem,
   demoItems,
+  isExample,
   extendItem,
   newId,
   nextReviewDelay,
@@ -145,6 +146,8 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     extend: (id: string, days: number) =>
       commit(items.map((item) => (item.id === id ? extendItem(item, days, new Date()) : item))),
     remove: (id: string) => commit(items.filter((item) => item.id !== id)),
+    /** 예시 물건만 지운다 (결정 기록의 예시 포함) */
+    removeExamples: () => commit(items.filter((item) => !isExample(item.name))),
     addDemo: () => commit([...demoItems(new Date(), newId), ...items]),
     /** 저장 실패 뒤 다시 시도 */
     retrySave: () => commit(items),
