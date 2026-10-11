@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
+import { desirePointCount, desireTrend } from '../logic/desire'
 import { formatWon, josa } from '../logic/number'
 import { validateWage } from '../logic/settings'
 import { sameRecord } from '../logic/records'
@@ -10,7 +11,7 @@ import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
 import { DeleteConfirm } from './WishlistScreen'
 
-// PRD F03 결정 기록 + F08 메모, F12 필터·요약·구매 후 회고
+// PRD F03 결정 기록 + F08 메모, F12 필터·요약·구매 후 회고, F22 고민 효과
 type Props = {
   items: WishItem[]
   now: Date
@@ -142,6 +143,10 @@ function SummaryCard({
           회고 {s.reviewedCount}건 중 후회 {s.regretCount}건
         </p>
       ) : null}
+      {/* 고민 효과 (F22): 결정한 기록 중 고민하는 동안 갖고 싶은 정도가 줄어든 것이 있을 때만 */}
+      {s.desireDropped > 0 ? (
+        <p>{`고민하는 동안 갖고 싶은 정도가 줄어든 물건 ${s.desireDropped}개 중 ${s.desireDroppedSkipped}개를 안 샀어요`}</p>
+      ) : null}
     </section>
   )
 }
@@ -214,6 +219,7 @@ function HistoryCard({
         ) : null}
       </p>
       <p>{item.reason}</p>
+      {desirePointCount(item) >= 2 ? <p className="card-meta">{`갖고 싶은 정도: ${desireTrend(item)}`}</p> : null}
       {item.decisionNote ? (
         <>
           <p className="card-meta">결정 메모</p>

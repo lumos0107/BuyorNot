@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { impulseSignals, priceInHours, unansweredQuestions } from './impulse'
+import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions } from './impulse'
 import { type WishItem } from './wishlist'
 
 // PRD F15 사기 전에 한 번 더: 내 기록에서 찾은 근거로 "왜 충동구매일 수 있는지" 보여준다 (AC29)
@@ -38,9 +38,9 @@ describe('사기 전 점검 신호 (F15)', () => {
     expect(texts(target, [target])).toEqual([])
   })
 
-  it("담을 때 '지금 쓰는 게 있어요'라고 답했으면 알려준다", () => {
+  it("'지금 쓰는 게 있어요'라고 답했으면 알려준다", () => {
     expect(texts(item({ answers: { haveOne: 'yes', problem: '음질', useInMonth: 'yes' } }))).toEqual([
-      "담을 때 '지금 쓰는 게 있어요'라고 답했어요",
+      "'지금 쓰는 게 있어요'라고 답했어요",
     ])
   })
 
@@ -84,6 +84,32 @@ describe('사기 전 점검 신호 (F15)', () => {
     const target = item({ reason: '세일', reviewAt: at(2), answers: { haveOne: 'yes', useInMonth: 'unsure' } })
     const skipped = item({ name: '헤드폰', status: 'skipped', decidedAt: at(-3), createdAt: at(-6), updatedAt: at(-3), reviewAt: at(-5) })
     expect(impulseSignals(target, [target, skipped], NOW).map((s) => s.kind)).toEqual(['similar', 'have-one', 'wont-use', 'sale', 'early'])
+  })
+})
+
+describe('그 밖에 답한 것 (F22)', () => {
+  it('걸리는 점이 되지 않은 답을 질문의 중요한 순서로, 답 목록과 같은 문장으로 돌려준다', () => {
+    const calmAll = { haveOne: 'no', problem: '선이 자꾸 끊겨요', useInMonth: 'yes', saleDriven: 'no', spaceTime: 'yes', alternative: 'no' } as const
+    expect(otherAnswers(item({ answers: calmAll }))).toEqual([
+      '없으면 생기는 문제: 선이 자꾸 끊겨요',
+      '한 달 뒤에도 쓸지: 쓸 것 같아요',
+      '지금 쓰는 게 없어요',
+      '할인 때문은 아니에요',
+      '놓을 곳과 쓸 시간이 있어요',
+      '대신하기 어려워요',
+    ])
+  })
+
+  it('걸리는 점이 된 답과 답하지 않은 질문은 넣지 않는다', () => {
+    const worried = { haveOne: 'yes', useInMonth: 'unsure', saleDriven: 'yes', spaceTime: 'no', alternative: 'yes' } as const
+    expect(otherAnswers(item({ answers: worried }))).toEqual([])
+    expect(otherAnswers(item({ answers: undefined }))).toEqual([])
+  })
+
+  it('공백뿐인 문제 설명(이전 기록)은 답하지 않은 것으로 본다 (GPT 계획 검토)', () => {
+    const blank = item({ answers: { problem: '   ', useInMonth: 'yes' } })
+    expect(otherAnswers(blank)).toEqual(['한 달 뒤에도 쓸지: 쓸 것 같아요'])
+    expect(unansweredQuestions(blank)[0]).toBe('없으면 어떤 문제가 있나요?')
   })
 })
 

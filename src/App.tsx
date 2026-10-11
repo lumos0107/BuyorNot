@@ -68,6 +68,8 @@ export default function App() {
             onAddDemo={wishlist.addDemo}
             onRemoveExamples={wishlist.removeExamples}
             onReconsider={wishlist.reconsider}
+            onCheckDesire={wishlist.checkDesire}
+            onAnswer={wishlist.answer}
             hourlyWage={settings.hourlyWage}
             draft={draft}
             onDraftUsed={() => setDraft(null)}

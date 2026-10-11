@@ -43,9 +43,9 @@ describe('담을 때 질문 6개', () => {
     })
     await user.click(card('캠핑 의자').getByRole('button', { name: '구매함' }))
     const check = within(card('캠핑 의자').getByRole('region', { name: '사기 전 점검' }))
-    expect(check.getByText("담을 때 '할인·한정 때문'이라고 답했어요. 할인이 없어도 살까요?")).toBeInTheDocument()
-    expect(check.getByText("담을 때 '놓을 곳이나 쓸 시간이 없어요'라고 답했어요")).toBeInTheDocument()
-    expect(check.getByText("담을 때 '빌리거나 중고로 대신할 수 있어요'라고 답했어요")).toBeInTheDocument()
+    expect(check.getByText("'할인·한정 때문'이라고 답했어요. 할인이 없어도 살까요?")).toBeInTheDocument()
+    expect(check.getByText("'놓을 곳이나 쓸 시간이 없어요'라고 답했어요")).toBeInTheDocument()
+    expect(check.getByText("'빌리거나 중고로 대신할 수 있어요'라고 답했어요")).toBeInTheDocument()
   })
 
   it('재검토 가능 카드에 새 답도 함께 보여준다', async () => {
@@ -64,7 +64,7 @@ describe('담을 때 질문 6개', () => {
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
     render(<App />)
-    const answers = within(card('캠핑 의자').getByRole('list', { name: '담을 때 답한 것' }))
+    const answers = within(card('캠핑 의자').getByRole('list', { name: '답한 것' }))
     expect(answers.getByText('할인 때문은 아니에요')).toBeInTheDocument()
     expect(answers.getByText('놓을 곳과 쓸 시간이 있어요')).toBeInTheDocument()
     expect(answers.getByText('대신하기 어려워요')).toBeInTheDocument()

@@ -52,7 +52,7 @@ describe('담을 때 질문 (F09)', () => {
     unmount()
     setup()
     await passTime(25 * HOUR)
-    const answers = within(card('무선 헤드폰').getByRole('list', { name: '담을 때 답한 것' }))
+    const answers = within(card('무선 헤드폰').getByRole('list', { name: '답한 것' }))
     expect(answers.getByText('지금 쓰는 게 없어요')).toBeInTheDocument()
     expect(answers.getByText('없으면 생기는 문제: 출퇴근길에 음악을 못 들어요')).toBeInTheDocument()
     expect(answers.getByText('한 달 뒤에도 쓸지: 모르겠어요')).toBeInTheDocument()
@@ -67,10 +67,10 @@ describe('담을 때 질문 (F09)', () => {
     await fillBasics(user, '로봇청소기')
     await user.click(form().getByRole('button', { name: '담아 두기' }))
     await passTime(25 * HOUR)
-    const answers = within(card('무선 헤드폰').getByRole('list', { name: '담을 때 답한 것' }))
+    const answers = within(card('무선 헤드폰').getByRole('list', { name: '답한 것' }))
     expect(answers.getAllByRole('listitem')).toHaveLength(1)
     expect(answers.getByText('지금 쓰는 게 있어요')).toBeInTheDocument()
-    expect(card('로봇청소기').queryByRole('list', { name: '담을 때 답한 것' })).not.toBeInTheDocument()
+    expect(card('로봇청소기').queryByRole('list', { name: '답한 것' })).not.toBeInTheDocument()
   })
 
   it('AC20: 문제 설명이 201자면 오류를 보여주고 담지 않는다', async () => {

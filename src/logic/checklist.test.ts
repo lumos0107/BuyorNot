@@ -57,7 +57,7 @@ describe('새 질문 3개의 답 (F09)', () => {
 describe('새 답을 근거로 한 사기 전 점검 (F15)', () => {
   it("할인·한정 때문이라고 답했으면 알려주고, 이유의 할인 문구와 겹쳐 두 번 세지 않는다", () => {
     expect(texts(item({ reason: '세일이라서', answers: { ...calm, saleDriven: 'yes' } }))).toEqual([
-      "담을 때 '할인·한정 때문'이라고 답했어요. 할인이 없어도 살까요?",
+      "'할인·한정 때문'이라고 답했어요. 할인이 없어도 살까요?",
     ])
   })
 
@@ -66,12 +66,12 @@ describe('새 답을 근거로 한 사기 전 점검 (F15)', () => {
   })
 
   it('놓을 곳이나 쓸 시간이 없다고 답했으면 알려준다', () => {
-    expect(texts(item({ answers: { ...calm, spaceTime: 'no' } }))).toEqual(["담을 때 '놓을 곳이나 쓸 시간이 없어요'라고 답했어요"])
+    expect(texts(item({ answers: { ...calm, spaceTime: 'no' } }))).toEqual(["'놓을 곳이나 쓸 시간이 없어요'라고 답했어요"])
     expect(texts(item({ answers: { ...calm, spaceTime: 'yes' } }))).toEqual([])
   })
 
   it('빌리거나 중고로 대신할 수 있다고 답했으면 알려준다', () => {
-    expect(texts(item({ answers: { ...calm, alternative: 'yes' } }))).toEqual(["담을 때 '빌리거나 중고로 대신할 수 있어요'라고 답했어요"])
+    expect(texts(item({ answers: { ...calm, alternative: 'yes' } }))).toEqual(["'빌리거나 중고로 대신할 수 있어요'라고 답했어요"])
     expect(texts(item({ answers: { ...calm, alternative: 'no' } }))).toEqual([])
   })
 

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { STORAGE_KEY, getLocalStorage, readStore, saveStore, type LoadResult, type WishStore } from '../logic/storage'
+import { checkDesire } from '../logic/desire'
+import { answerItem, type QuestionKey } from '../logic/questions'
 import { nextRetroDelay, review } from '../logic/summary'
 import {
   createItem,
@@ -11,6 +13,8 @@ import {
   newId,
   nextReviewDelay,
   updateItem,
+  type Answers,
+  type DesireLevel,
   type NewWishInput,
   type Satisfaction,
   type WishItem,
@@ -107,13 +111,14 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
   }
 
   // 손상된 데이터 위에는 쓰지 않고, 저장소가 없으면 시도하지 않는다(화면에만 반영).
-  // 이 탭이 마지막으로 읽거나 쓴 뒤 다른 탭이 먼저 저장했다면 덮어쓰지 않고 그 내용을 불러와 알린다
-  const commit = (next: WishItem[]) => {
+  // 이 탭이 마지막으로 읽거나 쓴 뒤 다른 탭이 먼저 저장했다면 덮어쓰지 않고 그 내용을 불러와 알린다.
+  // 이번 변경이 화면에 반영됐는지 돌려준다(다른 탭 기록을 불러와 반영하지 않았으면 false, F22)
+  const commit = (next: WishItem[]): boolean => {
     setNow(new Date())
     if (status.kind === 'corrupt' || status.kind === 'unavailable') {
       setItems(next)
       unsaved.current = true
-      return
+      return true
     }
     const read = readStore(storage)
     if ((read.loaded.ok || read.loaded.reason === 'corrupt') && read.raw !== lastRaw.current) {
@@ -122,15 +127,24 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
         setItems(read.loaded.store.items)
         setStatus({ kind: 'replaced' })
         unsaved.current = false
-      } else {
-        setItems(next)
-        setStatus({ kind: 'corrupt' })
-        unsaved.current = true
+        return false
       }
-      return
+      setItems(next)
+      setStatus({ kind: 'corrupt' })
+      unsaved.current = true
+      return true
     }
     setItems(next)
     setStatus(write(next))
+    return true
+  }
+
+  // 고민 중인 물건에만 기록한다 (F22: 결정·삭제된 물건에는 정도와 답을 남기지 않는다)
+  const updateConsidering = (id: string, change: (item: WishItem, now: Date) => WishItem): boolean => {
+    const target = items.find((item) => item.id === id)
+    if (!target || target.status !== 'considering') return false
+    const next = change(target, new Date())
+    return commit(items.map((item) => (item.id === id ? next : item)))
   }
 
   return {
@@ -153,6 +167,11 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     extend: (id: string, days: number) =>
       commit(items.map((item) => (item.id === id ? extendItem(item, days, new Date()) : item))),
     remove: (id: string) => commit(items.filter((item) => item.id !== id)),
+    /** 오늘의 갖고 싶은 정도 (F22). 반영됐는지 돌려준다 */
+    checkDesire: (id: string, level: DesireLevel): boolean => updateConsidering(id, (item, now) => checkDesire(item, level, now)),
+    /** 카드에서 답하기·다시 답하기(값 없음) (F22). 반영됐는지 돌려준다 */
+    answer: <K extends QuestionKey>(id: string, key: K, value: Answers[K] | undefined): boolean =>
+      updateConsidering(id, (item, now) => answerItem(item, key, value, now)),
     /** 결정을 되돌려 다시 고민 중으로 (F18) */
     reconsider: (id: string) =>
       commit(items.map((item) => (item.id === id ? reconsiderItem(item, new Date()) : item))),

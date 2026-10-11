@@ -1,8 +1,10 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
 import { formatDate } from '../logic/dates'
+import { DESIRE_LEVELS, DESIRE_TEXT, desireTrend } from '../logic/desire'
 import type { WishDraft } from '../logic/draft'
-import { impulseSignals, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
+import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
+import { CHOICES, QUESTION_TEXT, cardQuestions, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
 import {
@@ -10,7 +12,7 @@ import {
   EXTEND_DAYS,
   coolingDays,
   isExample,
-  describeAnswers,
+  answerLines,
   formatRemaining,
   reviewState,
   sortConsidering,
@@ -18,6 +20,7 @@ import {
   validateWishInput,
   validateWishPatch,
   type Answers,
+  type DesireLevel,
   type NewWishInput,
   type WishFieldErrors,
   type WishItem,
@@ -29,7 +32,7 @@ import { ExampleBar } from '../ui/ExampleBar'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
 
-// PRD F01 상품 등록·관리, F02 고민 기간과 결정, F07 연장, F08 결정 메모, F15 사기 전에 한 번 더
+// PRD F01 상품 등록·관리, F02 고민 기간과 결정, F07 연장, F08 결정 메모, F15 사기 전에 한 번 더, F22 고민 노트
 type Decision = 'purchased' | 'skipped'
 
 type Props = {
@@ -52,7 +55,13 @@ type Props = {
   /** 가격 비교에서 가져온 가격과 이유 (F21) */
   draft?: WishDraft | null
   onDraftUsed?: () => void
+  /** 오늘의 갖고 싶은 정도 (F22). 반영됐는지 돌려준다 */
+  onCheckDesire?: (id: string, level: DesireLevel) => boolean
+  /** 카드에서 답하기, 값 없이 부르면 다시 답하기 (F22). 반영됐는지 돌려준다 */
+  onAnswer?: (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => boolean
 }
+
+const NOT_APPLIED = () => false
 
 export function WishlistScreen({
   items,
@@ -68,6 +77,8 @@ export function WishlistScreen({
   hourlyWage = null,
   draft = null,
   onDraftUsed,
+  onCheckDesire = NOT_APPLIED,
+  onAnswer = NOT_APPLIED,
 }: Props) {
   const considering = sortConsidering(items, now)
   const exampleCount = items.filter((item) => isExample(item.name)).length
@@ -87,6 +98,10 @@ export function WishlistScreen({
     onRemove(id)
     headingRef.current?.focus()
   }
+  // 고민 중인 물건이 있으면 목록을 담기 폼보다 먼저 보여준다(F22: 매일 오늘의 고민에 바로 닿게).
+  // 같은 key로 순서만 바꿔 담기 폼에 쓰던 내용이 사라지지 않게 한다
+  const addFormId = useId()
+  const addForm = <AddForm key="add" id={addFormId} onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} />
   return (
     <div className="stack">
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
@@ -120,30 +135,45 @@ export function WishlistScreen({
           }}
         />
       ) : null}
-      <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} />
-      {considering.length === 0 ? (
-        <div className="empty card stack">
-          <p>아직 담아 둔 물건이 없어요.</p>
-          <p className="note">사고 싶은 물건을 담아 두면 고민 기간이 지난 뒤 다시 물어봐요.</p>
-          {onAddDemo ? <Button onClick={onAddDemo}>예시 물건 넣기</Button> : null}
-        </div>
-      ) : (
-        <section className="stack" aria-label="고민 중인 물건 목록">
-          {considering.map((item) => (
-            <WishCard
-              key={item.id}
-              item={item}
-              items={items}
-              now={now}
-              hourlyWage={hourlyWage}
-              onEdit={onEdit}
-              onDecide={decide}
-              onExtend={onExtend}
-              onRemove={remove}
-            />
-          ))}
-        </section>
-      )}
+      {considering.length === 0
+        ? [
+            addForm,
+            <div key="list" className="empty card stack">
+              <p>아직 담아 둔 물건이 없어요.</p>
+              <p className="note">사고 싶은 물건을 담아 두면 고민 기간이 지난 뒤 다시 물어봐요.</p>
+              {onAddDemo ? <Button onClick={onAddDemo}>예시 물건 넣기</Button> : null}
+            </div>,
+          ]
+        : [
+            <div key="bar" className="example-bar">
+              <span className="note">{`고민 중인 물건 ${considering.length}개`}</span>
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => document.getElementById(addFormId)?.querySelector<HTMLInputElement>('input')?.focus()}
+              >
+                새 물건 담기
+              </button>
+            </div>,
+            <section key="list" className="stack" aria-label="고민 중인 물건 목록">
+              {considering.map((item) => (
+                <WishCard
+                  key={item.id}
+                  item={item}
+                  items={items}
+                  now={now}
+                  hourlyWage={hourlyWage}
+                  onEdit={onEdit}
+                  onDecide={decide}
+                  onExtend={onExtend}
+                  onRemove={remove}
+                  onCheckDesire={onCheckDesire}
+                  onAnswer={onAnswer}
+                />
+              ))}
+            </section>,
+            addForm,
+          ]}
       <CoolingGuide />
     </div>
   )
@@ -173,12 +203,14 @@ type AnswersRaw = Omit<Answers, 'problem'> & { problem: string }
 const EMPTY_ANSWERS: AnswersRaw = { problem: '' }
 
 function AddForm({
+  id,
   onAdd,
   items,
   now,
   draft,
   onDraftUsed,
 }: {
+  id: string
   onAdd: (input: NewWishInput) => void
   items: WishItem[]
   now: Date
@@ -187,6 +219,8 @@ function AddForm({
 }) {
   const [raw, setRaw] = useState<AddRaw>(EMPTY_ADD)
   const [answers, setAnswers] = useState<AnswersRaw>(EMPTY_ANSWERS)
+  // 담을 때 갖고 싶은 정도 (F22, 선택)
+  const [desire, setDesire] = useState<DesireLevel | undefined>()
   const [attempted, setAttempted] = useState(false)
   const problemCheck = validateNote(answers.problem)
   const questionsRef = useRef<HTMLDetailsElement>(null)
@@ -221,15 +255,16 @@ function AddForm({
       focusFirstError()
       return
     }
-    onAdd({ ...value, answers: { ...answers, problem: problemCheck.value } })
+    onAdd({ ...value, answers: { ...answers, problem: problemCheck.value }, desire })
     setRaw(EMPTY_ADD)
     setAnswers(EMPTY_ANSWERS)
+    setDesire(undefined)
     setAttempted(false)
     setFromCompare(false)
   }
 
   return (
-    <form className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate ref={formRef}>
+    <form id={id} className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate ref={formRef}>
       <p className="card-title">물건 담기</p>
       {fromCompare ? (
         <p className="note" role="status">
@@ -270,6 +305,7 @@ function AddForm({
         error={shown.reason}
         onChange={(e) => set('reason', e.target.value)}
       />
+      <DesireScale legend="지금 얼마나 갖고 싶나요? (선택)" name="desire-start" value={desire} onChange={setDesire} />
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="field-label">고민 기간</legend>
         <div className="radio-group">
@@ -418,14 +454,21 @@ type CardProps = {
   onDecide: (id: string, decision: Decision, note?: string) => void
   onExtend: (id: string, days: number) => void
   onRemove: (id: string) => void
+  onCheckDesire: (id: string, level: DesireLevel) => boolean
+  onAnswer: (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => boolean
 }
 
 type CardMode = 'view' | 'edit' | 'confirm-delete' | 'extend' | 'decide-purchased' | 'decide-skipped'
 
 type Trigger = 'purchased' | 'skipped' | 'extend' | 'edit' | 'delete'
 
-function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, onRemove }: CardProps) {
+function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, onRemove, onCheckDesire, onAnswer }: CardProps) {
   const [mode, setMode] = useState<CardMode>('view')
+  // 답하거나 다시 답하기가 반영되면 오늘의 고민에서 지금 보이는 질문(없으면 제목)으로 포커스를 옮긴다 (F22)
+  const [noteFocus, setNoteFocus] = useState(0)
+  const answerAndFocus = (key: QuestionKey, value: Answers[QuestionKey] | undefined) => {
+    if (onAnswer(item.id, key, value)) setNoteFocus((n) => n + 1)
+  }
   const state = reviewState(item.reviewAt, now)
   const extensions = item.extensions ?? 0
 
@@ -484,13 +527,20 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
         ) : null}
       </p>
       <p>처음 적은 이유: {item.reason}</p>
-      {state.phase === 'ready' && describeAnswers(item.answers).length > 0 ? (
-        <ul className="plain-list answers" aria-label="담을 때 답한 것">
-          {describeAnswers(item.answers).map((line) => (
-            <li key={line}>{line}</li>
+      {/* 답한 것 (F09, F22): 고민 중에도 보이고, 잘못 누른 답은 다시 답하기로 지워 질문으로 돌린다 */}
+      {answerLines(item.answers).length > 0 ? (
+        <ul className="plain-list answers" aria-label="답한 것">
+          {answerLines(item.answers).map(({ key, text }) => (
+            <li key={key}>
+              {text}{' '}
+              <button type="button" className="link-btn" aria-label={`‘${text}’ 다시 답하기`} onClick={() => answerAndFocus(key, undefined)}>
+                다시 답하기
+              </button>
+            </li>
           ))}
         </ul>
       ) : null}
+      <GominNote item={item} now={now} focusTick={noteFocus} onCheckDesire={(level) => onCheckDesire(item.id, level)} onAnswer={answerAndFocus} />
       <CompareLinks name={item.name} />
 
       {mode === 'confirm-delete' ? (
@@ -512,6 +562,8 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
                   signals: impulseSignals(item, items, now),
                   questions: unansweredQuestions(item),
                   hours: priceInHours(item.priceKrw, hourlyWage),
+                  desire: desireTrend(item),
+                  others: otherAnswers(item),
                 }
               : undefined
           }
@@ -520,9 +572,10 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
         />
       ) : (
         <>
-          <p className="field-label">{state.phase === 'ready' ? '아직 필요한가요?' : '지금 결정해도 돼요'}</p>
+          {/* 사는 쪽으로 기울지 않게 두 버튼은 같은 모양이다 (F22) */}
+          <p className="field-label">{state.phase === 'ready' ? '아직 필요한가요?' : '일찍 정할 수도 있어요'}</p>
           <div className="btn-row">
-            <Button variant="primary" ref={bind('purchased')} onClick={() => open('decide-purchased', 'purchased')}>
+            <Button ref={bind('purchased')} onClick={() => open('decide-purchased', 'purchased')}>
               구매함
             </Button>
             <Button ref={bind('skipped')} onClick={() => open('decide-skipped', 'skipped')}>
@@ -584,7 +637,15 @@ function ExtendPicker({ onPick, onCancel }: { onPick: (days: number) => void; on
 }
 
 // 결정 메모(선택)를 적고 확인해야 결정이 저장된다 (F08)
-type ImpulseCheckData = { signals: ImpulseSignal[]; questions: string[]; hours: string | null }
+type ImpulseCheckData = {
+  signals: ImpulseSignal[]
+  questions: string[]
+  hours: string | null
+  /** 갖고 싶은 정도 변화 문장 (F22). 근거로 보여줄 뿐 걸리는 점 개수에 넣지 않는다 */
+  desire: string | null
+  /** 걸리는 점이 되지 않은 답 (F22 그 밖에 답한 것) */
+  others: string[]
+}
 
 function DecisionForm({
   decision,
@@ -670,16 +731,27 @@ function YesNoQuestion({
 // 답하지 않은 질문은 걸리는 점으로 세지 않고, 중요한 순서로 3개까지 "한 번 생각해 볼 질문"으로 보여준다
 const QUESTIONS_SHOWN = 3
 
-function ImpulseCheck({ id, signals, questions, hours }: ImpulseCheckData & { id: string }) {
+function ImpulseCheck({ id, signals, questions, hours, desire, others }: ImpulseCheckData & { id: string }) {
   return (
     <section className="impulse-check stack" aria-label="사기 전 점검" id={id}>
       <p className="field-label">사기 전에 한 번 더 · {signals.length > 0 ? `걸리는 점 ${signals.length}개` : '걸리는 점이 없어요'}</p>
+      {desire ? <p>{`갖고 싶은 정도: ${desire}`}</p> : null}
       {signals.length > 0 ? (
         <ul className="impulse-list" aria-label="걸리는 점">
           {signals.map((signal) => (
             <li key={signal.key}>{signal.text}</li>
           ))}
         </ul>
+      ) : null}
+      {others.length > 0 ? (
+        <>
+          <p className="note">그 밖에 답한 것</p>
+          <ul className="impulse-list" aria-label="그 밖에 답한 것">
+            {others.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </>
       ) : null}
       {hours ? <p>이 금액은 시급으로 약 {hours}시간이에요.</p> : null}
       {questions.length > 0 ? (
@@ -695,6 +767,172 @@ function ImpulseCheck({ id, signals, questions, hours }: ImpulseCheckData & { id
       ) : null}
       {signals.length > 0 ? <p className="note">그래도 필요하다면 사도 괜찮아요.</p> : null}
     </section>
+  )
+}
+
+// 갖고 싶은 정도 1~5 (F22): 숫자 선택지 5개와 양 끝 설명. 선택지마다 "4 많이"처럼 숫자와 말을 이름으로 둔다(보이는 숫자가 이름 안에 있다).
+// 변화 문장은 그룹의 설명으로 연결한다(카드가 많을 때 한꺼번에 읽히지 않게 aria-live는 쓰지 않는다)
+function DesireScale({
+  legend,
+  name,
+  value,
+  trend,
+  onChange,
+}: {
+  legend: string
+  name: string
+  value: DesireLevel | undefined
+  trend?: string | null
+  onChange: (level: DesireLevel) => void
+}) {
+  const trendId = useId()
+  return (
+    <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }} aria-describedby={trend ? trendId : undefined}>
+      <legend className="field-label">{legend}</legend>
+      <div className="desire-scale">
+        {DESIRE_LEVELS.map((level) => (
+          <label key={level}>
+            <input
+              type="radio"
+              name={name}
+              aria-label={`${level} ${DESIRE_TEXT[level]}`}
+              checked={value === level}
+              onChange={() => onChange(level)}
+            />
+            {level}
+          </label>
+        ))}
+      </div>
+      <div className="desire-caption" aria-hidden="true">
+        <span>{DESIRE_TEXT[1]}</span>
+        <span>{DESIRE_TEXT[5]}</span>
+      </div>
+      {trend ? (
+        <p id={trendId} className="note">
+          {trend}
+        </p>
+      ) : null}
+    </fieldset>
+  )
+}
+
+// 오늘의 고민 (F22): 오늘 갖고 싶은 정도와, 아직 답하지 않은 질문 하나. 하루에 하나로 제한하지 않는다
+function GominNote({
+  item,
+  now,
+  focusTick,
+  onCheckDesire,
+  onAnswer,
+}: {
+  item: WishItem
+  now: Date
+  /** 늘어나면 지금 보이는 질문 문장(없으면 제목)으로 포커스를 옮긴다 */
+  focusTick: number
+  onCheckDesire: (level: DesireLevel) => void
+  onAnswer: (key: QuestionKey, value: Answers[QuestionKey]) => void
+}) {
+  const today = formatDate(now.toISOString())
+  const todayLevel = item.desireChecks?.find((check) => check.day === today)?.level
+  const questions = cardQuestions(item)
+  const titleRef = useRef<HTMLParagraphElement>(null)
+  const questionRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if (focusTick === 0) return
+    const target = questionRef.current ?? titleRef.current
+    target?.focus()
+  }, [focusTick])
+
+  return (
+    <section className="gomin-note stack" aria-label="오늘의 고민">
+      <p className="field-label" tabIndex={-1} ref={titleRef}>
+        오늘의 고민
+      </p>
+      <DesireScale legend="지금 얼마나 갖고 싶나요?" name={`desire-${item.id}`} value={todayLevel} trend={desireTrend(item)} onChange={onCheckDesire} />
+      {questions.length > 0 ? (
+        <NextQuestion
+          key={questions[0]}
+          questionKey={questions[0]}
+          remaining={questions.length}
+          questionRef={questionRef}
+          onAnswer={(value) => onAnswer(questions[0], value)}
+        />
+      ) : null}
+    </section>
+  )
+}
+
+// 생각해 볼 질문 하나 (F22): 선택형은 버튼을 누르면 바로, 문제 설명은 입력 후 "답하기"로 저장한다
+function NextQuestion({
+  questionKey,
+  remaining,
+  questionRef,
+  onAnswer,
+}: {
+  questionKey: QuestionKey
+  remaining: number
+  questionRef: Ref<HTMLParagraphElement>
+  onAnswer: (value: Answers[QuestionKey]) => void
+}) {
+  const textId = useId()
+  return (
+    <div className="stack">
+      <p className="note">{`생각해 볼 질문 · ${remaining}개 남음`}</p>
+      <p id={textId} className="field-label" tabIndex={-1} ref={questionRef}>
+        {QUESTION_TEXT[questionKey]}
+      </p>
+      {questionKey === 'problem' ? (
+        <ProblemAnswer labelledBy={textId} onAnswer={onAnswer} />
+      ) : (
+        <div className="btn-row" role="group" aria-labelledby={textId}>
+          {(CHOICES[questionKey as ChoiceKey] as readonly (readonly [string, string])[]).map(([value, label]) => (
+            <Button key={value} onClick={() => onAnswer(value as Answers[QuestionKey])}>
+              {label}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// "없으면 어떤 문제가 있나요?"의 카드 답: 앞뒤 공백을 뺀 1~200자. 오류는 입력에 연결한다
+function ProblemAnswer({ labelledBy, onAnswer }: { labelledBy: string; onAnswer: (value: string) => void }) {
+  const [raw, setRaw] = useState('')
+  const [error, setError] = useState<string | undefined>()
+  const errorId = useId()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const checked = validateProblem(raw)
+    if (checked.error || checked.value === undefined) {
+      setError(checked.error)
+      inputRef.current?.focus()
+      return
+    }
+    onAnswer(checked.value)
+  }
+  return (
+    <form className="stack" onSubmit={submit} noValidate>
+      <input
+        ref={inputRef}
+        className="input"
+        aria-labelledby={labelledBy}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        placeholder="예: 출퇴근길에 음악을 못 들어요"
+        value={raw}
+        onChange={(e) => {
+          setRaw(e.target.value)
+          setError(undefined)
+        }}
+      />
+      {error ? (
+        <p id={errorId} className="field-error">
+          {error}
+        </p>
+      ) : null}
+      <Button type="submit">답하기</Button>
+    </form>
   )
 }
 

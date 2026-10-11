@@ -89,7 +89,7 @@ describe('2차 검증 사례 통합 점검', () => {
     expect(screen.queryByRole('status', { name: '저장 상태' })).not.toBeInTheDocument()
     expect(card('전동 칫솔').getByText(/3일 고민/)).toBeInTheDocument()
     expect(card('전동 칫솔').queryByText(/번 연장/)).not.toBeInTheDocument()
-    expect(card('전동 칫솔').queryByRole('list', { name: '담을 때 답한 것' })).not.toBeInTheDocument()
+    expect(card('전동 칫솔').queryByRole('list', { name: '답한 것' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(screen.getByRole('button', { name: '전체 (2)', pressed: true })).toBeInTheDocument()

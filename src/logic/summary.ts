@@ -1,3 +1,4 @@
+import { desireEffect } from './desire'
 import { formatFixed } from './number'
 import { isExample, validateNote, type Satisfaction, type WishItem } from './wishlist'
 
@@ -16,6 +17,9 @@ export type HistorySummary = {
   includesExample: boolean
   reviewedCount: number
   regretCount: number
+  /** 결정한 기록 중 고민하는 동안 갖고 싶은 정도가 줄어든 것과 그중 구매 포기 (F22) */
+  desireDropped: number
+  desireDroppedSkipped: number
 }
 
 export function historySummary(items: readonly WishItem[], hourlyWage: number | null): HistorySummary {
@@ -23,6 +27,7 @@ export function historySummary(items: readonly WishItem[], hourlyWage: number | 
   const skipped = decided.filter((item) => item.status === 'skipped')
   const skippedTotal = skipped.reduce((sum, item) => sum + item.priceKrw, 0)
   const reviewed = decided.filter((item) => item.status === 'purchased' && item.satisfaction)
+  const effect = desireEffect(decided)
   return {
     skippedCount: skipped.length,
     skippedTotal,
@@ -30,6 +35,8 @@ export function historySummary(items: readonly WishItem[], hourlyWage: number | 
     includesExample: decided.some((item) => isExample(item.name)),
     reviewedCount: reviewed.length,
     regretCount: reviewed.filter((item) => item.satisfaction === 'regret').length,
+    desireDropped: effect.dropped,
+    desireDroppedSkipped: effect.droppedSkipped,
   }
 }
 

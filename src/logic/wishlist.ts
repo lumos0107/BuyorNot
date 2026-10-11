@@ -1,3 +1,4 @@
+import { formatDate } from './dates'
 import { MAX_WON, parseInteger } from './number'
 
 // PRD F01 상품 등록·관리, F02 고민 기간과 결정, F03 결정 기록, #6 데이터 초안
@@ -21,6 +22,11 @@ export type Answers = {
 /** 구매 후 회고 (F12) */
 export type Satisfaction = 'good' | 'meh' | 'regret'
 
+/** 갖고 싶은 정도 1~5 (F22 고민 노트) */
+export type DesireLevel = 1 | 2 | 3 | 4 | 5
+/** 고민하는 동안 날마다 기록한 정도. day는 고른 순간의 기기 현지 날짜(YYYY-MM-DD) */
+export type DesireCheck = { day: string; level: DesireLevel }
+
 export type WishItem = {
   id: string
   name: string
@@ -41,6 +47,11 @@ export type WishItem = {
   answers?: Answers
   satisfaction?: Satisfaction
   reviewNote?: string
+  // 4차 선택 필드 (F22)
+  /** 담을 때 고른 갖고 싶은 정도 */
+  desireStart?: DesireLevel
+  /** 고민하는 동안 날마다 기록한 정도 (같은 날은 하나) */
+  desireChecks?: DesireCheck[]
 }
 
 export const NOTE_MAX = 200
@@ -61,6 +72,8 @@ export type NewWishInput = {
   days: number
   url: string | null
   answers?: Answers
+  /** 담을 때 고른 갖고 싶은 정도 (F22) */
+  desire?: DesireLevel
 }
 export type WishRawInput = { name: string; price: string; reason: string; days: string; url: string }
 export type WishFieldErrors = Partial<Record<keyof WishRawInput, string>>
@@ -173,6 +186,7 @@ export function createItem(input: NewWishInput, now: Date, id: string): WishItem
   }
   const answers = cleanAnswers(input.answers)
   if (answers) item.answers = answers
+  if (input.desire !== undefined) item.desireStart = input.desire
   return item
 }
 
@@ -196,17 +210,24 @@ const SALE_DRIVEN_TEXT = { yes: '할인·한정 때문에 담았어요', no: '�
 const SPACE_TIME_TEXT = { yes: '놓을 곳과 쓸 시간이 있어요', no: '놓을 곳이나 쓸 시간이 없어요' } as const
 const ALTERNATIVE_TEXT = { yes: '빌리거나 중고로 대신할 수 있어요', no: '대신하기 어려워요' } as const
 
+/** 답 목록에 보여줄 문장과 그 질문 (F09, F22 다시 답하기) */
+export function answerLines(answers: Answers | undefined): { key: keyof Answers; text: string }[] {
+  if (!answers) return []
+  const lines: { key: keyof Answers; text: string }[] = []
+  if (answers.haveOne) lines.push({ key: 'haveOne', text: HAVE_ONE_TEXT[answers.haveOne] })
+  // 공백뿐인 문제 설명(이전 기록)은 답하지 않은 것으로 본다 (F22)
+  const problem = answers.problem?.trim()
+  if (problem) lines.push({ key: 'problem', text: `없으면 생기는 문제: ${problem}` })
+  if (answers.useInMonth) lines.push({ key: 'useInMonth', text: `한 달 뒤에도 쓸지: ${USE_IN_MONTH_TEXT[answers.useInMonth]}` })
+  if (answers.saleDriven) lines.push({ key: 'saleDriven', text: SALE_DRIVEN_TEXT[answers.saleDriven] })
+  if (answers.spaceTime) lines.push({ key: 'spaceTime', text: SPACE_TIME_TEXT[answers.spaceTime] })
+  if (answers.alternative) lines.push({ key: 'alternative', text: ALTERNATIVE_TEXT[answers.alternative] })
+  return lines
+}
+
 /** 재검토 카드에 보여줄 답 문장 (F09) */
 export function describeAnswers(answers: Answers | undefined): string[] {
-  if (!answers) return []
-  const lines: string[] = []
-  if (answers.haveOne) lines.push(HAVE_ONE_TEXT[answers.haveOne])
-  if (answers.problem) lines.push(`없으면 생기는 문제: ${answers.problem}`)
-  if (answers.useInMonth) lines.push(`한 달 뒤에도 쓸지: ${USE_IN_MONTH_TEXT[answers.useInMonth]}`)
-  if (answers.saleDriven) lines.push(SALE_DRIVEN_TEXT[answers.saleDriven])
-  if (answers.spaceTime) lines.push(SPACE_TIME_TEXT[answers.spaceTime])
-  if (answers.alternative) lines.push(ALTERNATIVE_TEXT[answers.alternative])
-  return lines
+  return answerLines(answers).map((line) => line.text)
 }
 
 export type WishPatch = Pick<WishItem, 'name' | 'priceKrw' | 'reason' | 'url'>
@@ -281,6 +302,7 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
     days: number,
     decided?: { status: 'purchased' | 'skipped'; daysAgo: number },
     answers?: Answers,
+    desire?: { start: DesireLevel; checks: [daysAgo: number, level: DesireLevel][] },
   ): WishItem => {
     const created = ago(createdDaysAgo).toISOString()
     const decidedAt = decided ? ago(decided.daysAgo).toISOString() : null
@@ -296,15 +318,21 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
       status: decided?.status ?? 'considering',
       decidedAt,
       ...(answers ? { answers } : {}),
+      ...(desire ? { desireStart: desire.start } : {}),
+      ...(desire && desire.checks.length > 0
+        ? { desireChecks: desire.checks.map(([daysAgo, level]) => ({ day: formatDate(ago(daysAgo).toISOString()), level })) }
+        : {}),
     }
   }
   return [
-    // 담을 때 답한 것이 있어 재검토 카드와 사기 전 점검(F09, F15)을 시연할 수 있다
-    make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 3, undefined, { haveOne: 'yes', useInMonth: 'unsure' }),
-    make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 1, 7),
-    make('게이밍 키보드', 149000, '세일이라 담았는데 지금 키보드도 멀쩡해서', 7, 3, { status: 'skipped', daysAgo: 3 }),
+    // 담을 때 답한 것과 고민하는 동안 줄어든 정도가 있어 재검토 카드·사기 전 점검·오늘의 고민(F09, F15, F22)을 시연할 수 있다
+    make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 3, undefined, { haveOne: 'yes', useInMonth: 'unsure', alternative: 'no' }, { start: 4, checks: [[3, 3], [2, 2]] }),
+    // 아직 답하지 않은 질문이 있어 카드의 생각해 볼 질문을 시연할 수 있다
+    make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 1, 7, undefined, undefined, { start: 3, checks: [] }),
+    // 고민하는 동안 정도가 줄어 포기한 기록과, 줄지 않아 산 기록 (결정 기록의 고민 효과)
+    make('게이밍 키보드', 149000, '세일이라 담았는데 지금 키보드도 멀쩡해서', 7, 3, { status: 'skipped', daysAgo: 3 }, undefined, { start: 5, checks: [[6, 4], [4, 2]] }),
     // 구매 후 7일이 지나 회고를 물을 수 있는 기록 (F12)
-    make('무선 청소기', 189000, '바닥 청소할 시간이 없어서', 14, 3, { status: 'purchased', daysAgo: 9 }),
+    make('무선 청소기', 189000, '바닥 청소할 시간이 없어서', 14, 3, { status: 'purchased', daysAgo: 9 }, undefined, { start: 3, checks: [[12, 4], [10, 4]] }),
   ]
 }
 

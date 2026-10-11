@@ -467,6 +467,55 @@ a {
   padding-left: 10px;
 }
 
+/* 답 옆의 다시 답하기 (F22): 한 줄에 놓아 목록이 길어지지 않게 */
+.answers li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* 오늘의 고민 (F22) */
+.gomin-note {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  gap: 8px;
+}
+
+/* 갖고 싶은 정도 1~5: 360px에서도 다섯 개가 한 줄, 높이 44px */
+.desire-scale {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.desire-scale label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.desire-scale label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.desire-caption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .compare-links {
   display: flex;
   flex-wrap: wrap;

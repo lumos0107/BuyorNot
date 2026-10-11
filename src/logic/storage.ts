@@ -1,4 +1,6 @@
+import { DESIRE_RESTORE_MAX } from './desire'
 import { MAX_WON } from './number'
+import { parseDay } from './subscriptions'
 import { NAME_MAX, NOTE_MAX, REASON_MAX, type WishItem } from './wishlist'
 
 // PRD F06 로컬 저장: 현재 브라우저의 localStorage에만 저장한다.
@@ -52,6 +54,25 @@ const SATISFACTIONS = new Set(['good', 'meh', 'regret'])
 const YES_NO = new Set(['yes', 'no'])
 const YES_NO_UNSURE = new Set(['yes', 'no', 'unsure'])
 
+/** 갖고 싶은 정도 1~5 정수 (F22) */
+function isDesireLevel(v: unknown): boolean {
+  return Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 5
+}
+
+// 정도 기록 (F22): 400개 이하, 항목은 실제 날짜와 1~5 정수, 같은 날 중복 없음. 순서는 상관없다(날짜순으로 쓴다).
+// 기기 시각이 바뀌어 등록일보다 이른 날짜가 있어도 손상으로 보지 않는다
+function isDesireChecks(v: unknown): boolean {
+  if (!Array.isArray(v) || v.length > DESIRE_RESTORE_MAX) return false
+  const days = new Set<string>()
+  for (const entry of v) {
+    if (typeof entry !== 'object' || entry === null) return false
+    const { day, level } = entry as Record<string, unknown>
+    if (!isString(day) || parseDay(day) === null || days.has(day) || !isDesireLevel(level)) return false
+    days.add(day)
+  }
+  return true
+}
+
 function isNote(v: unknown): boolean {
   return v === undefined || (isString(v) && v.length <= NOTE_MAX)
 }
@@ -65,6 +86,8 @@ function hasValidOptionalFields(o: Record<string, unknown>): boolean {
   if (o.status !== 'purchased' && (o.satisfaction !== undefined || o.reviewNote !== undefined)) return false
   // 회고 메모는 회고 답과 함께만 있다
   if (o.reviewNote !== undefined && o.satisfaction === undefined) return false
+  if (o.desireStart !== undefined && !isDesireLevel(o.desireStart)) return false
+  if (o.desireChecks !== undefined && !isDesireChecks(o.desireChecks)) return false
   if (o.answers !== undefined) {
     if (typeof o.answers !== 'object' || o.answers === null || Array.isArray(o.answers)) return false
     const a = o.answers as Record<string, unknown>
