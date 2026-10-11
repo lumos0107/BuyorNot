@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>살까말까 발표</title>
+    <meta name="description" content="살까말까(Buy or Not) 바이브 코딩 과제 발표 자료" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+    <style>
+      /* 색 4개(글자·보조·강조·경고) + 회색 톤, 글꼴 하나. 그라데이션·이모지 없음 */
+      :root {
+        --bg: #f4f5f7;
+        --surface: #ffffff;
+        --ink: #1c1f23;
+        --muted: #667085;
+        --line: #e4e7ec;
+        --accent: #1a56db;
+        --accent-soft: #eaf1ff;
+        --danger: #d92d20;
+        --font: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font); }
+      body { overflow: hidden; }
+      .deck { position: relative; width: 100vw; height: 100vh; }
+      .slide {
+        position: absolute; left: 50%; top: 50%;
+        width: 1280px; height: 720px;
+        transform: translate(-50%, -50%) scale(var(--scale, 1));
+        background: var(--surface);
+        border: 1px solid var(--line);
+        padding: 72px 96px;
+        display: none;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .slide.active { display: flex; }
+      .kicker { font-size: 18px; font-weight: 600; color: var(--accent); letter-spacing: 0.02em; }
+      h1 { font-size: 64px; font-weight: 800; margin: 0; letter-spacing: -0.02em; line-height: 1.15; }
+      h2 { font-size: 40px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+      h3 { font-size: 22px; font-weight: 700; margin: 0; }
+      p, li { font-size: 22px; line-height: 1.55; margin: 0; }
+      .lead { font-size: 28px; color: var(--muted); }
+      .muted { color: var(--muted); }
+      .small { font-size: 18px; }
+      ul { margin: 0; padding-left: 28px; display: flex; flex-direction: column; gap: 10px; }
+      .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; flex: 1; min-height: 0; }
+      .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; flex: 1; }
+      .card { background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 24px 28px; display: flex; flex-direction: column; gap: 10px; }
+      .card.accent { background: var(--accent-soft); border-color: var(--accent); }
+      .num { font-size: 44px; font-weight: 800; color: var(--accent); letter-spacing: -0.02em; }
+      table { border-collapse: collapse; width: 100%; font-size: 20px; }
+      th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { color: var(--muted); font-weight: 600; font-size: 17px; }
+      .shot { height: 100%; max-height: 520px; width: auto; border: 1px solid var(--line); border-radius: 16px; object-fit: cover; object-position: top; }
+      .shot-wrap { display: flex; justify-content: center; align-items: flex-start; min-height: 0; overflow: hidden; border-radius: 16px; }
+      .flow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .step { background: var(--accent-soft); border: 1px solid var(--accent); color: var(--ink); border-radius: 12px; padding: 12px 18px; font-size: 20px; font-weight: 600; }
+      .arrow { color: var(--muted); font-size: 20px; }
+      .quote { border-left: 4px solid var(--accent); padding: 8px 20px; color: var(--ink); background: var(--bg); border-radius: 0 12px 12px 0; font-size: 20px; }
+      .bad { color: var(--danger); font-weight: 700; }
+      .footer { position: absolute; left: 96px; right: 96px; bottom: 28px; display: flex; justify-content: space-between; font-size: 16px; color: var(--muted); }
+      .nav { position: fixed; right: 24px; bottom: 20px; font-size: 14px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; }
+      code { font-family: ui-monospace, Consolas, monospace; font-size: 0.92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+      .mono { font-family: ui-monospace, Consolas, monospace; font-size: 17px; }
+      .title-slide { justify-content: center; gap: 20px; }
+      .center { text-align: center; align-items: center; justify-content: center; }
+    </style>
+  </head>
+  <body>
+    <div class="deck" id="deck">
+      <!-- 1 표지 -->
+      <section class="slide title-slide">
+        <p class="kicker">바이브 코딩 과제 · 2026-10-17</p>
+        <h1>살까말까</h1>
+        <p class="lead">살지 말지 한 번 더 생각하고, 산다면 더 싸게 사도록 돕는 웹사이트</p>
+        <p class="muted">강승준 · lumos0107.github.io/BuyorNot</p>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>1 / 14</span></div>
+      </section>
+
+      <!-- 2 왜 -->
+      <section class="slide">
+        <p class="kicker">왜 만들었나</p>
+        <h2>퇴근 후 폰으로 주문하는 자취생, 김지우(28)</h2>
+        <div class="cols-3">
+          <div class="card"><h3>사고 싶은 순간에 바로 결제한다</h3><p class="muted">세일 문구에 담았다가 안 쓰는 물건이 쌓인다</p></div>
+          <div class="card"><h3>할인율만 봐서는 결제액을 모른다</h3><p class="muted">15% 할인과 1만 원 할인, 최대 할인액·배송비까지 따지면 뭐가 싼지 헷갈린다</p></div>
+          <div class="card"><h3>용량이 달라 비교가 어렵다</h3><p class="muted">900mL 2개와 1.5L 1개, 대용량을 샀다가 남긴다</p></div>
+        </div>
+        <p class="small muted">대상: 20~30대 자취생 · 모바일 우선 · 회원가입 없음 · 입력한 값만으로 계산</p>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>2 / 14</span></div>
+      </section>
+
+      <!-- 3 무엇을 -->
+      <section class="slide">
+        <p class="kicker">무엇을 만들었나</p>
+        <h2>세 화면, 한 가지 흐름</h2>
+        <div class="flow">
+          <span class="step">살지 말지 — 숙려 리스트</span><span class="arrow">→</span>
+          <span class="step">산다면 얼마에 — 할인 비교 · 묶음상품 비교</span><span class="arrow">→</span>
+          <span class="step">결정 기록</span>
+        </div>
+        <table>
+          <tr><th>화면</th><th>하는 일</th></tr>
+          <tr><td>고민 중인 물건</td><td>상품·가격·사고 싶은 이유·숙려 기간을 담아 두고, 기간이 지나면 처음 적은 이유를 다시 보여준 뒤 구매·포기를 기록</td></tr>
+          <tr><td>할인 비교</td><td>쿠폰 종류·최소 주문액·최대 할인액·배송비를 반영한 실제 결제액과 계산 근거</td></tr>
+          <tr><td>묶음상품 비교</td><td>g·kg·mL·L·개를 환산한 100g·100mL·1개당 가격과 총지출</td></tr>
+          <tr><td>결정 기록</td><td>구매·포기한 물건을 최신 순으로, 이유와 등록 당시 가격과 함께</td></tr>
+        </table>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>3 / 14</span></div>
+      </section>
+
+      <!-- 4 시연 1 -->
+      <section class="slide">
+        <p class="kicker">시연 1 · 숙려 리스트</p>
+        <div class="cols">
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <h2>담아 두고, 며칠 뒤 다시 묻는다</h2>
+            <ul>
+              <li>상품명·가격·이유·숙려 기간(1·3·7일, 직접 입력 1~30일)</li>
+              <li>종료 시각 = 등록 시각 + 일수 × 24시간. 정각부터 "재검토 가능"</li>
+              <li>처음 적은 이유를 보여주고 "아직 필요한가요?"</li>
+              <li>구매함 · 구매 포기 → 결정 기록. 숙려 중에도 결정 가능</li>
+              <li>이 브라우저에만 저장. 손상되면 덮어쓰지 않고 확인 후 초기화</li>
+            </ul>
+            <p class="small muted">시연: "예시 물건 넣기" → 재검토 가능 카드에서 구매 포기 → 결정 기록 확인 → 새로고침</p>
+          </div>
+          <div class="shot-wrap"><img class="shot" src="../screenshots/wishlist-360.png" alt="고민 중인 물건 화면" /></div>
+        </div>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>4 / 14</span></div>
+      </section>
+
+      <!-- 5 시연 2 -->
+      <section class="slide">
+        <p class="kicker">시연 2 · 할인 비교</p>
+        <div class="cols">
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <h2>15% 할인 vs 8,000원 할인</h2>
+            <table>
+              <tr><th>조건</th><th>A안</th><th>B안</th></tr>
+              <tr><td>상품 금액</td><td>80,000원</td><td>80,000원</td></tr>
+              <tr><td>쿠폰</td><td>15% (최대 10,000원)</td><td>정액 8,000원</td></tr>
+              <tr><td>배송비</td><td>3,000원</td><td>0원</td></tr>
+              <tr><td><strong>결제액</strong></td><td><strong>73,000원</strong></td><td><strong>72,000원</strong></td></tr>
+            </table>
+            <p class="quote">B안이 1,000원 저렴해요 — 80,000 × 15% = 12,000 → 최대 할인 10,000 → 80,000 − 10,000 + 3,000</p>
+            <p class="small muted">최소 주문액 미달이면 "적용 불가 · 1,000원 부족"처럼 이유를 함께 보여준다</p>
+          </div>
+          <div class="shot-wrap"><img class="shot" src="../screenshots/compare-discount-360.png" alt="할인 비교 화면" /></div>
+        </div>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>5 / 14</span></div>
+      </section>
+
+      <!-- 6 시연 3 -->
+      <section class="slide">
+        <p class="kicker">시연 3 · 묶음상품 비교</p>
+        <div class="cols">
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <h2>900mL × 2개 vs 1.5L × 1개</h2>
+            <table>
+              <tr><th></th><th>상품 A</th><th>상품 B</th></tr>
+              <tr><td>가격</td><td>6,000원</td><td>5,400원</td></tr>
+              <tr><td>총량</td><td>1,800mL</td><td>1,500mL</td></tr>
+              <tr><td><strong>100mL당</strong></td><td><strong>333.33원</strong></td><td><strong>360.00원</strong></td></tr>
+            </table>
+            <p class="quote">상품 A가 단가 7.4% 낮아요. 총지출은 A가 600원 더 커요 — 가격만 비교한 결과예요</p>
+            <p class="small muted">무게와 부피처럼 종류가 다르면 비교하지 않고, 화면 단가가 같지만 실제로 다르면 "아주 작은 차이"로 안내</p>
+          </div>
+          <div class="shot-wrap"><img class="shot" src="../screenshots/compare-bundle-360.png" alt="묶음상품 비교 화면" /></div>
+        </div>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>6 / 14</span></div>
+      </section>
+
+      <!-- 7 PRD와 Todo -->
+      <section class="slide">
+        <p class="kicker">PRD와 Todo</p>
+        <h2>범위를 먼저 좁히고, 검증 사례를 숫자로 적었다</h2>
+        <div class="cols">
+          <div class="card">
+            <h3>PRD v0.7</h3>
+            <ul class="small">
+              <li>P0: 간단한 숙려 리스트, 할인 비교, 묶음상품 비교, 로컬 저장·입력 검증·모바일</li>
+              <li>P1(선택): 무료배송 추가 구매 비교, 숙려 연장, 기록 필터·메모</li>
+              <li>범위 밖: 로그인·서버, 가격 수집, 결제, AI 추천, 복합 쿠폰</li>
+              <li>검증 사례 AC01~AC17: 입력값과 기대 결과를 원 단위로 명시</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Todo 6단계 (10/11 ~ 10/17)</h3>
+            <ul class="small">
+              <li>1 화면 뼈대와 배포 설정 → 2 묶음 비교 → 3 할인 비교 → 4 숙려·기록</li>
+              <li>5 발표·문서 준비 → 6 완성 기준 최종 점검</li>
+              <li>작업마다 번호와 PRD 근거, 단계마다 사용자 확인 방법</li>
+              <li>체크는 구현과 검증을 끝낸 작업에만</li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>7 / 14</span></div>
+      </section>
+
+      <!-- 8 개발 방식 -->
+      <section class="slide">
+        <p class="kicker">개발 방식</p>
+        <h2>개발은 Claude, 검토는 GPT, 결정은 사람</h2>
+        <div class="flow">
+          <span class="step">사용자: 범위·기술·승인</span><span class="arrow">→</span>
+          <span class="step">Claude: 테스트 먼저 → 구현 → 캡처 확인 → 커밋</span><span class="arrow">→</span>
+          <span class="step">GPT(Codex CLI): 단계마다 검토</span><span class="arrow">→</span>
+          <span class="step">Claude: 대조 후 반영 또는 반론</span>
+        </div>
+        <div class="cols-3">
+          <div class="card"><p class="num">115</p><p>자동 테스트. 계산·시각 규칙은 순수 함수, 화면은 사용자 조작 기준</p></div>
+          <div class="card"><p class="num">4회</p><p>GPT 검토(기획·1단계·2~3단계·4단계). 지적 33건 중 31건 반영, 2건은 근거를 들어 보류</p></div>
+          <div class="card"><p class="num">6</p><p>기능 커밋. 단계마다 commit, 개발 기록(DEVLOG)에 요청·결과·오류·수정 이유</p></div>
+        </div>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>8 / 14</span></div>
+      </section>
+
+      <!-- 9 GitHub 이력 -->
+      <section class="slide">
+        <p class="kicker">GitHub 이력</p>
+        <h2>단계마다 쌓은 커밋</h2>
+        <table class="mono">
+          <tr><th>커밋</th><th>내용</th></tr>
+          <tr><td>364e2b6</td><td>docs: apply GPT review fixes before stage 1 — 기획 검토 5건 반영</td></tr>
+          <tr><td>429ca36</td><td>feat: add application layout and navigation — 화면 뼈대, 배포 워크플로</td></tr>
+          <tr><td>fdef9bc</td><td>feat: compare bundle unit prices — 묶음 비교 + 1단계 검토 반영</td></tr>
+          <tr><td>9c6f6e4</td><td>feat: compare coupon discounts and final prices — 할인 비교</td></tr>
+          <tr><td>437e534</td><td>feat: add cooling-off decisions and history — 숙려·기록 + 2·3단계 검토 반영</td></tr>
+        </table>
+        <p class="small muted">이후 커밋: 4단계 검토 반영(fix), README·캡처·발표 자료(docs). main에 push하면 GitHub Actions가 테스트 → 빌드 → GitHub Pages 배포. 저장소는 Public.</p>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>9 / 14</span></div>
+      </section>
+
+      <!-- 10 겪은 일 1 -->
+      <section class="slide">
+        <p class="kicker">바이브 코딩에서 겪은 일 1</p>
+        <h2>테스트가 잡은 버그: "총지출이 큰 쪽"을 거꾸로 표시</h2>
+        <div class="cols">
+          <div class="card">
+            <h3>무슨 일이</h3>
+            <p>AI가 쓴 결과 문구가 "총지출이 더 큰 쪽"을 <span class="bad">단가 판정에서 유추</span>했다. A 2,000원·B 1,500원인데 "상품 B가 500원 더 커요".</p>
+            <p class="small muted">예시 값(AC10)만 봤다면 지나쳤을 오류. 화면 테스트의 첫 사례가 다른 값을 넣어 잡았다.</p>
+          </div>
+          <div class="card accent">
+            <h3>어떻게 고쳤나</h3>
+            <p>계산 로직에 <code>spendMore</code>(총지출이 큰 쪽)를 따로 두고, 로직 테스트 2건을 먼저 보강해 실패를 확인한 뒤 구현.</p>
+            <p class="small muted">교훈: 단가와 총지출은 별개의 사실. 로직이 직접 답하게 하고, 테스트는 예시 값 말고 다른 값도 넣는다.</p>
+          </div>
+        </div>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>10 / 14</span></div>
+      </section>
+
+      <!-- 11 겪은 일 2 -->
+      <section class="slide">
+        <p class="kicker">바이브 코딩에서 겪은 일 2</p>
+        <h2>GPT 검토가 잡은 크래시, 그리고 직접 확인한 지적</h2>
+        <div class="cols">
+          <div class="card">
+            <h3>묶음 개수에 아주 큰 수를 넣으면 화면이 깨짐</h3>
+            <p>검증을 통과한 <code>Infinity</code>가 <code>BigInt</code> 변환에서 <span class="bad">RangeError</span>. 개수 9,999개·용량 1,000만 상한을 두고 총량을 BigInt로 계산.</p>
+            <p class="small muted">0.0004g처럼 아주 작은 용량이 총량 0이 되던 문제도 같은 검토에서 → 소수 셋째 자리까지만 받도록</p>
+          </div>
+          <div class="card accent">
+            <h3>"표시 동률" 판정이 화면과 어긋난다</h3>
+            <p>GPT: <code>Math.round(1.005×100)</code>은 100인데 화면은 "1.01". 바로 믿지 않고 <strong>Node로 직접 실행</strong>해 확인한 뒤, 화면과 같은 포맷 함수로 판정하도록 수정.</p>
+            <p class="small muted">반대로 "색 토큰이 8개"라는 지적은 색상(hue)은 4개라고 근거를 들어 반영하지 않았다.</p>
+          </div>
+        </div>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>11 / 14</span></div>
+      </section>
+
+      <!-- 12 장단점 -->
+      <section class="slide">
+        <p class="kicker">방법론의 장단점</p>
+        <h2>빠르지만, 검증 없이는 믿을 수 없다</h2>
+        <div class="cols">
+          <div class="card">
+            <h3>좋았던 점</h3>
+            <ul class="small">
+              <li>화면 초안과 설정(배포 워크플로, 테스트 환경)이 몇 분 안에 나온다</li>
+              <li>테스트를 먼저 쓰게 하면 AI가 만든 코드의 오류를 그 자리에서 잡는다</li>
+              <li>두 AI가 역할을 나누니 한쪽의 실수를 다른 쪽이 짚는다 (검토 지적 33건)</li>
+              <li>기록이 남는다: 요청·결과·수정 이유가 DEVLOG에 그대로</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>조심할 점</h3>
+            <ul class="small">
+              <li>규칙 해석 실수: 총지출 방향, 큰 값 처리 — 사람이 숫자로 확인해야 한다</li>
+              <li>요청하지 않은 것도 만든다: 범위를 문서로 못 박아야 했다</li>
+              <li>도구 문제에 시간이 든다: 가짜 타이머로 테스트가 멈춤, Codex 샌드박스 오류로 자료를 직접 붙여야 했음</li>
+              <li>검토 의견도 틀릴 수 있다: 직접 실행해 보고 반영 여부를 정했다</li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>12 / 14</span></div>
+      </section>
+
+      <!-- 13 개선점 -->
+      <section class="slide">
+        <p class="kicker">개선이 필요한 점</p>
+        <h2>아직 하지 않은 것</h2>
+        <div class="cols-3">
+          <div class="card"><h3>기능</h3><p class="small">무료배송 추가 구매 비교, 숙려 기간 연장, 결정 기록 필터·메모(P1). 구매 후 만족도, 통계, 알림, 기기 간 동기화(P2)</p></div>
+          <div class="card"><h3>검증</h3><p class="small">실제 절약이나 충동구매 감소 효과는 사용 기록을 모은 뒤 판단. 스크린리더 실사용 검증은 하지 않음</p></div>
+          <div class="card"><h3>계산 범위</h3><p class="small">쿠폰은 안마다 하나, 카드 할인·포인트·복합 쿠폰 없음. 배송비는 사용자가 확인한 값만</p></div>
+        </div>
+        <p class="small muted">숙려 리스트는 포기한 금액을 합계로 보여주지 않는다. 등록 가격은 실제 결제액과 다를 수 있어 저축액처럼 보이지 않게 했다.</p>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>13 / 14</span></div>
+      </section>
+
+      <!-- 14 결론 -->
+      <section class="slide center">
+        <p class="kicker">결론</p>
+        <h2>필요한 소비인지 생각하고, 구매 조건을 비교하도록 돕는 작은 웹 도구를 만들었다</h2>
+        <p class="lead">숙려 리스트 · 할인 비교 · 묶음상품 비교 — 검증 사례 17개를 자동 테스트로 확인했고, 효과는 사용 기록을 모은 뒤 판단한다</p>
+        <p class="muted">lumos0107.github.io/BuyorNot · github.com/lumos0107/BuyorNot</p>
+        <div class="footer"><span>살까말까 (Buy or Not)</span><span>14 / 14</span></div>
+      </section>
+    </div>
+    <div class="nav">← → 방향키 또는 클릭 · <span id="counter"></span></div>
+    <script>
+      const slides = [...document.querySelectorAll('.slide')]
+      let index = Math.min(slides.length - 1, Math.max(0, Number(location.hash.slice(1)) - 1 || 0))
+      const counter = document.getElementById('counter')
+      function fit() {
+        const scale = Math.min(window.innerWidth / 1320, window.innerHeight / 760)
+        document.documentElement.style.setProperty('--scale', String(scale))
+      }
+      function show(i) {
+        index = (i + slides.length) % slides.length
+        slides.forEach((s, k) => s.classList.toggle('active', k === index))
+        counter.textContent = `${index + 1} / ${slides.length}`
+        history.replaceState(null, '', `#${index + 1}`)
+      }
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') show(index + 1)
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(index - 1)
+        if (e.key === 'Home') show(0)
+        if (e.key === 'End') show(slides.length - 1)
+      })
+      document.getElementById('deck').addEventListener('click', (e) => {
+        if (e.target.closest('a')) return
+        show(e.clientX < window.innerWidth / 3 ? index - 1 : index + 1)
+      })
+      window.addEventListener('resize', fit)
+      fit()
+      show(index)
+    </script>
+  </body>
+</html>
