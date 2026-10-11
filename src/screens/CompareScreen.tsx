@@ -28,7 +28,7 @@ const KINDS: readonly TabItem<CompareKind>[] = [
   { id: 'bundle', label: '묶음상품 비교' },
 ]
 
-export function CompareScreen() {
+export function CompareScreen({ onGoToWishlist }: { onGoToWishlist?: () => void }) {
   const [kind, setKind] = useState<CompareKind>('discount')
   return (
     <div className="stack">
@@ -40,6 +40,13 @@ export function CompareScreen() {
       <TabPanel id="bundle" hidden={kind !== 'bundle'}>
         <BundleCompare />
       </TabPanel>
+      {onGoToWishlist ? (
+        // 비교해 봐도 필요한 소비인지 확실하지 않으면 먼저 담아 둔다 (PRD #4). 입력값은 넘기지 않는다
+        <div className="card stack">
+          <p>살지 말지 아직 모르겠다면 먼저 담아 두고 며칠 뒤 다시 생각해 보세요.</p>
+          <Button onClick={onGoToWishlist}>숙려 리스트에 담으러 가기</Button>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -97,7 +104,7 @@ function DiscountCompare() {
           초기화
         </Button>
       </div>
-      {sideA && sideB ? <DiscountResultCard a={sideA} b={sideB} /> : null}
+      <div aria-live="polite">{sideA && sideB ? <DiscountResultCard a={sideA} b={sideB} /> : null}</div>
     </div>
   )
 }
@@ -261,6 +268,7 @@ function BundleCompare() {
   const checkedA = validateBundleInput(a.form)
   const checkedB = validateBundleInput(b.form)
   const kindMismatch = unitKind(a.form.unit) !== unitKind(b.form.unit)
+  const mismatchId = 'bundle-unit-mismatch'
   const result =
     checkedA.value && checkedB.value && !kindMismatch ? compareBundles(checkedA.value, checkedB.value) : null
 
@@ -268,11 +276,11 @@ function BundleCompare() {
     <div className="stack">
       <h3 className="section-title">묶음상품 비교</h3>
       <div className="ab-grid">
-        <BundleCard name="상품 A" state={a} errors={checkedA.errors} onChange={setA} />
-        <BundleCard name="상품 B" state={b} errors={checkedB.errors} onChange={setB} />
+        <BundleCard name="상품 A" state={a} errors={checkedA.errors} onChange={setA} unitErrorId={kindMismatch ? mismatchId : undefined} />
+        <BundleCard name="상품 B" state={b} errors={checkedB.errors} onChange={setB} unitErrorId={kindMismatch ? mismatchId : undefined} />
       </div>
       {kindMismatch ? (
-        <p className="field-error" role="alert">
+        <p className="field-error" role="alert" id={mismatchId}>
           {KIND_LABEL[unitKind(a.form.unit)]}와 {KIND_LABEL[unitKind(b.form.unit)]}는 비교할 수 없어요. 같은
           종류의 단위를 골라 주세요.
         </p>
@@ -295,7 +303,8 @@ function BundleCompare() {
           초기화
         </Button>
       </div>
-      {result?.ok ? <BundleResultCard result={result} /> : null}
+      {/* 결과가 자동으로 바뀌므로 보조기기에 알린다 */}
+      <div aria-live="polite">{result?.ok ? <BundleResultCard result={result} /> : null}</div>
     </div>
   )
 }
@@ -305,9 +314,11 @@ type BundleCardProps = {
   state: SideState<BundleRawInput>
   errors: BundleFieldErrors
   onChange: (next: SideState<BundleRawInput>) => void
+  /** 두 상품의 단위 종류가 다를 때, 그 오류문의 id */
+  unitErrorId?: string
 }
 
-function BundleCard({ name, state, errors, onChange }: BundleCardProps) {
+function BundleCard({ name, state, errors, onChange, unitErrorId }: BundleCardProps) {
   const { form, touched } = state
   type Field = Exclude<keyof BundleRawInput, 'unit'>
   const shown = (field: Field) => (touched[field] ? errors[field] : undefined)
@@ -323,13 +334,19 @@ function BundleCard({ name, state, errors, onChange }: BundleCardProps) {
         label="가격"
         inputMode="numeric"
         placeholder="원"
-        hint="묶음 전체 가격"
+        hint="묶음 전체 가격 · 배송비까지 비교하려면 포함한 금액"
         value={form.price}
         error={shown('price')}
         onChange={(e) => set('price', e.target.value)}
         onBlur={() => blur('price')}
       />
-      <SelectField label="단위" value={form.unit} onChange={(e) => set('unit', e.target.value as Unit)}>
+      <SelectField
+        label="단위"
+        value={form.unit}
+        aria-describedby={unitErrorId}
+        invalid={Boolean(unitErrorId)}
+        onChange={(e) => set('unit', e.target.value as Unit)}
+      >
         <option value="g">g</option>
         <option value="kg">kg</option>
         <option value="mL">mL</option>
@@ -362,10 +379,13 @@ function BundleCard({ name, state, errors, onChange }: BundleCardProps) {
 
 function BundleResultCard({ result }: { result: Extract<ReturnType<typeof compareBundles>, { ok: true }> }) {
   const { a, b, verdict } = result
+  const percentLabel = formatFixed(verdict.percent, 1)
   const verdictText =
     verdict.cheaper === 'tie'
       ? '두 상품의 단가가 같아요'
-      : `상품 ${verdict.cheaper}가 단가 ${formatFixed(verdict.percent, 1)}% 낮아요`
+      : percentLabel === '0.0'
+        ? `상품 ${verdict.cheaper}가 단가 아주 조금 낮아요`
+        : `상품 ${verdict.cheaper}가 단가 ${percentLabel}% 낮아요`
   const spendText =
     verdict.spendMore === 'same'
       ? '총지출은 같아요.'
@@ -377,15 +397,21 @@ function BundleResultCard({ result }: { result: Extract<ReturnType<typeof compar
       <ul className="result-list">
         <li>
           <span>
-            상품 A · {a.referenceLabel}당 <span className="note">(총 {a.totalLabel})</span>
+            상품 A · {a.referenceLabel}당{' '}
+            <span className="note">
+              (총 {a.totalLabel} · {formatWon(a.price)})
+            </span>
           </span>
-          <span className="price">{formatFixed(a.unitPrice, 2)}원</span>
+          <span className="price">{a.unitPriceLabel}원</span>
         </li>
         <li>
           <span>
-            상품 B · {b.referenceLabel}당 <span className="note">(총 {b.totalLabel})</span>
+            상품 B · {b.referenceLabel}당{' '}
+            <span className="note">
+              (총 {b.totalLabel} · {formatWon(b.price)})
+            </span>
           </span>
-          <span className="price">{formatFixed(b.unitPrice, 2)}원</span>
+          <span className="price">{b.unitPriceLabel}원</span>
         </li>
       </ul>
       <p className="price price-lg">{verdictText}</p>

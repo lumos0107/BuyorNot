@@ -134,3 +134,22 @@ describe('할인 입력 검증 (AC12)', () => {
     expect(validateDiscountInput({ ...raw, coupon: 'amount', value: '8,000' }).value?.value).toBe(8000)
   })
 })
+
+// GPT 2·3단계 검토 반영: 경계값 (PRD F04)
+describe('할인 경계값', () => {
+  it('할인율 0%는 적용되지만 할인 0원이다', () => {
+    const side = calculateDiscount(input({ price: 10000, coupon: 'rate', value: 0, shipping: 0 }))
+    expect(side.applied).toBe(true)
+    expect(side.discount).toBe(0)
+    expect(side.total).toBe(10000)
+    expect(validateDiscountInput({ price: '10000', coupon: 'rate', value: '0', minOrder: '', maxDiscount: '', shipping: '' }).errors).toEqual({})
+  })
+
+  it('상품 금액 0원은 허용하고, 10억 원은 허용하며 그 위는 오류다', () => {
+    const zero = validateDiscountInput({ price: '0', coupon: 'none', value: '', minOrder: '', maxDiscount: '', shipping: '' })
+    expect(zero.errors).toEqual({})
+    expect(calculateDiscount(zero.value!).total).toBe(0)
+    expect(validateDiscountInput({ price: '1,000,000,000', coupon: 'none', value: '', minOrder: '', maxDiscount: '', shipping: '' }).errors).toEqual({})
+    expect(validateDiscountInput({ price: '1000000001', coupon: 'none', value: '', minOrder: '', maxDiscount: '', shipping: '' }).errors.price).toBeTruthy()
+  })
+})

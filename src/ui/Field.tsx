@@ -12,6 +12,8 @@ type FieldProps = {
   label: string
   hint?: string
   error?: string
+  /** 오류문은 다른 곳에 있지만(예: 두 입력에 걸친 오류) 이 입력도 잘못된 상태로 표시할 때 */
+  invalid?: boolean
 }
 
 type Linked = {
@@ -57,6 +59,7 @@ export function TextField({
   label,
   hint,
   error,
+  invalid,
   id,
   'aria-describedby': describedBy,
   ...rest
@@ -69,7 +72,7 @@ export function TextField({
         id={linked.id}
         className="input"
         aria-describedby={linked.describedBy}
-        aria-invalid={error ? true : undefined}
+        aria-invalid={error || invalid ? true : undefined}
       />
     </FieldShell>
   )
@@ -79,6 +82,7 @@ export function TextAreaField({
   label,
   hint,
   error,
+  invalid,
   id,
   'aria-describedby': describedBy,
   ...rest
@@ -91,7 +95,7 @@ export function TextAreaField({
         id={linked.id}
         className="input"
         aria-describedby={linked.describedBy}
-        aria-invalid={error ? true : undefined}
+        aria-invalid={error || invalid ? true : undefined}
       />
     </FieldShell>
   )
@@ -101,6 +105,7 @@ export function SelectField({
   label,
   hint,
   error,
+  invalid,
   id,
   'aria-describedby': describedBy,
   children,
@@ -114,7 +119,7 @@ export function SelectField({
         id={linked.id}
         className="select"
         aria-describedby={linked.describedBy}
-        aria-invalid={error ? true : undefined}
+        aria-invalid={error || invalid ? true : undefined}
       >
         {children}
       </select>

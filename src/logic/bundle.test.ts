@@ -112,3 +112,53 @@ describe('묶음상품 입력 검증 (AC12)', () => {
     expect(validateBundleInput({ price: '1000', unit: 'g', size: '100', count: '1.5' }).errors.count).toBeTruthy()
   })
 })
+
+// GPT 2·3단계 검토 반영: 큰 값·소수 자릿수 경계와 표시 동률 (PRD F05, AC12)
+describe('묶음상품 입력 경계값', () => {
+  const raw = { price: '1000', unit: 'g' as const, size: '100', count: '1' }
+
+  it('개수는 9,999개 이하여야 하고, 아주 큰 수는 오류다 (Infinity로 계산이 깨지지 않게)', () => {
+    expect(validateBundleInput({ ...raw, count: '9999' }).errors.count).toBeUndefined()
+    expect(validateBundleInput({ ...raw, count: '10000' }).errors.count).toBeTruthy()
+    expect(validateBundleInput({ ...raw, count: '1' + '0'.repeat(309) }).errors.count).toBeTruthy()
+    expect(validateBundleInput({ ...raw, count: '-2' }).errors.count).toBeTruthy()
+  })
+
+  it('개당 용량은 소수 셋째 자리까지, 1,000만 이하여야 한다', () => {
+    expect(validateBundleInput({ ...raw, size: '1.001' }).errors.size).toBeUndefined()
+    expect(validateBundleInput({ ...raw, size: '1.0004' }).errors.size).toBeTruthy()
+    expect(validateBundleInput({ ...raw, size: '0.0004' }).errors.size).toBeTruthy()
+    expect(validateBundleInput({ ...raw, size: '10000000' }).errors.size).toBeUndefined()
+    expect(validateBundleInput({ ...raw, size: '10000001' }).errors.size).toBeTruthy()
+    expect(validateBundleInput({ ...raw, size: '-5' }).errors.size).toBeTruthy()
+  })
+
+  it('가격 상한 10억 원은 허용하고 그 위는 오류다', () => {
+    expect(validateBundleInput({ ...raw, price: '1000000000' }).errors.price).toBeUndefined()
+    expect(validateBundleInput({ ...raw, price: '1000000001' }).errors.price).toBeTruthy()
+  })
+
+  it('허용 범위의 가장 큰 값끼리도 정확히 비교한다', () => {
+    // 1,000만 kg × 9,999개 = 밀리그램 단위로 10^17을 넘지만 정수로 정확히 다뤄야 한다
+    const big = bundle(1000000000, 'kg', 10000000, 9999)
+    const bigger = bundle(1000000000, 'kg', 10000000, 9998)
+    const result = compareBundles(big, bigger)
+    if (!result.ok) throw new Error(result.reason)
+    expect(result.verdict.cheaper).toBe('A')
+    expect(Number.isFinite(result.a.unitPrice)).toBe(true)
+  })
+
+  it('용량 소수 셋째 자리 차이도 동률로 뭉개지 않는다', () => {
+    const result = compareBundles(bundle(1000, 'g', 1.001, 1), bundle(1000, 'g', 1.002, 1))
+    if (!result.ok) throw new Error(result.reason)
+    expect(result.verdict.cheaper).toBe('B')
+  })
+
+  it('표시 동률은 화면에 보이는 소수 둘째 자리 문자열이 같은지로 판단한다', () => {
+    const result = compareBundles(bundle(1000, 'g', 300, 1), bundle(3000, 'g', 900.01, 1))
+    if (!result.ok) throw new Error(result.reason)
+    expect(result.a.unitPriceLabel).toBe('333.33')
+    expect(result.b.unitPriceLabel).toBe('333.33')
+    expect(result.verdict.displayTie).toBe(true)
+  })
+})
