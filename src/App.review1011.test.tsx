@@ -215,7 +215,7 @@ describe('GPT 10~11단계 검토 반영', () => {
       expect(screen.getByRole('heading', { level: 2, name: '구독' })).toHaveFocus()
     })
 
-    it('숙려 기록 초기화도 같은 순서로 포커스를 옮기고, 초기화 뒤에는 사이트 제목으로 간다', async () => {
+    it('물건 기록 초기화도 같은 순서로 포커스를 옮기고, 초기화 뒤에는 사이트 제목으로 간다', async () => {
       localStorage.setItem(STORAGE_KEY, '{bad')
       const user = userEvent.setup()
       render(<App />)

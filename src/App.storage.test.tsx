@@ -74,11 +74,11 @@ describe('화면 연결과 안내', () => {
     expect(screen.getByText(/기록은 이 브라우저에만 저장돼요/)).toBeInTheDocument()
   })
 
-  it('가격 비교에서 숙려 리스트로 바로 갈 수 있다 (4-22)', async () => {
+  it('가격 비교에서 고민 중인 물건으로 바로 갈 수 있다 (4-22)', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('tab', { name: '가격 비교' }))
-    await user.click(screen.getByRole('button', { name: '숙려 리스트에 담으러 가기' }))
+    await user.click(screen.getByRole('button', { name: '고민 중인 물건에 담으러 가기' }))
     expect(screen.getByRole('tab', { name: '고민 중인 물건', selected: true })).toBeInTheDocument()
     expect(screen.getByRole('form', { name: '물건 담기' })).toBeInTheDocument()
   })

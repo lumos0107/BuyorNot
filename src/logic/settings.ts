@@ -1,6 +1,6 @@
 import { parseInteger } from './number'
 
-// PRD F12 시급 설정: 별도 키에 저장한다. 손상되면 그 키만 무시하고 비운 것으로 본다(숙려 기록에는 영향 없음).
+// PRD F12 시급 설정: 별도 키에 저장한다. 손상되면 그 키만 무시하고 비운 것으로 본다(물건 기록에는 영향 없음).
 export type Settings = { schemaVersion: 1; hourlyWage: number | null }
 
 export const SETTINGS_KEY = 'buyornot.settings.v1'

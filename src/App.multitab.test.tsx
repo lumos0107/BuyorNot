@@ -154,7 +154,7 @@ describe('구독: 여러 탭', () => {
   })
 })
 
-describe('숙려 기록: 여러 탭', () => {
+describe('물건 기록: 여러 탭', () => {
   it('알림이 오기 전에 다른 탭이 저장했으면 덮어쓰지 않고, 그 내용을 불러와 알린다', async () => {
     localStorage.setItem(STORAGE_KEY, store(wish({})))
     const user = userEvent.setup()

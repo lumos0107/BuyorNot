@@ -15,7 +15,7 @@ import {
   type WishPatch,
 } from '../logic/wishlist'
 
-// PRD F06: 숙려 기록은 현재 브라우저의 localStorage에 저장하고, 다시 열면 복원한다.
+// PRD F06: 물건 기록은 현재 브라우저의 localStorage에 저장하고, 다시 열면 복원한다.
 // 저장 실패는 성공으로 보이지 않게 하고, 손상된 데이터는 사용자가 확인한 뒤에만 초기화한다. (AC13)
 export type StorageStatus =
   | { kind: 'ok' }
@@ -82,7 +82,7 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     return () => window.removeEventListener('storage', onStorage)
   }, [storage])
 
-  // 가장 가까운 숙려 종료·회고 시점에 맞춰 한 번 더 갱신한다. 30초 주기만으로는 정각 뒤 최대 30초까지 늦기 때문이다
+  // 가장 가까운 고민 기간 종료·회고 시점에 맞춰 한 번 더 갱신한다. 30초 주기만으로는 정각 뒤 최대 30초까지 늦기 때문이다
   useEffect(() => {
     const now = new Date()
     const delays = [nextReviewDelay(items, now), nextRetroDelay(items, now)].filter((d): d is number => d !== null)

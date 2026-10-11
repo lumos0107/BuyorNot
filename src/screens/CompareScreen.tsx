@@ -54,7 +54,7 @@ export function CompareScreen({ onGoToWishlist }: { onGoToWishlist?: () => void 
         // 비교해 봐도 필요한 소비인지 확실하지 않으면 먼저 담아 둔다 (PRD #4). 입력값은 넘기지 않는다
         <div className="card stack">
           <p>살지 말지 아직 모르겠다면 먼저 담아 두고 며칠 뒤 다시 생각해 보세요.</p>
-          <Button onClick={onGoToWishlist}>숙려 리스트에 담으러 가기</Button>
+          <Button onClick={onGoToWishlist}>고민 중인 물건에 담으러 가기</Button>
         </div>
       ) : null}
     </div>

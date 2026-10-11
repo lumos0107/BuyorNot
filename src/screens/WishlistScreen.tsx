@@ -25,7 +25,7 @@ import { Button } from '../ui/Button'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
 
-// PRD F01 상품 등록·관리, F02 숙려와 결정, F07 연장, F08 결정 메모
+// PRD F01 상품 등록·관리, F02 고민 기간과 결정, F07 연장, F08 결정 메모
 type Decision = 'purchased' | 'skipped'
 
 type Props = {
@@ -61,7 +61,7 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
-          <p className="note">사고 싶은 물건을 담아 두면 숙려 기간이 지난 뒤 다시 물어봐요.</p>
+          <p className="note">사고 싶은 물건을 담아 두면 고민 기간이 지난 뒤 다시 물어봐요.</p>
           {onAddDemo ? <Button onClick={onAddDemo}>예시 물건 넣기</Button> : null}
         </div>
       ) : (
@@ -88,12 +88,12 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
 function CoolingGuide() {
   return (
     <details className="card guide">
-      <summary className="card-title">숙려가 왜 도움이 되나요?</summary>
+      <summary className="card-title">며칠 고민하면 뭐가 좋을까요?</summary>
       <div className="stack">
         <p>사고 싶은 마음은 시간이 지나면 처음보다 약해지기도 해요.</p>
         <p>살까말까는 담을 때 적은 이유와 답을 기간이 지난 뒤 다시 보여줘서, 그때의 마음과 지금의 생각을 나란히 볼 수 있게 해요.</p>
         <p>사기로 했다면 가격 비교에서 더 싼 조건을 고르고, 결정 기록에서 내가 어떤 물건을 사고 포기했는지 돌아볼 수 있어요.</p>
-        <p>모든 사람에게 같은 효과가 있다고 말할 수는 없어요. 기록이 쌓이면 나에게 맞는 숙려 기간을 찾는 데 도움이 될 수 있어요.</p>
+        <p>모든 사람에게 같은 효과가 있다고 말할 수는 없어요. 기록이 쌓이면 나에게 맞는 고민 기간을 찾는 데 도움이 될 수 있어요.</p>
       </div>
     </details>
   )
@@ -173,7 +173,7 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
         onChange={(e) => set('reason', e.target.value)}
       />
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="field-label">숙려 기간</legend>
+        <legend className="field-label">고민 기간</legend>
         <div className="radio-group">
           {COOLING_PRESETS.map((preset) => (
             <label key={preset}>
@@ -202,7 +202,7 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
       </fieldset>
       {raw.preset === 'custom' ? (
         <TextField
-          label="숙려 일수"
+          label="고민 일수"
           inputMode="numeric"
           placeholder="1~30"
           hint="1일부터 30일까지"
@@ -335,12 +335,12 @@ function WishCard({ item, now, onEdit, onDecide, onExtend, onRemove }: CardProps
         {state.phase === 'ready' ? (
           <span className="status">재검토 가능</span>
         ) : (
-          <span className="status status-muted">숙려 중 · {formatRemaining(state.remainingMs)}</span>
+          <span className="status status-muted">고민 중 · {formatRemaining(state.remainingMs)}</span>
         )}
       </div>
       <p className="price">{formatWon(item.priceKrw)}</p>
       <p className="card-meta">
-        담은 날 {formatDate(item.createdAt)} · {coolingDays(item)}일 숙려
+        담은 날 {formatDate(item.createdAt)} · {coolingDays(item)}일 고민
         {extensions > 0 ? ` · ${extensions}번 연장` : ''}
         {item.url ? (
           <>
@@ -551,7 +551,7 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
         error={shown.url}
         onChange={(e) => set('url', e.target.value)}
       />
-      <p className="note">숙려 기간은 바뀌지 않아요. 다시 볼 날 {formatDate(item.reviewAt)}</p>
+      <p className="note">고민 기간은 바뀌지 않아요. 다시 볼 날 {formatDate(item.reviewAt)}</p>
       {stale ? (
         <p className="field-error" role="alert">
           다른 탭에서 이 물건이 바뀌었어요. 취소한 뒤 다시 열어 고쳐 주세요.

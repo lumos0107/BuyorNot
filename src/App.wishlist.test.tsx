@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
-// 4단계: 등록 → 숙려 → 결정 → 결정 기록, 새로고침 복원 (PRD F01, F02, F03, F06 / AC01~AC04)
+// 4단계: 등록 → 고민 기간 → 결정 → 결정 기록, 새로고침 복원 (PRD F01, F02, F03, F06 / AC01~AC04)
 const T0 = new Date('2026-10-11T09:00:00+09:00')
 const HOUR = 60 * 60 * 1000
 
@@ -46,12 +46,12 @@ async function passTime(ms: number) {
   })
 }
 
-describe('숙려 리스트', () => {
-  it('담으면 숙려 중 카드로 보이고 폼은 비워진다', async () => {
+describe('고민 목록', () => {
+  it('담으면 고민 중 카드로 보이고 폼은 비워진다', async () => {
     const { user } = setup()
     await addItem(user)
     expect(card('무선 헤드폰').getByText('129,000원')).toBeInTheDocument()
-    expect(card('무선 헤드폰').getByText('숙려 중 · 3일 남음')).toBeInTheDocument()
+    expect(card('무선 헤드폰').getByText('고민 중 · 3일 남음')).toBeInTheDocument()
     expect(within(screen.getByRole('form', { name: '물건 담기' })).getByLabelText('상품명')).toHaveValue('')
     expect(screen.queryByText('아직 담아 둔 물건이 없어요.')).not.toBeInTheDocument()
   })
@@ -62,14 +62,14 @@ describe('숙려 리스트', () => {
     await passTime(HOUR)
     unmount()
     setup()
-    expect(card('무선 헤드폰').getByText('숙려 중 · 2일 23시간 남음')).toBeInTheDocument()
+    expect(card('무선 헤드폰').getByText('고민 중 · 2일 23시간 남음')).toBeInTheDocument()
   })
 
-  it('AC02·AC03: 숙려가 끝나면 재검토 가능이 되고, 결정하기 전까지 고민 중에 남는다', async () => {
+  it('AC02·AC03: 고민 기간이 끝나면 재검토 가능이 되고, 결정하기 전까지 고민 중에 남는다', async () => {
     const { user } = setup()
     await addItem(user, { days: '1' })
     await passTime(24 * HOUR - 60 * 1000)
-    expect(card('무선 헤드폰').getByText('숙려 중 · 1분 남음')).toBeInTheDocument()
+    expect(card('무선 헤드폰').getByText('고민 중 · 1분 남음')).toBeInTheDocument()
     await passTime(60 * 1000)
     expect(card('무선 헤드폰').getByText('재검토 가능')).toBeInTheDocument()
     expect(card('무선 헤드폰').getByText('아직 필요한가요?')).toBeInTheDocument()
@@ -129,20 +129,20 @@ describe('숙려 리스트', () => {
     await user.clear(editor.getByLabelText('상품명'))
     await user.type(editor.getByLabelText('상품명'), '헤드폰')
     await user.click(editor.getByRole('button', { name: '저장' }))
-    expect(card('헤드폰').getByText('숙려 중 · 2일 23시간 남음')).toBeInTheDocument()
+    expect(card('헤드폰').getByText('고민 중 · 2일 23시간 남음')).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: '무선 헤드폰' })).not.toBeInTheDocument()
   })
 
-  it('숙려 기간을 직접 입력할 수 있다', async () => {
+  it('고민 기간을 직접 입력할 수 있다', async () => {
     const { user } = setup()
     const form = within(screen.getByRole('form', { name: '물건 담기' }))
     await user.type(form.getByLabelText('상품명'), '로봇청소기')
     await user.type(form.getByLabelText('가격'), '450000')
     await user.type(form.getByLabelText('사고 싶은 이유'), '청소할 시간이 없어서')
     await user.click(form.getByRole('radio', { name: '직접 입력' }))
-    await user.type(form.getByLabelText('숙려 일수'), '10')
+    await user.type(form.getByLabelText('고민 일수'), '10')
     await user.click(form.getByRole('button', { name: '담아 두기' }))
-    expect(card('로봇청소기').getByText('숙려 중 · 10일 남음')).toBeInTheDocument()
+    expect(card('로봇청소기').getByText('고민 중 · 10일 남음')).toBeInTheDocument()
   })
 
   it('삭제는 확인을 거치고, 취소하면 남는다', async () => {
@@ -168,9 +168,9 @@ describe('직접 입력 일수', () => {
     await user.type(form.getByLabelText('가격'), '450000')
     await user.type(form.getByLabelText('사고 싶은 이유'), '이유')
     await user.click(form.getByRole('radio', { name: '직접 입력' }))
-    await user.type(form.getByLabelText('숙려 일수'), '40')
+    await user.type(form.getByLabelText('고민 일수'), '40')
     await user.click(form.getByRole('button', { name: '담아 두기' }))
-    const days = form.getByLabelText('숙려 일수')
+    const days = form.getByLabelText('고민 일수')
     expect(days).toHaveAttribute('aria-invalid', 'true')
     expect(days).toHaveAccessibleDescription(/1~30일/)
     expect(screen.queryByRole('article')).not.toBeInTheDocument()

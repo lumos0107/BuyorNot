@@ -13,7 +13,7 @@ import {
 import { newId } from '../logic/wishlist'
 import type { StorageStatus } from './useWishlist'
 
-// PRD F14 구독 정리함 저장: 숙려 기록과 같은 규칙(손상 시 덮어쓰지 않음, 저장 실패는 알림)을 별도 키에 적용한다
+// PRD F14 구독 정리함 저장: 물건 기록과 같은 규칙(손상 시 덮어쓰지 않음, 저장 실패는 알림)을 별도 키에 적용한다
 // 저장된 원문과 복원 결과. 원문은 다른 탭이 먼저 저장했는지 비교하는 데 쓴다
 function read(storage: Storage | null): { raw: string | null; loaded: SubsLoadResult } {
   if (!storage) return { raw: null, loaded: { ok: false, reason: 'unavailable' } }
@@ -34,7 +34,7 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
   const [items, setItems] = useState<Subscription[]>(() => (initial.loaded.ok ? initial.loaded.store.items : []))
   const [status, setStatus] = useState<StorageStatus>(() => (initial.loaded.ok ? { kind: 'ok' } : { kind: initial.loaded.reason }))
 
-  // 다른 탭이 저장하면 이 탭도 그 내용으로 맞춘다 (숙려 기록과 같은 방식). 서로의 구독을 덮어쓰지 않기 위해서다
+  // 다른 탭이 저장하면 이 탭도 그 내용으로 맞춘다 (물건 기록과 같은 방식). 서로의 구독을 덮어쓰지 않기 위해서다
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key !== null && event.key !== SUBS_KEY) return
@@ -71,7 +71,7 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
     }
   }
 
-  // 숙려 기록과 같은 규칙: 손상·저장소 없음이면 화면에만 반영하고,
+  // 물건 기록과 같은 규칙: 손상·저장소 없음이면 화면에만 반영하고,
   // 다른 탭이 먼저 저장했다면 덮어쓰지 않고 그 내용을 불러와 알린다
   const commit = (next: Subscription[]) => {
     if (status.kind === 'corrupt' || status.kind === 'unavailable') {

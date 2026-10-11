@@ -1,6 +1,6 @@
 import { MAX_WON, parseInteger } from './number'
 
-// PRD F01 상품 등록·관리, F02 숙려와 결정, F03 결정 기록, #6 데이터 초안
+// PRD F01 상품 등록·관리, F02 고민 기간과 결정, F03 결정 기록, #6 데이터 초안
 // 시각은 ISO 문자열(UTC)로 저장하고 화면에서 현지 시각으로 보여준다.
 
 export type ItemStatus = 'considering' | 'purchased' | 'skipped'
@@ -23,7 +23,7 @@ export type WishItem = {
   url: string | null
   createdAt: string
   updatedAt: string
-  /** 재검토 가능해지는 시각 = 등록 시각 + 숙려 일수 × 24시간 */
+  /** 재검토 가능해지는 시각 = 등록 시각 + 고민 일수 × 24시간 */
   reviewAt: string
   status: ItemStatus
   decidedAt: string | null
@@ -127,26 +127,26 @@ function checkPatch(raw: WishPatchRaw, errors: WishFieldErrors): WishPatch | nul
   return { name, priceKrw: priceKrw!, reason, url: url as string | null }
 }
 
-/** 고민 중인 상품을 고칠 때: 숙려 기간은 바꾸지 않는다 */
+/** 고민 중인 상품을 고칠 때: 고민 기간은 바꾸지 않는다 */
 export function validateWishPatch(raw: WishPatchRaw): { value?: WishPatch; errors: WishFieldErrors } {
   const errors: WishFieldErrors = {}
   const value = checkPatch(raw, errors)
   return value ? { value, errors } : { errors }
 }
 
-// 등록할 때: 위 규칙 + 숙려 1~30일 정수
+// 등록할 때: 위 규칙 + 고민 기간 1~30일 정수
 export function validateWishInput(raw: WishRawInput): { value?: NewWishInput; errors: WishFieldErrors } {
   const errors: WishFieldErrors = {}
   const patch = checkPatch(raw, errors)
 
   const days = parseInteger(raw.days)
-  if (days === null || days < 1 || days > MAX_DAYS) errors.days = `숙려 기간은 1~${MAX_DAYS}일 사이 정수여야 해요`
+  if (days === null || days < 1 || days > MAX_DAYS) errors.days = `고민 기간은 1~${MAX_DAYS}일 사이 정수여야 해요`
 
   if (!patch || Object.keys(errors).length > 0) return { errors }
   return { value: { ...patch, days: days! }, errors }
 }
 
-/** 등록 시각과 종료 시각으로 숙려 일수를 되돌려 계산한다 */
+/** 등록 시각과 종료 시각으로 고민 일수를 되돌려 계산한다 */
 export function coolingDays(item: Pick<WishItem, 'createdAt' | 'reviewAt'>): number {
   return Math.round((Date.parse(item.reviewAt) - Date.parse(item.createdAt)) / DAY_MS)
 }
@@ -196,12 +196,12 @@ export function describeAnswers(answers: Answers | undefined): string[] {
 
 export type WishPatch = Pick<WishItem, 'name' | 'priceKrw' | 'reason' | 'url'>
 
-// 고민 중인 상품의 내용만 고친다. 숙려 종료 시각은 바뀌지 않는다. (F01)
+// 고민 중인 상품의 내용만 고친다. 고민 기간 종료 시각은 바뀌지 않는다. (F01)
 export function updateItem(item: WishItem, patch: WishPatch, now: Date): WishItem {
   return { ...item, ...patch, updatedAt: now.toISOString() }
 }
 
-// 숙려 중에도 결정할 수 있다. 결정 시각을 저장하고 상태를 바꾼다. 메모는 비어 있으면 저장하지 않는다. (F02, F08)
+// 고민 중에도 결정할 수 있다. 결정 시각을 저장하고 상태를 바꾼다. 메모는 비어 있으면 저장하지 않는다. (F02, F08)
 export function decideItem(item: WishItem, status: 'purchased' | 'skipped', now: Date, note?: string): WishItem {
   const at = now.toISOString()
   const decisionNote = note?.trim() || undefined
@@ -233,7 +233,7 @@ export function sortHistory(items: readonly WishItem[]): WishItem[] {
   return items.filter((item) => item.status !== 'considering').sort((a, b) => ts(b.decidedAt) - ts(a.decidedAt))
 }
 
-/** 가장 가까운 숙려 종료까지 남은 ms. 앞으로 끝날 것이 없으면 null (화면 갱신 타이머용) */
+/** 가장 가까운 고민 기간 종료까지 남은 ms. 앞으로 끝날 것이 없으면 null (화면 갱신 타이머용) */
 export function nextReviewDelay(items: readonly WishItem[], now: Date): number | null {
   const upcoming = items
     .filter((item) => item.status === 'considering')
@@ -242,7 +242,7 @@ export function nextReviewDelay(items: readonly WishItem[], now: Date): number |
   return upcoming.length > 0 ? Math.min(...upcoming) : null
 }
 
-// 발표·시연용 가상 데이터. 재검토 가능한 것, 숙려 중인 것, 이미 결정한 것을 하나씩 만든다. 보통 기록처럼 저장된다.
+// 발표·시연용 가상 데이터. 재검토 가능한 것, 고민 중인 것, 이미 결정한 것을 하나씩 만든다. 보통 기록처럼 저장된다.
 export function demoItems(now: Date, nextId: () => string): WishItem[] {
   const ago = (days: number) => new Date(now.getTime() - days * DAY_MS)
   const make = (

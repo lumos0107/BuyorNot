@@ -12,7 +12,7 @@ import {
   type WishItem,
 } from './wishlist'
 
-// PRD F01 상품 등록·관리, F02 숙려와 결정, F03 결정 기록 / AC02, AC03, AC04
+// PRD F01 상품 등록·관리, F02 고민 기간과 결정, F03 결정 기록 / AC02, AC03, AC04
 const T0 = new Date('2026-10-11T09:00:00+09:00')
 const hours = (n: number) => n * 60 * 60 * 1000
 const at = (base: Date, ms: number) => new Date(base.getTime() + ms)
@@ -35,13 +35,13 @@ function item(over: Partial<WishItem> = {}): WishItem {
   }
 }
 
-describe('숙려 종료 시각과 상태 (F02)', () => {
+describe('고민 기간 종료 시각과 상태 (F02)', () => {
   it('종료 시각은 등록 시각 + 일수 × 24시간이다', () => {
     expect(reviewAtFrom(T0, 3)).toBe(at(T0, hours(72)).toISOString())
     expect(reviewAtFrom(T0, 1)).toBe(at(T0, hours(24)).toISOString())
   })
 
-  it('종료 직전은 숙려 중, AC02: 정각은 재검토 가능, 직후도 재검토 가능이다', () => {
+  it('종료 직전은 고민 중, AC02: 정각은 재검토 가능, 직후도 재검토 가능이다', () => {
     const reviewAt = reviewAtFrom(T0, 3)
     expect(reviewState(reviewAt, at(T0, hours(72) - 1))).toEqual({ phase: 'cooling', remainingMs: 1 })
     expect(reviewState(reviewAt, at(T0, hours(72)))).toEqual({ phase: 'ready' })
@@ -60,7 +60,7 @@ describe('숙려 종료 시각과 상태 (F02)', () => {
     expect(formatRemaining(hours(24 * 6) - 20)).toBe('6일 남음')
   })
 
-  it('AC03: 숙려가 끝나도 결정하지 않으면 상태는 고민 중으로 남는다', () => {
+  it('AC03: 고민 기간이 끝나도 결정하지 않으면 상태는 고민 중으로 남는다', () => {
     const it0 = item()
     expect(reviewState(it0.reviewAt, at(T0, hours(200)))).toEqual({ phase: 'ready' })
     expect(it0.status).toBe('considering')
@@ -68,7 +68,7 @@ describe('숙려 종료 시각과 상태 (F02)', () => {
 })
 
 describe('상품 등록·수정·결정 (F01, F02, F03)', () => {
-  it('등록하면 숙려 기간에 맞는 종료 시각과 고민 중 상태로 만들어진다', () => {
+  it('등록하면 고민 기간에 맞는 종료 시각과 고민 중 상태로 만들어진다', () => {
     const { value, errors } = validateWishInput(validRaw)
     expect(errors).toEqual({})
     const created = createItem(value!, T0, 'id-1')
@@ -96,7 +96,7 @@ describe('상품 등록·수정·결정 (F01, F02, F03)', () => {
     expect(edited.createdAt).toBe(item().createdAt)
   })
 
-  it('구매·포기를 고르면 결정 시각이 저장되고 상태가 바뀐다 (숙려 중에도 가능)', () => {
+  it('구매·포기를 고르면 결정 시각이 저장되고 상태가 바뀐다 (고민 중에도 가능)', () => {
     const now = at(T0, hours(10))
     const bought = decideItem(item(), 'purchased', now)
     expect(bought.status).toBe('purchased')
@@ -156,7 +156,7 @@ describe('등록 입력 검증 (F01)', () => {
     expect(validateWishInput({ ...validRaw, price: '' }).errors.price).toBeTruthy()
   })
 
-  it('숙려 기간은 1~30일 정수다 (1·3·7일 또는 직접 입력)', () => {
+  it('고민 기간은 1~30일 정수다 (1·3·7일 또는 직접 입력)', () => {
     expect(validateWishInput({ ...validRaw, days: '30' }).value?.days).toBe(30)
     expect(validateWishInput({ ...validRaw, days: '0' }).errors.days).toBeTruthy()
     expect(validateWishInput({ ...validRaw, days: '31' }).errors.days).toBeTruthy()

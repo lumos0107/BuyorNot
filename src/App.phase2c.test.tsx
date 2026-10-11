@@ -124,9 +124,9 @@ describe('내 기록 알림과 비교 링크 (F10)', () => {
 })
 
 describe('안내문 (F11)', () => {
-  it('접힌 안내문을 펼치면 숙려가 왜 도움이 되는지 보인다', async () => {
+  it('접힌 안내문을 펼치면 며칠 고민하면 좋은 점이 보인다', async () => {
     const { user } = setup()
-    const summary = screen.getByText('숙려가 왜 도움이 되나요?')
+    const summary = screen.getByText('며칠 고민하면 뭐가 좋을까요?')
     expect(screen.getByText(/사고 싶은 마음은 시간이 지나면/)).not.toBeVisible()
     await user.click(summary)
     expect(screen.getByText(/사고 싶은 마음은 시간이 지나면/)).toBeVisible()

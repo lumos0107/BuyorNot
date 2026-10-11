@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { decideItem, extendItem, reviewAtFrom, reviewState, validateNote, type WishItem } from './wishlist'
 
-// 2차 F07 숙려 연장, F08 결정 메모 (AC18, AC19)
+// 2차 F07 고민 기간 연장, F08 결정 메모 (AC18, AC19)
 const T0 = new Date('2026-10-11T09:00:00+09:00')
 const hours = (n: number) => n * 60 * 60 * 1000
 const at = (base: Date, ms: number) => new Date(base.getTime() + ms)
@@ -22,7 +22,7 @@ function item(over: Partial<WishItem> = {}): WishItem {
   }
 }
 
-describe('숙려 연장 (F07)', () => {
+describe('고민 기간 연장 (F07)', () => {
   it('AC18: 남은 2일에 3일을 연장하면 5일 남고 1번 연장으로 기록된다', () => {
     const now = at(T0, hours(24))
     const extended = extendItem(item(), 3, now)
@@ -34,7 +34,7 @@ describe('숙려 연장 (F07)', () => {
     expect(extended.updatedAt).toBe(now.toISOString())
   })
 
-  it('AC18: 재검토 가능(지난 지 1일)에서 3일을 연장하면 지금부터 3일 남고 숙려 중으로 돌아간다', () => {
+  it('AC18: 재검토 가능(지난 지 1일)에서 3일을 연장하면 지금부터 3일 남고 고민 중으로 돌아간다', () => {
     const now = at(T0, hours(24 * 4))
     const extended = extendItem(item(), 3, now)
     expect(extended.reviewAt).toBe(reviewAtFrom(now, 3))
