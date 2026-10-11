@@ -51,7 +51,7 @@ describe('예시 구독과 예시 사용량 (F14·F16)', () => {
       ['(예시) 넷플릭스', 13500, 1080, undefined],
       ['(예시) 음악 스트리밍', 10900, 0, undefined],
       ['(예시) 클라우드 저장공간', 120000, undefined, undefined],
-      ['(예시) 배민클럽', 3990, undefined, 6],
+      ['(예시) 배달의민족 배민클럽', 3990, undefined, 6],
       ['(예시) 쿠팡 와우 멤버십', 7890, undefined, 1],
     ])
   })
@@ -74,7 +74,7 @@ describe('예시 구독과 예시 사용량 (F14·F16)', () => {
     const edited = updateSubscription(monthly({ exampleUsageMinutes: 1080 }), { name: '(예시) 넷플릭스', priceKrw: 17000, cycle: 'monthly', billingDay: 15, lastUsedDate: null }, NOW)
     expect(edited.exampleUsageMinutes).toBe(1080)
     expect(usageText(edited)).toBe('최근 30일 18시간 · 1시간에 약 940원')
-    const delivery = updateSubscription(monthly({ priceKrw: 3990, exampleUseCount: 6 }), { name: '(예시) 배민클럽', priceKrw: 3990, cycle: 'monthly', billingDay: 20, lastUsedDate: null }, NOW)
+    const delivery = updateSubscription(monthly({ priceKrw: 3990, exampleUseCount: 6 }), { name: '(예시) 배달의민족 배민클럽', priceKrw: 3990, cycle: 'monthly', billingDay: 20, lastUsedDate: null }, NOW)
     expect(delivery.exampleUseCount).toBe(6)
   })
 })

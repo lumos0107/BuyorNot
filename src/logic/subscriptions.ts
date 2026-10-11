@@ -285,7 +285,7 @@ export function demoSubscriptions(today: Date, nextId: () => string): Subscripti
       nextId(),
     ),
     {
-      ...createSubscription({ name: '(예시) 배민클럽', priceKrw: 3990, cycle: 'monthly', billingDay: 20, lastUsedDate: shift(-2) }, today, nextId()),
+      ...createSubscription({ name: '(예시) 배달의민족 배민클럽', priceKrw: 3990, cycle: 'monthly', billingDay: 20, lastUsedDate: shift(-2) }, today, nextId()),
       exampleUseCount: 6,
     },
     {
