@@ -110,7 +110,14 @@ describe('예시 데이터의 정도 기록 (F22, AC40)', () => {
   })
 
   it('헤드폰 답에 "대신하기 어려워요"가 있어 그 밖에 답한 것도 보인다', () => {
-    expect(byName('무선 헤드폰').answers).toEqual({ haveOne: 'yes', useInMonth: 'unsure', alternative: 'no' })
+    expect(byName('무선 헤드폰').answers).toEqual({
+      problem: '출퇴근길에 음악을 못 들어요',
+      useInMonth: 'unsure',
+      haveOne: 'yes',
+      saleDriven: 'no',
+      spaceTime: 'yes',
+      alternative: 'no',
+    })
   })
 
   it('예시 데이터는 저장 규칙을 통과한다', () => {

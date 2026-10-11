@@ -25,8 +25,12 @@ describe('예시만 지우기', () => {
     expect(screen.queryByRole('button', { name: '예시만 지우기' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     const form = within(screen.getByRole('form', { name: '물건 담기' }))
+    // F28: 예시 물건 넣기가 폼도 예시로 채우므로 지우고 적는다
+    await user.clear(form.getByLabelText('상품명'))
     await user.type(form.getByLabelText('상품명'), '전동 칫솔')
+    await user.clear(form.getByLabelText('가격'))
     await user.type(form.getByLabelText('가격'), '59000')
+    await user.clear(form.getByLabelText('사고 싶은 이유'))
     await user.type(form.getByLabelText('사고 싶은 이유'), '고장')
     await user.click(form.getByRole('button', { name: '담아 두기' }))
 

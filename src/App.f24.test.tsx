@@ -28,11 +28,11 @@ async function fillBasics(user: ReturnType<typeof userEvent.setup>, name = '전�
 }
 
 describe('담기 폼 줄이기 (F24, AC43)', () => {
-  it('담기 폼에는 질문 6개가 없고 링크는 접혀 있다. 담은 물건은 카드에서 질문 6개를 묻는다', async () => {
+  it('담기 폼의 질문 6개(F28 체크리스트)와 링크는 접혀 있다. 답하지 않고 담은 물건은 카드에서 질문 6개를 묻는다', async () => {
     const user = userEvent.setup()
     render(<App />)
     expect(form().queryByText('한 번만 생각해 볼까요? (선택)')).not.toBeInTheDocument()
-    expect(form().queryByRole('group', { name: '지금 쓰는 게 있나요?' })).not.toBeInTheDocument()
+    expect(form().getByRole('group', { name: '지금 쓰는 게 있나요?' }).closest('details')).not.toHaveAttribute('open')
     const linkToggle = form().getByText('상품 링크 (선택)')
     expect(linkToggle.closest('details')).not.toHaveAttribute('open')
     await fillBasics(user)

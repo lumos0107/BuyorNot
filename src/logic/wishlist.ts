@@ -330,16 +330,25 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
     }
   }
   return [
-    // 고민 중인 예시 둘은 같은 단계로 맞춘다 (F27): 체크리스트 3/6, 펼친 첫 질문은 문제 설명, 며칠에 걸친 정도 기록.
+    // 고민 중인 예시 둘은 같은 단계로 맞춘다 (F27): 체크리스트 6/6(F28: 임의로 모두 채움), 며칠에 걸친 정도 기록.
     // 사기 전 점검·오늘의 고민(F15, F22)과 체크리스트를 시연할 수 있다
-    make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 7, undefined, { haveOne: 'yes', useInMonth: 'unsure', alternative: 'no' }, { start: 4, checks: [[3, 3], [2, 2]] }),
-    make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 2, 7, undefined, { haveOne: 'no', useInMonth: 'yes', spaceTime: 'yes' }, { start: 3, checks: [[1, 3]] }),
+    make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 7, undefined, { problem: '출퇴근길에 음악을 못 들어요', useInMonth: 'unsure', haveOne: 'yes', saleDriven: 'no', spaceTime: 'yes', alternative: 'no' }, { start: 4, checks: [[3, 3], [2, 2]] }),
+    make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 2, 7, undefined, { problem: '빨래를 방바닥에 널고 있어요', useInMonth: 'yes', haveOne: 'no', saleDriven: 'no', spaceTime: 'yes', alternative: 'yes' }, { start: 3, checks: [[1, 3]] }),
     // 고민하는 동안 정도가 줄어 포기한 기록과, 줄지 않아 산 기록 (결정 기록의 고민 효과)
     make('게이밍 키보드', 149000, '세일이라 담았는데 지금 키보드도 멀쩡해서', 7, 3, { status: 'skipped', daysAgo: 3 }, undefined, { start: 5, checks: [[6, 4], [4, 2]] }),
     // 구매 후 7일이 지나 회고를 물을 수 있는 기록 (F12)
     make('무선 청소기', 189000, '바닥 청소할 시간이 없어서', 14, 3, { status: 'purchased', daysAgo: 9 }, undefined, { start: 3, checks: [[12, 4], [10, 4]] }),
   ]
 }
+
+/** "예시 물건 넣기"가 담기 폼에 채우는 값 (F28). 체크리스트까지 채워 담으면 카드에 6/6으로 들어간다 */
+export const EXAMPLE_ADD = {
+  name: '(예시) 전기 포트',
+  price: '32000',
+  reason: '냄비로 물을 끓이기 번거로워서',
+  desire: 4,
+  answers: { problem: '아침마다 물 끓이는 데 10분씩 걸려요', useInMonth: 'yes', haveOne: 'no', saleDriven: 'yes', spaceTime: 'yes', alternative: 'no' },
+} as const satisfies { name: string; price: string; reason: string; desire: DesireLevel; answers: Answers }
 
 export function newId(): string {
   const c = globalThis.crypto

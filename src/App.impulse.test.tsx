@@ -132,7 +132,7 @@ describe('시연용 예시 데이터 (F15)', () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
-    expect(card('(예시) 무선 헤드폰').getByText('체크리스트 3/6')).toBeInTheDocument()
+    expect(card('(예시) 무선 헤드폰').getByText('체크리스트 6/6')).toBeInTheDocument()
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매함' }))
     const check = within(card('(예시) 무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
     expect(check.getByText('사기 전에 한 번 더 · 걸리는 점 3개')).toBeInTheDocument()

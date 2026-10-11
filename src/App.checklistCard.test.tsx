@@ -104,14 +104,14 @@ describe('카드 체크리스트 (F27, AC46)', () => {
 })
 
 describe('예시 물건 규격 (F27)', () => {
-  it('예시 두 개는 같은 단계(고민 중·3/6 답함·정도 기록)이고 카드 구성이 같다', async () => {
+  it('예시 두 개는 같은 단계(고민 중·6/6 답함·정도 기록)이고 카드 구성이 같다 (F28: 체크리스트를 모두 채워 둔다)', async () => {
     const user = setup()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     const names = ['(예시) 무선 헤드폰', '(예시) 접이식 건조대']
     for (const name of names) {
       expect(card(name).getByText(/^고민 중 · \d일 남음$/)).toBeInTheDocument()
-      expect(card(name).getByText('체크리스트 3/6')).toBeInTheDocument()
-      expect(within(rows(name)[0]).getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' })).toBeInTheDocument()
+      expect(card(name).getByText('체크리스트 6/6')).toBeInTheDocument()
+      expect(card(name).getAllByRole('button', { name: /다시 답하기$/ })).toHaveLength(6)
       expect(card(name).getByText(/^담을 때 \d → /)).toBeInTheDocument()
       expect(card(name).getByText('일찍 정할 수도 있어요')).toBeInTheDocument()
     }

@@ -4,12 +4,14 @@ import { DESIRE_LEVELS, DESIRE_TEXT, desireTrend } from '../logic/desire'
 import type { WishDraft } from '../logic/draft'
 import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
-import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
+import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, hasAnswer, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
 import {
   COOLING_PRESETS,
+  EXAMPLE_ADD,
   EXTEND_DAYS,
+  NOTE_MAX,
   coolingDays,
   isExample,
   formatRemaining,
@@ -113,6 +115,8 @@ export function WishlistScreen({
   }
   const checkDesire = (id: string, level: DesireLevel) => watch(onCheckDesire(id, level))
   const answer = (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => watch(onAnswer(id, key, value))
+  // 예시 물건 넣기는 예시 카드와 함께 담기 폼을 체크리스트까지 채운다 (F28). 늘어날 때마다 폼이 한 번 채운다
+  const [exampleFill, setExampleFill] = useState(0)
   return (
     <div className="stack">
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
@@ -150,11 +154,18 @@ export function WishlistScreen({
       {considering.length === 0 && onAddDemo ? (
         <div className="example-bar">
           <span className="note">처음이라면 예시로 둘러보세요.</span>
-          <Button onClick={onAddDemo}>예시 물건 넣기</Button>
+          <Button
+            onClick={() => {
+              onAddDemo()
+              setExampleFill((n) => n + 1)
+            }}
+          >
+            예시 물건 넣기
+          </Button>
         </div>
       ) : null}
       {/* 담기 폼은 짧아서 고민 중인 물건이 있어도 맨 위에 둔다 (F24) */}
-      <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} />
+      <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} exampleFill={exampleFill} />
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
@@ -211,16 +222,22 @@ function AddForm({
   now,
   draft,
   onDraftUsed,
+  exampleFill = 0,
 }: {
   onAdd: (input: NewWishInput) => void
   items: WishItem[]
   now: Date
   draft: WishDraft | null
   onDraftUsed?: () => void
+  /** 늘어나면 예시 값을 체크리스트까지 채운다 (F28) */
+  exampleFill?: number
 }) {
   const [raw, setRaw] = useState<AddRaw>(EMPTY_ADD)
   // 담을 때 갖고 싶은 정도 (F22, 선택)
   const [desire, setDesire] = useState<DesireLevel | undefined>()
+  // 담을 때의 체크리스트 (F28, 선택): 접어 두고 답한 것만 카드로 보낸다
+  const [answers, setAnswers] = useState<Answers>({})
+  const checklistRef = useRef<HTMLDetailsElement>(null)
   const [attempted, setAttempted] = useState(false)
   // 링크는 접어 두고, 잘못돼 담지 못하면 펼친다 (F24)
   const linkRef = useRef<HTMLDetailsElement>(null)
@@ -242,6 +259,29 @@ function AddForm({
     formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
     onDraftUsed?.()
   }, [draft, onDraftUsed, formRef])
+  // 예시 채우기 (F28): 새 요청은 그리는 중에 알아차려 값을 넣고, 체크리스트 펼치기와 포커스 이동은 그린 뒤에 한다
+  const [fromExample, setFromExample] = useState(false)
+  const [appliedFill, setAppliedFill] = useState(exampleFill)
+  if (exampleFill !== appliedFill) {
+    setAppliedFill(exampleFill)
+    setRaw({ ...EMPTY_ADD, name: EXAMPLE_ADD.name, price: EXAMPLE_ADD.price, reason: EXAMPLE_ADD.reason })
+    setDesire(EXAMPLE_ADD.desire)
+    setAnswers({ ...EXAMPLE_ADD.answers })
+    setAttempted(false)
+    setAdded(null)
+    setFromCompare(false)
+    setFromExample(true)
+  }
+  useEffect(() => {
+    if (exampleFill === 0) return
+    if (checklistRef.current) checklistRef.current.open = true
+    formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+  }, [exampleFill, formRef])
+  const answeredCount = QUESTION_ORDER.filter((key) => hasAnswer(answers, key)).length
+  const setAnswer = <K extends QuestionKey>(key: K, v: Answers[K]) => {
+    setAnswers((a) => ({ ...a, [key]: v }))
+    setAdded(null)
+  }
   const similar = findSimilar(raw.name, items, now)
   const days = raw.preset === 'custom' ? raw.customDays : String(raw.preset)
   const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url })
@@ -260,15 +300,20 @@ function AddForm({
       focusFirstError()
       return
     }
-    // 질문은 담기 폼에서 묻지 않고 카드의 오늘의 고민에서 하나씩 묻는다 (F24)
-    onAdd({ ...value, desire })
+    // 질문은 접힌 체크리스트에서 답해도 되고(F28), 담은 뒤 카드의 체크리스트에서 답해도 된다 (F24, F27)
+    onAdd({ ...value, desire, answers })
     setAdded(
-      `‘${value.name}’${josa(value.name, '을/를')} 담았어요. ${value.days}일 뒤에 처음 적은 이유와 갖고 싶은 정도의 변화를 다시 보여 드릴게요. 그동안 카드의 오늘의 고민에서 질문에 하나씩 답해 보세요.`,
+      `‘${value.name}’${josa(value.name, '을/를')} 담았어요. ${value.days}일 뒤에 처음 적은 이유와 갖고 싶은 정도의 변화를 다시 보여 드릴게요. ${
+        answeredCount === QUESTION_ORDER.length ? '체크리스트 답은 카드에서 다시 고칠 수 있어요.' : '그동안 카드의 오늘의 고민에서 질문에 하나씩 답해 보세요.'
+      }`,
     )
     setRaw(EMPTY_ADD)
     setDesire(undefined)
+    setAnswers({})
+    if (checklistRef.current) checklistRef.current.open = false
     setAttempted(false)
     setFromCompare(false)
+    setFromExample(false)
   }
 
   return (
@@ -282,6 +327,11 @@ function AddForm({
       {fromCompare ? (
         <p className="note" role="status">
           가격 비교에서 가격과 이유를 가져왔어요. 상품명을 적고 담아 두세요.
+        </p>
+      ) : null}
+      {fromExample ? (
+        <p className="note" role="status">
+          예시 값을 채웠어요. 담아 두기를 누르면 체크리스트 답까지 카드에 들어가요.
         </p>
       ) : null}
       <TextField
@@ -358,6 +408,42 @@ function AddForm({
           onChange={(e) => set('customDays', e.target.value)}
         />
       ) : null}
+      <details className="questions" ref={checklistRef}>
+        <summary className="field-label">{`체크리스트 (선택)${answeredCount > 0 ? ` · ${answeredCount}/${QUESTION_ORDER.length}` : ''}`}</summary>
+        <div className="stack">
+          <p className="note">지금 답하지 않아도 담은 뒤 카드의 체크리스트에서 답할 수 있어요.</p>
+          {QUESTION_ORDER.map((key) =>
+            key === 'problem' ? (
+              <TextField
+                key={key}
+                label={QUESTION_TEXT.problem}
+                placeholder="예: 출퇴근길에 음악을 못 들어요"
+                maxLength={NOTE_MAX}
+                value={answers.problem ?? ''}
+                onChange={(e) => setAnswer('problem', e.target.value)}
+              />
+            ) : (
+              <fieldset key={key} className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+                <legend className="field-label">{QUESTION_TEXT[key]}</legend>
+                <div className="radio-group">
+                  {(CHOICES[key as ChoiceKey] as readonly (readonly [string, string])[]).map(([choice, label]) => (
+                    <label key={choice}>
+                      <input
+                        type="radio"
+                        name={`add-${key}`}
+                        value={choice}
+                        checked={answers[key] === choice}
+                        onChange={() => setAnswer(key, choice as Answers[typeof key])}
+                      />{' '}
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ),
+          )}
+        </div>
+      </details>
       <details className="questions" ref={linkRef}>
         <summary className="field-label">상품 링크 (선택)</summary>
         <TextField
