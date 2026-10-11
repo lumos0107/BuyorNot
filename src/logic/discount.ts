@@ -1,4 +1,4 @@
-import { MAX_WON, formatWon, parseDecimal, parseInteger } from './number'
+import { MAX_WON, formatWon, parseDecimal, parseInteger, withJosa } from './number'
 
 // PRD F04 할인 비교 계산 규칙
 // 1. 최소 주문액은 배송비를 뺀, 쿠폰 적용 전 상품 금액으로 판단한다.
@@ -104,9 +104,9 @@ const RATE_SHAPE = /^\d+(\.\d{1,2})?$/
 
 function wonField(raw: string, name: string, errors: DiscountFieldErrors, key: DiscountField): number | null {
   const parsed = parseInteger(raw)
-  if (parsed === null) errors[key] = `${name}을 숫자로 입력해 주세요`
-  else if (parsed < 0) errors[key] = `${name}은 0원 이상이어야 해요`
-  else if (parsed > MAX_WON) errors[key] = `${name}은 10억 원 이하여야 해요`
+  if (parsed === null) errors[key] = `${withJosa(name, '을/를')} 숫자로 입력해 주세요`
+  else if (parsed < 0) errors[key] = `${withJosa(name, '은/는')} 0원 이상이어야 해요`
+  else if (parsed > MAX_WON) errors[key] = `${withJosa(name, '은/는')} 10억 원 이하여야 해요`
   else return parsed
   return null
 }

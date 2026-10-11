@@ -17,15 +17,22 @@ import {
   type DiscountSide,
 } from '../logic/discount'
 import { formatFixed, formatWon } from '../logic/number'
+import {
+  compareFreeShipping,
+  validateShippingInput,
+  type ShippingRawInput,
+  type ShippingResult,
+} from '../logic/shipping'
 import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
 import { TabPanel, Tabs, type TabItem } from '../ui/Tabs'
 
-type CompareKind = 'discount' | 'bundle'
+type CompareKind = 'discount' | 'bundle' | 'shipping'
 
 const KINDS: readonly TabItem<CompareKind>[] = [
   { id: 'discount', label: '할인 비교' },
   { id: 'bundle', label: '묶음상품 비교' },
+  { id: 'shipping', label: '무료배송 채우기' },
 ]
 
 export function CompareScreen({ onGoToWishlist }: { onGoToWishlist?: () => void }) {
@@ -39,6 +46,9 @@ export function CompareScreen({ onGoToWishlist }: { onGoToWishlist?: () => void 
       </TabPanel>
       <TabPanel id="bundle" hidden={kind !== 'bundle'}>
         <BundleCompare />
+      </TabPanel>
+      <TabPanel id="shipping" hidden={kind !== 'shipping'}>
+        <ShippingCompare />
       </TabPanel>
       {onGoToWishlist ? (
         // 비교해 봐도 필요한 소비인지 확실하지 않으면 먼저 담아 둔다 (PRD #4). 입력값은 넘기지 않는다
@@ -417,6 +427,93 @@ function BundleResultCard({ result }: { result: Extract<ReturnType<typeof compar
       <p className="price price-lg">{verdictText}</p>
       {verdict.displayTie ? <p className="note">표시 단가는 같지만 아주 작은 차이가 있어요.</p> : null}
       <p className="note">{spendText} 가격만 비교한 결과예요. 품질이나 필요한 양은 따로 생각해 주세요.</p>
+    </section>
+  )
+}
+
+// ---------- 무료배송 채우기 (PRD F13) ----------
+
+const EMPTY_SHIPPING: ShippingRawInput = { price: '', shipping: '', threshold: '', add: '' }
+// AC26 예시: 27,000원 + 배송비 3,000원, 무료배송 기준 30,000원, 8,000원 추가
+const EXAMPLE_SHIPPING: ShippingRawInput = { price: '27000', shipping: '3000', threshold: '30000', add: '8000' }
+
+function ShippingCompare() {
+  const [state, setState] = useState(fresh(EMPTY_SHIPPING))
+  const { form, touched } = state
+  const checked = validateShippingInput(form)
+  const result = checked.value ? compareFreeShipping(checked.value) : null
+  type Field = keyof ShippingRawInput
+  const shown = (field: Field) => (touched[field] ? checked.errors[field] : undefined)
+  const set = (field: Field, value: string) =>
+    setState({ form: { ...form, [field]: value }, touched: { ...touched, [field]: true } })
+  const blur = (field: Field) => setState({ form, touched: { ...touched, [field]: true } })
+  const field = (key: Field, label: string, hint?: string) => (
+    <TextField
+      label={label}
+      inputMode="numeric"
+      placeholder="원"
+      hint={hint}
+      value={form[key]}
+      error={shown(key)}
+      onChange={(e) => set(key, e.target.value)}
+      onBlur={() => blur(key)}
+    />
+  )
+
+  return (
+    <div className="stack">
+      <h3 className="section-title">무료배송 채우기</h3>
+      <p className="note">무료배송 기준을 맞추려고 물건을 더 담으면 총지출이 어떻게 바뀌는지 봐요.</p>
+      <fieldset className="card stack">
+        <legend className="card-title">주문 정보</legend>
+        {field('price', '현재 상품 금액', '지금 장바구니의 상품 금액 (배송비 제외)')}
+        {field('shipping', '배송비')}
+        {field('threshold', '무료배송 기준 금액')}
+        {field('add', '추가할 상품 금액', '여러 개면 합쳐서')}
+      </fieldset>
+      <div className="btn-row">
+        <Button onClick={() => setState(filled(EXAMPLE_SHIPPING))}>예시 넣기</Button>
+        <Button onClick={() => setState(fresh(EMPTY_SHIPPING))}>초기화</Button>
+      </div>
+      <div aria-live="polite">{result ? <ShippingResultCard result={result} /> : null}</div>
+    </div>
+  )
+}
+
+function shippingVerdict(r: ShippingResult): string {
+  switch (r.outcome) {
+    case 'no-shipping':
+      return '배송비는 이미 0원이라 추가해도 달라지지 않아요'
+    case 'already-free':
+      return '이미 무료배송이에요'
+    case 'still-short':
+      return `기준까지 ${formatWon(r.shortfall ?? 0)} 더 필요해요`
+    case 'reaches-free': {
+      const saved = `배송비 ${formatWon(r.shippingSaved ?? 0)} 줄고`
+      if (r.diff === 0) return `${saved} 총지출은 같아요`
+      return r.diff > 0 ? `${saved} 총지출 ${formatWon(r.diff)} 늘어요` : `${saved} 총지출 ${formatWon(-r.diff)} 줄어요`
+    }
+  }
+}
+
+function ShippingResultCard({ result }: { result: ShippingResult }) {
+  return (
+    <section className="card stack" aria-label="무료배송 채우기 결과">
+      <p className="card-title">결과</p>
+      <ul className="result-list">
+        <li>
+          <span>지금 주문 총지출</span>
+          <span className="price">{formatWon(result.current)}</span>
+        </li>
+        {result.outcome === 'already-free' ? null : (
+          <li>
+            <span>추가한 뒤 총지출</span>
+            <span className="price">{formatWon(result.after)}</span>
+          </li>
+        )}
+      </ul>
+      <p className="price price-lg">{shippingVerdict(result)}</p>
+      <p className="note">총지출은 상품 금액과 배송비를 더한 금액이에요. 추가하는 물건이 정말 필요한지는 직접 판단해 주세요.</p>
     </section>
   )
 }
