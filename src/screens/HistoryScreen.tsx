@@ -124,6 +124,10 @@ function SummaryCard({
         </li>
       </ul>
       <p className="note">구매 포기 금액은 담을 때 적은 가격의 합이에요. 실제로 아낀 돈과는 다를 수 있어요.</p>
+      {/* 고민 효과 (F22): 결정한 기록 중 고민하는 동안 갖고 싶은 정도가 줄어든 것이 있을 때만 */}
+      {s.desireDropped > 0 ? (
+        <p>{`고민하는 동안 갖고 싶은 정도가 줄어든 물건 ${s.desireDropped}개 중 ${s.desireDroppedSkipped}개를 안 샀어요`}</p>
+      ) : null}
       <TextField
         label="시급 (선택)"
         inputMode="numeric"
@@ -142,10 +146,6 @@ function SummaryCard({
         <p>
           회고 {s.reviewedCount}건 중 후회 {s.regretCount}건
         </p>
-      ) : null}
-      {/* 고민 효과 (F22): 결정한 기록 중 고민하는 동안 갖고 싶은 정도가 줄어든 것이 있을 때만 */}
-      {s.desireDropped > 0 ? (
-        <p>{`고민하는 동안 갖고 싶은 정도가 줄어든 물건 ${s.desireDropped}개 중 ${s.desireDroppedSkipped}개를 안 샀어요`}</p>
       ) : null}
     </section>
   )
