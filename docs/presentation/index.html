@@ -105,10 +105,11 @@
         </div>
         <table>
           <tr><th>화면</th><th>하는 일</th></tr>
-          <tr><td>고민 중인 물건</td><td>이유와 고민 기간을 담아 두고, 기간이 지나면 처음 적은 이유와 답을 다시 보여준 뒤 구매·포기를 기록</td></tr>
-          <tr><td>가격 비교</td><td>할인 비교(실제 결제액과 계산 근거) · 묶음상품 비교(단위당 가격과 총지출) · 무료배송 채우기(추가 전후 총지출)</td></tr>
-          <tr><td>결정 기록</td><td>필터, 구매 포기 금액과 시급 환산, 구매 7일 뒤 "잘 샀나요?"</td></tr>
-          <tr><td>구독</td><td>다음 결제일 D-n, 월·연 합계, 31일 이상 쓰지 않은 구독은 해지 후보</td></tr>
+          <tr><td>고민 중인 물건</td><td>이유·고민 기간·질문을 담아 두고, 사려고 할 때 "사기 전에 한 번 더"로 걸리는 점을 보여준 뒤 구매·포기를 기록(되돌리기 가능)</td></tr>
+          <tr><td>가격 비교</td><td>할인 비교 · 묶음상품 비교(단가·총지출 한 문장) · 무료배송 채우기, 결과를 고민 목록에 바로 담기</td></tr>
+          <tr><td>결정 기록</td><td>필터, 구매 포기 금액과 시급 환산, 구매 7일 뒤 "잘 샀나요?", 다시 고민하기</td></tr>
+          <tr><td>구독</td><td>다음 결제일 D-n, 월·연 합계, 해지 후보, 사용량으로 본 한 번에 드는 돈("오늘 썼어요"로 직접 기록)</td></tr>
+          <tr><td>백업·복원</td><td>서버 없이 기록을 파일로 옮기고 보관</td></tr>
         </table>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>3 / 16</span></div>
       </section>
@@ -120,15 +121,15 @@
           <div style="display:flex;flex-direction:column;gap:18px">
             <h2>담아 두고, 며칠 뒤 다시 묻는다</h2>
             <ul>
-              <li>상품명·가격·이유·고민 기간(1·3·7일, 직접 입력 1~30일)</li>
-              <li>담을 때 질문 3개(선택). 비슷한 물건을 전에 포기했다면 알림</li>
+              <li>상품명·가격·이유·고민 기간, 담을 때 질문 6개(선택)</li>
+              <li>비슷한 물건을 전에 포기했다면 알림</li>
               <li>정각부터 "재검토 가능" — 처음 적은 이유와 답을 다시 보여줌</li>
-              <li>더 고민하기(1·3·7일 연장) · 구매함/구매 포기(메모와 확인)</li>
-              <li>상품명 검색 링크 3곳(추천 아님) · 이 브라우저에만 저장</li>
+              <li>구매함을 누르면 "사기 전에 한 번 더": 내 기록에서 찾은 걸리는 점(단정하지 않음)</li>
+              <li>결정 직후 되돌리기 · 더 고민하기 · 검색 링크(추천 아님)</li>
             </ul>
-            <p class="small muted">시연: "예시 물건 넣기" → '게이밍 키보드' 입력 → 재검토 가능 카드에서 구매 포기 → 결정 기록</p>
+            <p class="small muted">시연: "예시 물건 넣기" → '게이밍 키보드' 입력 → 헤드폰 구매함(걸리는 점 2개) → 구매 포기 → 되돌리기</p>
           </div>
-          <div class="shot-wrap"><img class="shot" src="../screenshots/wishlist-360.png" alt="고민 중인 물건 화면" /></div>
+          <div class="shot-wrap"><img class="shot" src="../screenshots/impulse-check-360.png" alt="사기 전에 한 번 더 상자가 열린 고민 카드" /></div>
         </div>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>4 / 16</span></div>
       </section>
@@ -181,13 +182,13 @@
           <div style="display:flex;flex-direction:column;gap:18px">
             <h2>결정한 뒤에도 한 번 더 본다</h2>
             <ul>
-              <li>결정 기록 요약: 구매 포기 건수와 금액, 시급을 넣으면 "약 14.9시간"</li>
+              <li>결정 기록 요약: 구매 포기 금액, 시급을 넣으면 "약 14.9시간"</li>
               <li>구매 포기 금액은 담을 때 적은 가격의 합 — 아낀 돈이라 부르지 않음</li>
-              <li>구매하고 7일 뒤 "잘 샀나요?" (잘 샀어요 · 그저 그래요 · 후회해요)</li>
-              <li>구독: 다음 결제일 D-n, 31일 이상 안 쓰면 해지 후보, 월·연 합계</li>
-              <li>무료배송 채우기: 8,000원 더 담으면 배송비 3,000원 줄고 총지출 5,000원 늘어요</li>
+              <li>구매하고 7일 뒤 "잘 샀나요?", 잘못 결정했으면 다시 고민하기</li>
+              <li>구독: 해지 후보, 쿠팡 와우 한 달 1번이면 "1번에 7,890원", 오늘 썼어요로 기록</li>
+              <li>무료배송: 8,000원 더 담으면 배송비 3,000원 줄고 총지출 5,000원 늘어요</li>
             </ul>
-            <p class="small muted">시연: 결정 기록에서 시급 입력·회고 → 구독 화면 "예시 구독 넣기"</p>
+            <p class="small muted">시연: 결정 기록에서 시급 입력·회고 → 구독 "예시 구독 넣기" → 음악 스트리밍 "오늘 썼어요"</p>
           </div>
           <div class="shot-wrap"><img class="shot" src="../screenshots/subscriptions-360.png" alt="구독 화면" /></div>
         </div>
@@ -200,16 +201,16 @@
         <h2>범위를 먼저 좁히고, 검증 사례를 숫자로 적었다</h2>
         <div class="cols">
           <div class="card">
-            <h3>PRD v0.11</h3>
+            <h3>PRD v0.14</h3>
             <ul class="small">
-              <li>1차 P0: 고민 목록, 할인 비교, 묶음상품 비교, 로컬 저장·입력 검증·모바일</li>
+              <li>1차 P0: 고민 목록, 할인 비교, 묶음상품 비교, 저장·검증·모바일</li>
               <li>2차 F07~F14: 연장·메모·질문·비슷한 기록·필터·요약·회고·무료배송·구독</li>
-              <li>범위 밖: 로그인·서버, 가격 수집, 결제, AI 추천, 알림</li>
-              <li>검증 사례 AC01~AC28: 입력값과 기대 결과를 원·날짜 단위로 명시</li>
+              <li>3차 F15~F21(제작자 요청): 사기 전 점검·구독 사용량·되돌리기·백업 등</li>
+              <li>검증 사례 AC01~AC35: 입력값과 기대 결과를 원·날짜 단위로 명시</li>
             </ul>
           </div>
           <div class="card">
-            <h3>Todo 12단계 (10/11 ~ 10/17)</h3>
+            <h3>Todo 12단계 + 3차 추가 (10/11 ~ 10/17)</h3>
             <ul class="small">
               <li>1차: 1 뼈대·배포 → 2 묶음 → 3 할인 → 4 고민 목록·기록 → 5 문서 → 6 점검</li>
               <li>2차: 7 연장·메모·필터 → 8 무료배송 → 9 질문·알림 → 10 요약·회고 → 11 구독 → 12 통합 점검</li>
@@ -232,9 +233,9 @@
           <span class="step">Claude: 대조 후 반영 또는 반론</span>
         </div>
         <div class="cols-3">
-          <div class="card"><p class="num">275</p><p>자동 테스트(1차 115). 계산·시각 규칙은 순수 함수, 화면은 사용자 조작 기준. 화면은 실제 Chrome 캡처로 확인</p></div>
-          <div class="card"><p class="num">8회</p><p>GPT 검토(1차 5회·2차 3회). 후속 확인 2회. 지적 96건 중 90건 반영, 나머지는 근거를 들어 미반영·보류·제작자 결정</p></div>
-          <div class="card"><p class="num">11</p><p>코드 커밋(1차 5·2차 6), 문서 커밋은 따로. 단계마다 commit, 개발 기록(DEVLOG)에 요청·결과·오류·수정 이유</p></div>
+          <div class="card"><p class="num">359</p><p>자동 테스트(1차 115). 계산·시각 규칙은 순수 함수, 화면은 사용자 조작 기준. 화면은 실제 Chrome 캡처로 확인</p></div>
+          <div class="card"><p class="num">10회</p><p>GPT 검토(1차 5·2차 3·3차 2)와 후속 확인 3회. 지적 109건 중 102건 반영, 나머지는 근거를 들어 미반영·보류·제작자 결정</p></div>
+          <div class="card"><p class="num">16</p><p>코드 커밋(1차 5·2차 6·3차 5), 문서 커밋은 따로. 단계마다 commit, 개발 기록(DEVLOG)에 요청·결과·오류·수정 이유</p></div>
         </div>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>9 / 16</span></div>
       </section>
@@ -243,30 +244,40 @@
       <section class="slide">
         <p class="kicker">GitHub 이력</p>
         <h2>단계마다 쌓은 커밋</h2>
-        <div class="cols">
+        <div class="cols-3">
           <div class="card">
             <h3>1차 · 기본 기능</h3>
             <table class="mono">
-              <tr><td>429ca36</td><td>화면 뼈대, 배포 워크플로</td></tr>
-              <tr><td>fdef9bc</td><td>묶음 비교 + 1단계 검토 반영</td></tr>
+              <tr><td>429ca36</td><td>뼈대·배포</td></tr>
+              <tr><td>fdef9bc</td><td>묶음 비교</td></tr>
               <tr><td>9c6f6e4</td><td>할인 비교</td></tr>
-              <tr><td>437e534</td><td>고민 목록·기록 + 2·3단계 검토 반영</td></tr>
-              <tr><td>3855fdd</td><td>4단계 검토 반영</td></tr>
+              <tr><td>437e534</td><td>고민 목록·기록</td></tr>
+              <tr><td>3855fdd</td><td>검토 반영</td></tr>
             </table>
           </div>
           <div class="card">
             <h3>2차 · 확장</h3>
             <table class="mono">
-              <tr><td>50da3de</td><td>연장·결정 메모·필터</td></tr>
-              <tr><td>0270b46</td><td>무료배송 채우기</td></tr>
-              <tr><td>67d5cb2</td><td>질문·비슷한 기록·검색 링크</td></tr>
-              <tr><td>283b395</td><td>기록 요약·구매 후 회고</td></tr>
-              <tr><td>f9eee6b</td><td>구독 + 7~9단계 검토 반영</td></tr>
-              <tr><td>7a27176</td><td>10~11단계 검토 반영·여러 탭 보호</td></tr>
+              <tr><td>50da3de</td><td>연장·메모·필터</td></tr>
+              <tr><td>0270b46</td><td>무료배송</td></tr>
+              <tr><td>67d5cb2</td><td>질문·알림·링크</td></tr>
+              <tr><td>283b395</td><td>요약·회고</td></tr>
+              <tr><td>f9eee6b</td><td>구독</td></tr>
+              <tr><td>7a27176</td><td>여러 탭 보호</td></tr>
+            </table>
+          </div>
+          <div class="card">
+            <h3>3차 · 제작자 요청</h3>
+            <table class="mono">
+              <tr><td>d2c7fcb</td><td>용어 '고민'</td></tr>
+              <tr><td>1d81e20</td><td>사기 전 점검</td></tr>
+              <tr><td>bcea9e3</td><td>되돌리기·사용 기록</td></tr>
+              <tr><td>62486a6</td><td>백업·비교 담기</td></tr>
+              <tr><td>0cb2257</td><td>검토 반영</td></tr>
             </table>
           </div>
         </div>
-        <p class="small muted">문서 커밋(PRD·README·발표 자료)은 따로. main에 push하면 GitHub Actions가 테스트 → 빌드 → GitHub Pages 배포. 저장소는 Public.</p>
+        <p class="small muted">문서 커밋(PRD·README·발표 자료)은 따로. main에 push하면 GitHub Actions가 테스트 → 빌드 → GitHub Pages 배포.</p>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>10 / 16</span></div>
       </section>
 
@@ -337,7 +348,7 @@
             <ul class="small">
               <li>화면 뼈대와 배포·테스트 설정이 한 단계에 나왔다 (커밋 시각 기준 17분)</li>
               <li>테스트를 먼저 쓰게 하면 AI 코드의 오류를 그 자리에서 잡는다</li>
-              <li>두 AI가 역할을 나누니 서로의 실수를 짚는다 (검토 지적 96건)</li>
+              <li>두 AI가 역할을 나누니 서로의 실수를 짚는다 (검토 지적 109건)</li>
               <li>검증 사례를 테스트로 옮기면 계획서 모순도 드러난다 (AC21·AC27)</li>
               <li>요청·결과·수정 이유가 DEVLOG에 그대로 남는다</li>
             </ul>
@@ -361,7 +372,7 @@
         <p class="kicker">개선이 필요한 점</p>
         <h2>아직 하지 않은 것</h2>
         <div class="cols-3">
-          <div class="card"><h3>기능</h3><p class="small">알림(고민 기간 종료·구독 결제일), 기기 간 동기화, 두 탭이 거의 동시에 저장할 때의 잠금(드물어서 넣지 않음), 통계</p></div>
+          <div class="card"><h3>기능</h3><p class="small">알림(고민 기간 종료·구독 결제일), 기기 간 자동 동기화(지금은 백업 파일), 구독 사용량 자동 연동(휴대폰 앱 필요, 아이폰은 제약), 가격 수첩·필요한 양 기준 비교</p></div>
           <div class="card"><h3>검증</h3><p class="small">실제 절약이나 충동구매 감소 효과는 사용 기록을 모은 뒤 판단. 스크린리더 실사용 검증은 하지 않음. 비슷한 이름 판정은 뒤에 붙는 색상·모델을 놓침</p></div>
           <div class="card"><h3>계산 범위</h3><p class="small">쿠폰은 안마다 하나, 카드 할인·포인트·복합 쿠폰 없음. 배송비는 사용자가 확인한 값만</p></div>
         </div>
@@ -373,7 +384,7 @@
       <section class="slide center">
         <p class="kicker">결론</p>
         <h2>필요한 소비인지 생각하고, 구매 조건을 비교하고, 결정한 뒤에도 돌아보도록 돕는 작은 웹 도구를 만들었다</h2>
-        <p class="lead">고민 목록 · 가격 비교 3가지 · 결정 기록 · 구독 — 자동 테스트 275개와 화면 캡처로 검증 사례 28개를 확인했다. 효과는 사용 기록을 모은 뒤 판단한다</p>
+        <p class="lead">고민 목록 · 가격 비교 3가지 · 결정 기록 · 구독 — 자동 테스트 359개와 화면 캡처로 검증 사례 35개를 확인했다. 효과는 사용 기록을 모은 뒤 판단한다</p>
         <p class="muted">lumos0107.github.io/BuyorNot · github.com/lumos0107/BuyorNot</p>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>16 / 16</span></div>
       </section>
