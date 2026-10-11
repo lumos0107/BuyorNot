@@ -108,7 +108,7 @@
           <tr><td>고민 중인 물건</td><td>상품·가격·사고 싶은 이유·숙려 기간을 담아 두고, 기간이 지나면 처음 적은 이유를 다시 보여준 뒤 구매·포기를 기록</td></tr>
           <tr><td>할인 비교</td><td>쿠폰 종류·최소 주문액·최대 할인액·배송비를 반영한 실제 결제액과 계산 근거</td></tr>
           <tr><td>묶음상품 비교</td><td>g·kg·mL·L·개를 환산한 100g·100mL·1개당 가격과 총지출</td></tr>
-          <tr><td>결정 기록</td><td>구매·포기한 물건을 최신 순으로, 이유와 등록 당시 가격과 함께</td></tr>
+          <tr><td>결정 기록</td><td>구매·포기한 물건을 최신 순으로, 이유와 등록 가격(수정했다면 수정한 값)과 함께</td></tr>
         </table>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>3 / 14</span></div>
       </section>
@@ -212,9 +212,9 @@
           <span class="step">Claude: 대조 후 반영 또는 반론</span>
         </div>
         <div class="cols-3">
-          <div class="card"><p class="num">115</p><p>자동 테스트. 계산·시각 규칙은 순수 함수, 화면은 사용자 조작 기준</p></div>
-          <div class="card"><p class="num">4회</p><p>GPT 검토(기획·1단계·2~3단계·4단계). 지적 33건 중 31건 반영, 2건은 근거를 들어 보류</p></div>
-          <div class="card"><p class="num">6</p><p>기능 커밋. 단계마다 commit, 개발 기록(DEVLOG)에 요청·결과·오류·수정 이유</p></div>
+          <div class="card"><p class="num">115</p><p>자동 테스트. 계산·시각 규칙은 순수 함수, 화면은 사용자 조작 기준. 최종 화면은 실제 Chrome 캡처로 확인</p></div>
+          <div class="card"><p class="num">5회</p><p>GPT 검토(기획·1~5단계). 지적 44건 중 40건 반영, 1건은 근거를 들어 미반영, 3건은 보류·오탐</p></div>
+          <div class="card"><p class="num">5</p><p>코드 커밋(기능 4·수정 1), 문서 커밋은 따로. 단계마다 commit, 개발 기록(DEVLOG)에 요청·결과·오류·수정 이유</p></div>
         </div>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>8 / 14</span></div>
       </section>
@@ -243,7 +243,7 @@
           <div class="card">
             <h3>무슨 일이</h3>
             <p>AI가 쓴 결과 문구가 "총지출이 더 큰 쪽"을 <span class="bad">단가 판정에서 유추</span>했다. A 2,000원·B 1,500원인데 "상품 B가 500원 더 커요".</p>
-            <p class="small muted">예시 값(AC10)만 봤다면 지나쳤을 오류. 화면 테스트의 첫 사례가 다른 값을 넣어 잡았다.</p>
+            <p class="small muted">다른 값을 넣은 화면 테스트가 처음 잡았고, AC10 예시 화면에서도 잘못 표시될 오류였다. 예시 테스트는 단가 줄만 확인하고 있었다.</p>
           </div>
           <div class="card accent">
             <h3>어떻게 고쳤나</h3>
@@ -281,9 +281,9 @@
           <div class="card">
             <h3>좋았던 점</h3>
             <ul class="small">
-              <li>화면 초안과 설정(배포 워크플로, 테스트 환경)이 몇 분 안에 나온다</li>
+              <li>화면 뼈대와 배포·테스트 설정이 한 단계에 나왔다 (1단계, 커밋 시각 기준 17분)</li>
               <li>테스트를 먼저 쓰게 하면 AI가 만든 코드의 오류를 그 자리에서 잡는다</li>
-              <li>두 AI가 역할을 나누니 한쪽의 실수를 다른 쪽이 짚는다 (검토 지적 33건)</li>
+              <li>두 AI가 역할을 나누니 한쪽의 실수를 다른 쪽이 짚는다 (검토 지적 44건)</li>
               <li>기록이 남는다: 요청·결과·수정 이유가 DEVLOG에 그대로</li>
             </ul>
           </div>
@@ -291,7 +291,7 @@
             <h3>조심할 점</h3>
             <ul class="small">
               <li>규칙 해석 실수: 총지출 방향, 큰 값 처리 — 사람이 숫자로 확인해야 한다</li>
-              <li>요청하지 않은 것도 만든다: 범위를 문서로 못 박아야 했다</li>
+              <li>요청하지 않은 것을 만들 수 있다(일반적인 주의): TODO에 '하지 않기로 한 것'을 적어 범위를 묶었다</li>
               <li>도구 문제에 시간이 든다: 가짜 타이머로 테스트가 멈춤, Codex 샌드박스 오류로 자료를 직접 붙여야 했음</li>
               <li>검토 의견도 틀릴 수 있다: 직접 실행해 보고 반영 여부를 정했다</li>
             </ul>
@@ -317,7 +317,7 @@
       <section class="slide center">
         <p class="kicker">결론</p>
         <h2>필요한 소비인지 생각하고, 구매 조건을 비교하도록 돕는 작은 웹 도구를 만들었다</h2>
-        <p class="lead">숙려 리스트 · 할인 비교 · 묶음상품 비교 — 검증 사례 17개를 자동 테스트로 확인했고, 효과는 사용 기록을 모은 뒤 판단한다</p>
+        <p class="lead">숙려 리스트 · 할인 비교 · 묶음상품 비교 — 자동 테스트 115개와 화면 캡처로 검증 사례 17개를 확인했고, 배포 링크에서 최종 점검을 거친다. 효과는 사용 기록을 모은 뒤 판단한다</p>
         <p class="muted">lumos0107.github.io/BuyorNot · github.com/lumos0107/BuyorNot</p>
         <div class="footer"><span>살까말까 (Buy or Not)</span><span>14 / 14</span></div>
       </section>
