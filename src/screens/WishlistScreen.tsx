@@ -8,7 +8,9 @@ export function WishlistScreen() {
       <h2 className="screen-title">고민 중인 물건</h2>
 
       <form className="card stack" onSubmit={(event) => event.preventDefault()}>
-        <p className="card-title">물건 담기</p>
+        <p className="card-title">
+          물건 담기 <span className="badge-example">예시</span>
+        </p>
         <TextField label="상품명" placeholder="예: 무선 헤드폰" maxLength={80} />
         <TextField label="가격" inputMode="numeric" placeholder="원" />
         <TextAreaField

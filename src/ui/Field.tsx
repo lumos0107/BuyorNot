@@ -7,26 +7,30 @@ import {
 } from 'react'
 
 // 모든 입력에는 레이블이 있고, 안내문과 오류문은 aria-describedby로 연결된다. (PRD F06)
+// 호출자가 id나 aria-describedby를 주면 덮어쓰지 않고 함께 쓴다.
 type FieldProps = {
   label: string
   hint?: string
   error?: string
 }
 
-function useFieldIds(hint?: string, error?: string) {
-  const id = useId()
-  const hintId = hint ? `${id}-hint` : undefined
-  const errorId = error ? `${id}-error` : undefined
-  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
-  return { id, hintId, errorId, describedBy }
-}
-
-type ShellProps = FieldProps & {
+type Linked = {
   id: string
   hintId?: string
   errorId?: string
-  children: ReactNode
+  describedBy?: string
 }
+
+function useLinkedIds(givenId: string | undefined, givenDescribedBy: string | undefined, hint?: string, error?: string): Linked {
+  const generated = useId()
+  const id = givenId ?? generated
+  const hintId = hint ? `${id}-hint` : undefined
+  const errorId = error ? `${id}-error` : undefined
+  const describedBy = [givenDescribedBy, hintId, errorId].filter(Boolean).join(' ') || undefined
+  return { id, hintId, errorId, describedBy }
+}
+
+type ShellProps = FieldProps & Linked & { children: ReactNode }
 
 function FieldShell({ id, label, hint, hintId, error, errorId, children }: ShellProps) {
   return (
@@ -53,17 +57,19 @@ export function TextField({
   label,
   hint,
   error,
+  id,
+  'aria-describedby': describedBy,
   ...rest
 }: FieldProps & InputHTMLAttributes<HTMLInputElement>) {
-  const ids = useFieldIds(hint, error)
+  const linked = useLinkedIds(id, describedBy, hint, error)
   return (
-    <FieldShell id={ids.id} label={label} hint={hint} hintId={ids.hintId} error={error} errorId={ids.errorId}>
+    <FieldShell label={label} hint={hint} error={error} {...linked}>
       <input
-        id={ids.id}
-        className="input"
-        aria-describedby={ids.describedBy}
-        aria-invalid={error ? true : undefined}
         {...rest}
+        id={linked.id}
+        className="input"
+        aria-describedby={linked.describedBy}
+        aria-invalid={error ? true : undefined}
       />
     </FieldShell>
   )
@@ -73,17 +79,19 @@ export function TextAreaField({
   label,
   hint,
   error,
+  id,
+  'aria-describedby': describedBy,
   ...rest
 }: FieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const ids = useFieldIds(hint, error)
+  const linked = useLinkedIds(id, describedBy, hint, error)
   return (
-    <FieldShell id={ids.id} label={label} hint={hint} hintId={ids.hintId} error={error} errorId={ids.errorId}>
+    <FieldShell label={label} hint={hint} error={error} {...linked}>
       <textarea
-        id={ids.id}
-        className="input"
-        aria-describedby={ids.describedBy}
-        aria-invalid={error ? true : undefined}
         {...rest}
+        id={linked.id}
+        className="input"
+        aria-describedby={linked.describedBy}
+        aria-invalid={error ? true : undefined}
       />
     </FieldShell>
   )
@@ -93,18 +101,20 @@ export function SelectField({
   label,
   hint,
   error,
+  id,
+  'aria-describedby': describedBy,
   children,
   ...rest
 }: FieldProps & SelectHTMLAttributes<HTMLSelectElement>) {
-  const ids = useFieldIds(hint, error)
+  const linked = useLinkedIds(id, describedBy, hint, error)
   return (
-    <FieldShell id={ids.id} label={label} hint={hint} hintId={ids.hintId} error={error} errorId={ids.errorId}>
+    <FieldShell label={label} hint={hint} error={error} {...linked}>
       <select
-        id={ids.id}
-        className="select"
-        aria-describedby={ids.describedBy}
-        aria-invalid={error ? true : undefined}
         {...rest}
+        id={linked.id}
+        className="select"
+        aria-describedby={linked.describedBy}
+        aria-invalid={error ? true : undefined}
       >
         {children}
       </select>

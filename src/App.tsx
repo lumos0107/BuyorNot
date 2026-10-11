@@ -25,26 +25,18 @@ export default function App() {
       <Tabs label="주요 메뉴" tabs={SCREENS} value={screen} onChange={setScreen} />
 
       <main>
-        {screen === 'wishlist' ? (
-          <TabPanel id="wishlist">
-            <WishlistScreen />
-          </TabPanel>
-        ) : null}
-        {screen === 'compare' ? (
-          <TabPanel id="compare">
-            <CompareScreen />
-          </TabPanel>
-        ) : null}
-        {screen === 'history' ? (
-          <TabPanel id="history">
-            <HistoryScreen />
-          </TabPanel>
-        ) : null}
+        <TabPanel id="wishlist" hidden={screen !== 'wishlist'}>
+          <WishlistScreen />
+        </TabPanel>
+        <TabPanel id="compare" hidden={screen !== 'compare'}>
+          <CompareScreen />
+        </TabPanel>
+        <TabPanel id="history" hidden={screen !== 'history'}>
+          <HistoryScreen />
+        </TabPanel>
       </main>
 
-      <footer className="app-footer">
-        기록은 이 브라우저에만 저장돼요. 브라우저 데이터를 지우면 사라져요.
-      </footer>
+      <footer className="app-footer">아직 만드는 중이에요. 숙려 기록 저장은 곧 연결돼요.</footer>
     </div>
   )
 }
