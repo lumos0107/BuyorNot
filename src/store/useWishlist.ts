@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { STORAGE_KEY, getLocalStorage, loadStore, saveStore, type LoadResult } from '../logic/storage'
+import { useEffect, useRef, useState } from 'react'
+import { STORAGE_KEY, getLocalStorage, readStore, saveStore, type LoadResult, type WishStore } from '../logic/storage'
 import { nextRetroDelay, review } from '../logic/summary'
 import {
   createItem,
@@ -24,6 +24,8 @@ export type StorageStatus =
   /** 저장된 데이터를 읽을 수 없음: 초기화 전까지 덮어쓰지 않는다 */
   | { kind: 'corrupt' }
   | { kind: 'save-failed'; reason: 'quota' | 'unavailable' }
+  /** 다른 탭이 먼저 저장해 그 내용을 불러왔다. 이 탭에서 저장하지 않은 변경은 반영되지 않았다고 알린다 */
+  | { kind: 'replaced' }
 
 const REFRESH_MS = 30 * 1000
 
@@ -32,9 +34,13 @@ function initialStatus(loaded: LoadResult): StorageStatus {
 }
 
 export function useWishlist(storage: Storage | null = getLocalStorage()) {
-  const [loaded] = useState<LoadResult>(() => loadStore(storage))
-  const [items, setItems] = useState<WishItem[]>(() => (loaded.ok ? loaded.store.items : []))
-  const [status, setStatus] = useState<StorageStatus>(() => initialStatus(loaded))
+  const [initial] = useState(() => readStore(storage))
+  // 이 탭이 마지막으로 읽거나 쓴 저장 원문. 저장 직전의 원문이 이것과 다르면 다른 탭이 먼저 저장한 것이다
+  const lastRaw = useRef<string | null>(initial.raw)
+  // 화면에만 있고 저장하지 못한 변경이 있는지. 다른 탭 내용을 불러올 때 이것이 사라진다고 알린다
+  const unsaved = useRef(false)
+  const [items, setItems] = useState<WishItem[]>(() => (initial.loaded.ok ? initial.loaded.store.items : []))
+  const [status, setStatus] = useState<StorageStatus>(() => initialStatus(initial.loaded))
   const [now, setNow] = useState(() => new Date())
 
   // 화면을 보고 있는 동안 주기적으로, 그리고 다시 돌아왔을 때 남은 시간을 다시 계산한다. (F02)
@@ -57,10 +63,19 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key !== null && event.key !== STORAGE_KEY) return
-      const loaded = loadStore(storage)
-      if (!loaded.ok) return
-      setItems(loaded.store.items)
-      setStatus({ kind: 'ok' })
+      const read = readStore(storage)
+      if (!read.loaded.ok && read.loaded.reason === 'unavailable') return
+      lastRaw.current = read.raw
+      if (!read.loaded.ok) {
+        // 읽을 수 없는 값(예: 다른 버전의 앱이 쓴 값)은 덮어쓰지 않도록 손상으로 표시한다
+        setStatus({ kind: 'corrupt' })
+        return
+      }
+      setItems(read.loaded.store.items)
+      // 이 탭에서 저장하지 못한 변경(저장 실패, 손상 상태에서 화면에만 반영)이 있었다면 반영되지 않았다고 알린다
+      const lost = unsaved.current
+      unsaved.current = false
+      setStatus((prev) => (lost || prev.kind === 'replaced' ? { kind: 'replaced' } : { kind: 'ok' }))
       setNow(new Date())
     }
     window.addEventListener('storage', onStorage)
@@ -77,17 +92,43 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     return () => window.clearTimeout(timer)
   }, [items, now])
 
-  const persist = (next: WishItem[], current: StorageStatus): StorageStatus => {
-    // 손상된 데이터 위에는 쓰지 않고, 저장소가 없으면 시도하지 않는다
-    if (current.kind === 'corrupt' || current.kind === 'unavailable') return current
-    const result = saveStore(storage, { schemaVersion: 1, items: next })
-    return result.ok ? { kind: 'ok' } : { kind: 'save-failed', reason: result.reason }
+  const write = (next: WishItem[]): StorageStatus => {
+    const store: WishStore = { schemaVersion: 1, items: next }
+    const result = saveStore(storage, store)
+    if (!result.ok) {
+      unsaved.current = true
+      return { kind: 'save-failed', reason: result.reason }
+    }
+    lastRaw.current = JSON.stringify(store)
+    unsaved.current = false
+    return { kind: 'ok' }
   }
 
+  // 손상된 데이터 위에는 쓰지 않고, 저장소가 없으면 시도하지 않는다(화면에만 반영).
+  // 이 탭이 마지막으로 읽거나 쓴 뒤 다른 탭이 먼저 저장했다면 덮어쓰지 않고 그 내용을 불러와 알린다
   const commit = (next: WishItem[]) => {
-    setItems(next)
-    setStatus(persist(next, status))
     setNow(new Date())
+    if (status.kind === 'corrupt' || status.kind === 'unavailable') {
+      setItems(next)
+      unsaved.current = true
+      return
+    }
+    const read = readStore(storage)
+    if ((read.loaded.ok || read.loaded.reason === 'corrupt') && read.raw !== lastRaw.current) {
+      lastRaw.current = read.raw
+      if (read.loaded.ok) {
+        setItems(read.loaded.store.items)
+        setStatus({ kind: 'replaced' })
+        unsaved.current = false
+      } else {
+        setItems(next)
+        setStatus({ kind: 'corrupt' })
+        unsaved.current = true
+      }
+      return
+    }
+    setItems(next)
+    setStatus(write(next))
   }
 
   return {
@@ -106,9 +147,23 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     remove: (id: string) => commit(items.filter((item) => item.id !== id)),
     addDemo: () => commit([...demoItems(new Date(), newId), ...items]),
     /** 저장 실패 뒤 다시 시도 */
-    retrySave: () => setStatus(persist(items, { kind: 'ok' })),
-    /** 손상된 데이터를 사용자가 확인한 뒤 현재 목록으로 덮어쓴다 */
-    resetStorage: () => setStatus(persist(items, { kind: 'ok' })),
+    retrySave: () => commit(items),
+    /** 손상된 데이터를 사용자가 확인한 뒤 현재 목록으로 덮어쓴다.
+     *  직전에 다른 탭이 읽을 수 있는 기록을 저장했다면 덮어쓰지 않고 그 기록을 불러온다 */
+    resetStorage: () => {
+      const read = readStore(storage)
+      if (read.loaded.ok && read.raw !== lastRaw.current) {
+        lastRaw.current = read.raw
+        const lost = unsaved.current
+        unsaved.current = false
+        setItems(read.loaded.store.items)
+        setStatus(lost ? { kind: 'replaced' } : { kind: 'ok' })
+        return
+      }
+      setStatus(write(items))
+    },
+    /** 다른 탭 내용을 불러왔다는 알림을 닫는다 */
+    dismissNotice: () => setStatus({ kind: 'ok' }),
   }
 }
 

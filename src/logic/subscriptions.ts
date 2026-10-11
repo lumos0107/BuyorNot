@@ -34,7 +34,8 @@ export function parseDay(iso: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
   if (!m) return null
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
-  if (mo < 1 || mo > 12 || d < 1 || d > daysInMonth(y, mo)) return null
+  // 1900년 이전은 받지 않는다 (Date가 0~99년을 1900년대로 바꾸기 때문)
+  if (y < 1900 || mo < 1 || mo > 12 || d < 1 || d > daysInMonth(y, mo)) return null
   return new Date(y, mo - 1, d, 12)
 }
 
@@ -77,7 +78,7 @@ export function isCancelCandidate(sub: Subscription, today: Date): boolean {
 }
 
 export type SubscriptionSummary = {
-  /** 월 구독 요금 합 + 연 구독 월 환산 합 (표시용) */
+  /** 월 구독 요금 합 + 연 구독 월 환산(카드에 보이는 반올림 값) 합. 요약이 카드 숫자의 합과 같게 한다 (표시용) */
   monthlyTotal: number
   /** 월 구독 요금 합 × 12 + 연 구독 원액 합 */
   yearlyTotal: number
@@ -119,9 +120,11 @@ export type SubscriptionRawInput = {
 export type SubscriptionInput = Pick<Subscription, 'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'lastUsedDate' | 'memo'>
 export type SubscriptionFieldErrors = Partial<Record<Exclude<keyof SubscriptionRawInput, 'cycle'>, string>>
 
+/** unchangedRenewal: 수정 폼에 채워 둔 다음 갱신일. 그대로 두면 원래 기준일을 유지하므로 범위를 다시 따지지 않는다 */
 export function validateSubscriptionInput(
   raw: SubscriptionRawInput,
   today: Date,
+  unchangedRenewal?: string,
 ): { value?: SubscriptionInput; errors: SubscriptionFieldErrors } {
   const errors: SubscriptionFieldErrors = {}
   const value: SubscriptionInput = { name: '', priceKrw: 0, cycle: raw.cycle, lastUsedDate: null }
@@ -143,9 +146,14 @@ export function validateSubscriptionInput(
   } else {
     const renewal = parseDay(raw.renewalDate.trim())
     const until = renewal ? calendarDaysBetween(today, renewal) : -1
-    const yearLater = calendarDaysBetween(today, new Date(today.getFullYear() + 1, today.getMonth(), today.getDate()))
+    // 1년 뒤 같은 날. 없는 날(2월 29일)은 연 갱신 규칙처럼 그 달 말일로 맞춘다
+    const ny = today.getFullYear() + 1
+    const lastDay = Math.min(today.getDate(), daysInMonth(ny, today.getMonth() + 1))
+    const yearLater = calendarDaysBetween(today, new Date(ny, today.getMonth(), lastDay, 12))
     if (!renewal) errors.renewalDate = '다음 갱신일을 골라 주세요'
-    else if (until < 0 || until > yearLater) errors.renewalDate = '다음 갱신일은 오늘부터 1년 안이어야 해요'
+    else if (raw.renewalDate.trim() !== unchangedRenewal && (until < 0 || until > yearLater)) {
+      errors.renewalDate = '다음 갱신일은 오늘부터 1년 안이어야 해요'
+    }
     else value.renewalDate = raw.renewalDate.trim()
   }
 
@@ -220,11 +228,15 @@ function isSubscription(v: unknown): v is Subscription {
   if (typeof v !== 'object' || v === null) return false
   const o = v as Record<string, unknown>
   if (!isString(o.id) || o.id.length === 0) return false
-  if (!isString(o.name) || o.name.length === 0 || o.name.length > SUB_NAME_MAX) return false
+  if (!isString(o.name) || o.name.trim().length === 0 || o.name.length > SUB_NAME_MAX) return false
   if (!Number.isInteger(o.priceKrw) || (o.priceKrw as number) < 1 || (o.priceKrw as number) > MAX_WON) return false
+  // 주기와 맞지 않는 필드가 있으면 손상으로 본다. 날짜가 오늘보다 앞인지 뒤인지는 따지지 않는다
+  // (지난 갱신일은 1년씩 더해 쓰고, 시계·시간대가 바뀌어도 멀쩡한 기록을 손상으로 보지 않기 위해)
   if (o.cycle === 'monthly') {
+    if (o.renewalDate !== undefined) return false
     if (!Number.isInteger(o.billingDay) || (o.billingDay as number) < 1 || (o.billingDay as number) > 31) return false
   } else if (o.cycle === 'yearly') {
+    if (o.billingDay !== undefined) return false
     if (!isDay(o.renewalDate)) return false
   } else return false
   if (o.lastUsedDate !== null && !isDay(o.lastUsedDate)) return false

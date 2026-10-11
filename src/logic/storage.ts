@@ -94,14 +94,19 @@ export function parseStore(raw: string | null): LoadResult {
 }
 
 export function loadStore(storage: Storage | null): LoadResult {
-  if (!storage) return { ok: false, reason: 'unavailable' }
+  return readStore(storage).loaded
+}
+
+/** 저장된 원문과 복원 결과를 함께 돌려준다. 원문은 다른 탭이 먼저 저장했는지 비교하는 데 쓴다 */
+export function readStore(storage: Storage | null): { raw: string | null; loaded: LoadResult } {
+  if (!storage) return { raw: null, loaded: { ok: false, reason: 'unavailable' } }
   let raw: string | null
   try {
     raw = storage.getItem(STORAGE_KEY)
   } catch {
-    return { ok: false, reason: 'unavailable' }
+    return { raw: null, loaded: { ok: false, reason: 'unavailable' } }
   }
-  return parseStore(raw)
+  return { raw, loaded: parseStore(raw) }
 }
 
 export function saveStore(storage: Storage | null, store: WishStore): SaveResult {

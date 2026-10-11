@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatWon } from '../logic/number'
+import { sameRecord } from '../logic/records'
 import {
   daysUntil,
   isCancelCandidate,
@@ -18,6 +19,8 @@ import {
 import type { StorageStatus } from '../store/useWishlist'
 import { Button } from '../ui/Button'
 import { TextAreaField, TextField } from '../ui/Field'
+import { ResetConfirm } from '../ui/ResetConfirm'
+import { useFocusFirstError } from '../ui/useFocusFirstError'
 import { DeleteConfirm } from './WishlistScreen'
 
 // PRD F14 구독 정리함: 등록·목록(D-n 순)·해지 후보·요약·수정·삭제. 알림은 없고 화면의 D-n만 보여준다.
@@ -31,9 +34,10 @@ type Props = {
   onAddDemo: () => void
   onRetry: () => void
   onReset: () => void
+  onDismiss: () => void
 }
 
-export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRetry, onReset }: Props) {
+export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRetry, onReset, onDismiss }: Props) {
   const sorted = sortSubscriptions(items, today)
   const s = subscriptionSummary(items, today)
   // 삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다
@@ -47,7 +51,18 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
         구독
       </h2>
-      <SubsBanner status={status} onRetry={onRetry} onReset={onReset} />
+      <SubsBanner
+        status={status}
+        onRetry={onRetry}
+        onReset={() => {
+          onReset()
+          headingRef.current?.focus()
+        }}
+        onDismiss={() => {
+          onDismiss()
+          headingRef.current?.focus()
+        }}
+      />
       {items.length > 0 ? (
         <section className="card stack" aria-label="구독 요약">
           <p className="card-title">요약</p>
@@ -87,8 +102,17 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
   )
 }
 
-function SubsBanner({ status, onRetry, onReset }: { status: StorageStatus; onRetry: () => void; onReset: () => void }) {
-  const [confirming, setConfirming] = useState(false)
+function SubsBanner({
+  status,
+  onRetry,
+  onReset,
+  onDismiss,
+}: {
+  status: StorageStatus
+  onRetry: () => void
+  onReset: () => void
+  onDismiss: () => void
+}) {
   if (status.kind === 'ok') return null
   return (
     <div className="banner stack" role="status" aria-label="구독 저장 상태">
@@ -101,27 +125,22 @@ function SubsBanner({ status, onRetry, onReset }: { status: StorageStatus; onRet
           </div>
         </>
       ) : null}
+      {status.kind === 'replaced' ? (
+        <>
+          <p>다른 탭에서 저장한 구독을 불러왔어요. 이 탭에서 저장하지 않은 변경은 반영되지 않았어요.</p>
+          <div className="btn-row">
+            <Button onClick={onDismiss}>확인</Button>
+          </div>
+        </>
+      ) : null}
       {status.kind === 'corrupt' ? (
         <>
           <p>저장된 구독을 읽을 수 없어요. 초기화하기 전까지는 새로 넣은 구독이 저장되지 않아요.</p>
-          {confirming ? (
-            <div className="btn-row">
-              <Button
-                variant="danger"
-                onClick={() => {
-                  onReset()
-                  setConfirming(false)
-                }}
-              >
-                초기화
-              </Button>
-              <Button onClick={() => setConfirming(false)}>취소</Button>
-            </div>
-          ) : (
-            <div className="btn-row">
-              <Button onClick={() => setConfirming(true)}>구독 기록 초기화</Button>
-            </div>
-          )}
+          <ResetConfirm
+            label="구독 기록 초기화"
+            note="초기화하면 읽을 수 없는 구독은 사라지고, 지금 화면의 구독만 저장돼요."
+            onReset={onReset}
+          />
         </>
       ) : null}
     </div>
@@ -130,13 +149,14 @@ function SubsBanner({ status, onRetry, onReset }: { status: StorageStatus; onRet
 
 const EMPTY: SubscriptionRawInput = { name: '', price: '', cycle: 'monthly', billingDay: '', renewalDate: '', lastUsedDate: '', memo: '' }
 
-function toRaw(sub: Subscription): SubscriptionRawInput {
+// 연 구독은 저장한 기준일이 지났을 수 있으므로, 수정 폼에는 카드에 보이는 다음 갱신일을 채운다
+function toRaw(sub: Subscription, nextRenewal: string): SubscriptionRawInput {
   return {
     name: sub.name,
     price: String(sub.priceKrw),
     cycle: sub.cycle,
     billingDay: sub.billingDay ? String(sub.billingDay) : '',
-    renewalDate: sub.renewalDate ?? '',
+    renewalDate: sub.cycle === 'yearly' ? nextRenewal : '',
     lastUsedDate: sub.lastUsedDate ?? '',
     memo: sub.memo ?? '',
   }
@@ -151,6 +171,8 @@ function SubscriptionForm({
   onCancel,
   resetAfterSubmit,
   autoFocus,
+  keepRenewal,
+  notice,
 }: {
   label: string
   submitLabel: string
@@ -160,10 +182,15 @@ function SubscriptionForm({
   onCancel?: () => void
   resetAfterSubmit?: boolean
   autoFocus?: boolean
+  /** 수정 폼에 채워 둔 다음 갱신일. 그대로 두면 범위를 다시 따지지 않는다 */
+  keepRenewal?: string
+  /** 저장하지 못한 이유(다른 탭에서 바뀜 등) */
+  notice?: string
 }) {
   const [raw, setRaw] = useState<SubscriptionRawInput>(initial)
   const [attempted, setAttempted] = useState(false)
-  const { value, errors } = validateSubscriptionInput(raw, today)
+  const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
+  const { value, errors } = validateSubscriptionInput(raw, today, keepRenewal)
   const shown: SubscriptionFieldErrors = attempted ? errors : {}
   const set = <K extends keyof SubscriptionRawInput>(key: K, v: SubscriptionRawInput[K]) => setRaw((r) => ({ ...r, [key]: v }))
 
@@ -171,6 +198,7 @@ function SubscriptionForm({
     event.preventDefault()
     if (!value) {
       setAttempted(true)
+      focusFirstError()
       return
     }
     onSubmit(value)
@@ -181,7 +209,7 @@ function SubscriptionForm({
   }
 
   return (
-    <form className="card stack" aria-label={label} onSubmit={submit} noValidate>
+    <form className="card stack" aria-label={label} onSubmit={submit} noValidate ref={formRef}>
       <p className="card-title">{label}</p>
       <TextField label="구독 이름" autoFocus={autoFocus} placeholder="예: 넷플릭스" maxLength={40} value={raw.name} error={shown.name} onChange={(e) => set('name', e.target.value)} />
       <TextField label="요금" inputMode="numeric" placeholder="원" value={raw.price} error={shown.price} onChange={(e) => set('price', e.target.value)} />
@@ -222,12 +250,17 @@ function SubscriptionForm({
         label="마지막 사용일 (선택)"
         type="date"
         max={toDayIso(today)}
-        hint="비워 두거나 31일 넘게 안 쓰면 해지 후보로 표시해요"
+        hint="비워 두거나 31일 이상 안 쓰면 해지 후보로 표시해요"
         value={raw.lastUsedDate}
         error={shown.lastUsedDate}
         onChange={(e) => set('lastUsedDate', e.target.value)}
       />
       <TextAreaField label="메모 (선택)" value={raw.memo} error={shown.memo} onChange={(e) => set('memo', e.target.value)} />
+      {notice ? (
+        <p className="field-error" role="alert">
+          {notice}
+        </p>
+      ) : null}
       <div className="btn-row">
         <Button variant="primary" type="submit">
           {submitLabel}
@@ -254,6 +287,9 @@ function SubscriptionCard({
   const editRef = useRef<HTMLButtonElement>(null)
   const deleteRef = useRef<HTMLButtonElement>(null)
   const returnTo = useRef<'edit' | 'delete' | null>(null)
+  // 수정을 열 때의 기록과 채워 둔 다음 갱신일. 저장할 때 내용이 바뀌었으면 다른 탭에서 고친 것이다
+  const [editBase, setEditBase] = useState<{ sub: Subscription; renewal: string } | null>(null)
+  const [stale, setStale] = useState(false)
   useEffect(() => {
     if (mode !== 'view' || !returnTo.current) return
     ;(returnTo.current === 'edit' ? editRef : deleteRef).current?.focus()
@@ -270,16 +306,25 @@ function SubscriptionCard({
     sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월 ${formatWon(monthlyEquivalent(sub))}`
 
   if (mode === 'edit') {
+    const base = editBase ?? { sub, renewal: next }
     return (
       <article className="card stack" aria-label={sub.name}>
         <SubscriptionForm
           label="구독 수정"
           submitLabel="저장"
           today={today}
-          initial={toRaw(sub)}
+          initial={toRaw(sub, base.renewal)}
+          keepRenewal={sub.cycle === 'yearly' ? base.renewal : undefined}
+          notice={stale ? '다른 탭에서 이 구독이 바뀌었어요. 취소한 뒤 다시 열어 고쳐 주세요.' : undefined}
           autoFocus
           onSubmit={(input) => {
-            onEdit(sub.id, input)
+            if (!sameRecord(sub, base.sub)) {
+              setStale(true)
+              return
+            }
+            // 다음 갱신일을 바꾸지 않았으면 원래 기준일을 유지한다 (2월 29일 같은 기준을 잃지 않게)
+            const keepBase = sub.cycle === 'yearly' && input.cycle === 'yearly' && input.renewalDate === base.renewal
+            onEdit(sub.id, keepBase ? { ...input, renewalDate: sub.renewalDate } : input)
             close('edit')
           }}
           onCancel={() => close('edit')}
@@ -304,7 +349,16 @@ function SubscriptionCard({
         <DeleteConfirm name={sub.name} onConfirm={() => onRemove(sub.id)} onCancel={() => close('delete')} />
       ) : (
         <div className="card-actions">
-          <button type="button" className="link-btn" ref={editRef} onClick={() => setMode('edit')}>
+          <button
+            type="button"
+            className="link-btn"
+            ref={editRef}
+            onClick={() => {
+              setEditBase({ sub, renewal: next })
+              setStale(false)
+              setMode('edit')
+            }}
+          >
             수정
           </button>
           <button type="button" className="link-btn" ref={deleteRef} onClick={() => setMode('confirm-delete')}>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
-import { formatWon } from '../logic/number'
+import { formatWon, josa } from '../logic/number'
+import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
 import {
   COOLING_PRESETS,
@@ -22,6 +23,7 @@ import {
 } from '../logic/wishlist'
 import { Button } from '../ui/Button'
 import { TextAreaField, TextField } from '../ui/Field'
+import { useFocusFirstError } from '../ui/useFocusFirstError'
 
 // PRD F01 상품 등록·관리, F02 숙려와 결정, F07 연장, F08 결정 메모
 type Decision = 'purchased' | 'skipped'
@@ -111,6 +113,7 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
   const [attempted, setAttempted] = useState(false)
   const problemCheck = validateNote(answers.problem)
   const questionsRef = useRef<HTMLDetailsElement>(null)
+  const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   const similar = findSimilar(raw.name, items, now)
   const days = raw.preset === 'custom' ? raw.customDays : String(raw.preset)
   const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url })
@@ -121,11 +124,9 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
     event.preventDefault()
     if (!value || problemCheck.error) {
       setAttempted(true)
-      // 접힌 질문 영역 안의 오류가 숨지 않게 펼치고 그 입력으로 포커스를 옮긴다
-      if (value && problemCheck.error && questionsRef.current) {
-        questionsRef.current.open = true
-        questionsRef.current.querySelector('textarea')?.focus()
-      }
+      // 접힌 질문 영역 안의 오류가 숨지 않게 펼치고, 폼에서 첫 번째 오류 입력으로 포커스를 옮긴다
+      if (problemCheck.error && questionsRef.current) questionsRef.current.open = true
+      focusFirstError()
       return
     }
     onAdd({ ...value, answers: { haveOne: answers.haveOne, problem: problemCheck.value, useInMonth: answers.useInMonth } })
@@ -135,7 +136,7 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
   }
 
   return (
-    <form className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate>
+    <form className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate ref={formRef}>
       <p className="card-title">물건 담기</p>
       <TextField
         label="상품명"
@@ -483,7 +484,7 @@ function DecisionForm({ decision, onConfirm, onCancel }: { decision: Decision; o
 export function DeleteConfirm({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div className="stack" role="group" aria-label="삭제 확인">
-      <p className="field-label">‘{name}’을 지울까요?</p>
+      <p className="field-label">{`‘${name}’${josa(name, '을/를')} 지울까요?`}</p>
       <div className="btn-row">
         <Button variant="danger" autoFocus onClick={onConfirm}>
           지우기
@@ -502,6 +503,10 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
     url: item.url ?? '',
   })
   const [attempted, setAttempted] = useState(false)
+  const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
+  // 폼을 열 때의 기록. 저장할 때 내용이 바뀌었으면 다른 탭에서 고친 것이라 덮어쓰지 않는다
+  const [opened] = useState(item)
+  const [stale, setStale] = useState(false)
   const { value, errors } = validateWishPatch(raw)
   const shown: WishFieldErrors = attempted ? errors : {}
   const set = <K extends keyof WishPatchRaw>(key: K, v: string) => setRaw((r) => ({ ...r, [key]: v }))
@@ -510,13 +515,18 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
     event.preventDefault()
     if (!value) {
       setAttempted(true)
+      focusFirstError()
+      return
+    }
+    if (!sameRecord(item, opened)) {
+      setStale(true)
       return
     }
     onSave(value)
   }
 
   return (
-    <form className="stack" aria-label="물건 수정" onSubmit={submit} noValidate>
+    <form className="stack" aria-label="물건 수정" onSubmit={submit} noValidate ref={formRef}>
       <p className="card-title">물건 수정</p>
       <TextField label="상품명" autoFocus maxLength={80} value={raw.name} error={shown.name} onChange={(e) => set('name', e.target.value)} />
       <TextField
@@ -542,6 +552,11 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
         onChange={(e) => set('url', e.target.value)}
       />
       <p className="note">숙려 기간은 바뀌지 않아요. 다시 볼 날 {formatDate(item.reviewAt)}</p>
+      {stale ? (
+        <p className="field-error" role="alert">
+          다른 탭에서 이 물건이 바뀌었어요. 취소한 뒤 다시 열어 고쳐 주세요.
+        </p>
+      ) : null}
       <div className="btn-row">
         <Button variant="primary" type="submit">
           저장

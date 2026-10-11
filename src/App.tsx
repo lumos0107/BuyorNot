@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { SubscriptionScreen } from './screens/SubscriptionScreen'
@@ -7,6 +7,7 @@ import { useSettings } from './store/useSettings'
 import { useSubscriptions } from './store/useSubscriptions'
 import { useWishlist, type StorageStatus } from './store/useWishlist'
 import { Button } from './ui/Button'
+import { ResetConfirm } from './ui/ResetConfirm'
 import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
 
 type Screen = 'wishlist' | 'compare' | 'history' | 'subscriptions'
@@ -23,15 +24,30 @@ export default function App() {
   const wishlist = useWishlist()
   const settings = useSettings()
   const subscriptions = useSubscriptions()
+  // 손상된 기록을 초기화하면 배너가 사라지므로 바로 위의 사이트 제목으로 포커스를 옮긴다
+  const brandRef = useRef<HTMLHeadingElement>(null)
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="brand">살까말까</h1>
+        <h1 className="brand" tabIndex={-1} ref={brandRef}>
+          살까말까
+        </h1>
         <span className="brand-sub">살지 말지, 산다면 얼마에</span>
       </header>
 
-      <StorageBanner status={wishlist.status} onRetry={wishlist.retrySave} onReset={wishlist.resetStorage} />
+      <StorageBanner
+        status={wishlist.status}
+        onRetry={wishlist.retrySave}
+        onReset={() => {
+          wishlist.resetStorage()
+          brandRef.current?.focus()
+        }}
+        onDismiss={() => {
+          wishlist.dismissNotice()
+          brandRef.current?.focus()
+        }}
+      />
 
       <Tabs label="주요 메뉴" tabs={SCREENS} value={screen} onChange={setScreen} />
 
@@ -72,6 +88,7 @@ export default function App() {
             onAddDemo={subscriptions.addDemo}
             onRetry={subscriptions.retrySave}
             onReset={subscriptions.resetStorage}
+            onDismiss={subscriptions.dismissNotice}
           />
         </TabPanel>
       </main>
@@ -84,8 +101,17 @@ export default function App() {
 }
 
 // 저장 상태 안내 (PRD F06, AC13): 실패를 성공처럼 보이지 않게 하고, 손상된 기록은 확인을 거쳐 초기화한다
-function StorageBanner({ status, onRetry, onReset }: { status: StorageStatus; onRetry: () => void; onReset: () => void }) {
-  const [confirming, setConfirming] = useState(false)
+function StorageBanner({
+  status,
+  onRetry,
+  onReset,
+  onDismiss,
+}: {
+  status: StorageStatus
+  onRetry: () => void
+  onReset: () => void
+  onDismiss: () => void
+}) {
   if (status.kind === 'ok') return null
 
   return (
@@ -104,30 +130,18 @@ function StorageBanner({ status, onRetry, onReset }: { status: StorageStatus; on
           </div>
         </>
       ) : null}
+      {status.kind === 'replaced' ? (
+        <>
+          <p>다른 탭에서 저장한 기록을 불러왔어요. 이 탭에서 저장하지 않은 변경은 반영되지 않았어요.</p>
+          <div className="btn-row">
+            <Button onClick={onDismiss}>확인</Button>
+          </div>
+        </>
+      ) : null}
       {status.kind === 'corrupt' ? (
         <>
           <p>저장된 기록을 읽을 수 없어요. 초기화하기 전까지는 새로 담는 물건이 저장되지 않아요.</p>
-          {confirming ? (
-            <div className="stack">
-              <p className="note">초기화하면 읽을 수 없는 기록은 사라지고, 지금 화면의 물건만 저장돼요.</p>
-              <div className="btn-row">
-                <Button
-                  variant="danger"
-                  onClick={() => {
-                    onReset()
-                    setConfirming(false)
-                  }}
-                >
-                  초기화
-                </Button>
-                <Button onClick={() => setConfirming(false)}>취소</Button>
-              </div>
-            </div>
-          ) : (
-            <div className="btn-row">
-              <Button onClick={() => setConfirming(true)}>기록 초기화</Button>
-            </div>
-          )}
+          <ResetConfirm label="기록 초기화" note="초기화하면 읽을 수 없는 기록은 사라지고, 지금 화면의 물건만 저장돼요." onReset={onReset} />
         </>
       ) : null}
     </div>

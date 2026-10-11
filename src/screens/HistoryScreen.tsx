@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
 import { formatWon } from '../logic/number'
 import { validateWage } from '../logic/settings'
+import { sameRecord } from '../logic/records'
 import { historySummary, reviewDue } from '../logic/summary'
 import { sortHistory, validateNote, type Satisfaction, type WishItem } from '../logic/wishlist'
 import { Button } from '../ui/Button'
 import { TextAreaField, TextField } from '../ui/Field'
+import { useFocusFirstError } from '../ui/useFocusFirstError'
 import { DeleteConfirm } from './WishlistScreen'
 
 // PRD F03 결정 기록 + F08 메모, F12 필터·요약·구매 후 회고
@@ -90,6 +92,13 @@ function SummaryCard({
   onWageChange: (wage: number | null) => void
 }) {
   const [wageRaw, setWageRaw] = useState(hourlyWage === null ? '' : String(hourlyWage))
+  // 다른 탭에서 시급이 바뀌면 입력칸도 맞춘다. 지금 입력과 같은 값이면 그대로 둔다(입력 중 서식 유지)
+  const [syncedWage, setSyncedWage] = useState(hourlyWage)
+  if (hourlyWage !== syncedWage) {
+    setSyncedWage(hourlyWage)
+    const typed = validateWage(wageRaw)
+    if (typed.error || (typed.value ?? null) !== hourlyWage) setWageRaw(hourlyWage === null ? '' : String(hourlyWage))
+  }
   const checked = validateWage(wageRaw)
   const wage = checked.error ? null : (checked.value ?? null)
   const s = historySummary(items, wage)
@@ -143,6 +152,11 @@ function HistoryCard({
 }) {
   const [confirming, setConfirming] = useState(false)
   const [editingRetro, setEditingRetro] = useState(false)
+  // 회고를 저장하거나 고치기를 취소하면 "회고 고치기" 버튼으로 포커스를 옮긴다 (누른 버튼·폼이 사라지므로)
+  const retroRef = useRef<HTMLButtonElement>(null)
+  const focusRetro = useRef(false)
+  // 처음 회고를 고르거나 쓰기 시작했으면, 다른 탭이 먼저 회고를 저장해도 폼을 닫지 않는다(쓰던 내용을 말없이 버리지 않게)
+  const [retroDirty, setRetroDirty] = useState(false)
   // 삭제 확인을 취소하면 삭제 버튼으로 포커스를 돌려보낸다
   const deleteRef = useRef<HTMLButtonElement>(null)
   const returnFocus = useRef(false)
@@ -154,7 +168,13 @@ function HistoryCard({
   }, [confirming])
   const purchased = item.status === 'purchased'
   const answered = Boolean(item.satisfaction)
-  const askRetro = reviewDue(item, now) && (!answered || editingRetro)
+  const askRetro = reviewDue(item, now) && (!answered || editingRetro || retroDirty)
+  useEffect(() => {
+    if (focusRetro.current && retroRef.current) {
+      retroRef.current.focus()
+      focusRetro.current = false
+    }
+  }, [editingRetro, answered])
 
   return (
     <article className="card stack" aria-label={item.name}>
@@ -182,13 +202,13 @@ function HistoryCard({
         </>
       ) : null}
 
-      {answered && !editingRetro && item.satisfaction ? (
+      {answered && !editingRetro && !retroDirty && item.satisfaction ? (
         <div className="card-row">
           <p>
             회고: {SATISFACTION_TEXT[item.satisfaction]}
             {item.reviewNote ? ` · ${item.reviewNote}` : ''}
           </p>
-          <button type="button" className="link-btn" onClick={() => setEditingRetro(true)}>
+          <button type="button" className="link-btn" ref={retroRef} onClick={() => setEditingRetro(true)}>
             회고 고치기
           </button>
         </div>
@@ -196,11 +216,23 @@ function HistoryCard({
       {askRetro ? (
         <RetroForm
           item={item}
+          autoFocus={editingRetro}
+          onDirty={() => setRetroDirty(true)}
           onSave={(satisfaction, note) => {
+            focusRetro.current = true
             onReview(item.id, satisfaction, note)
             setEditingRetro(false)
+            setRetroDirty(false)
           }}
-          onCancel={answered ? () => setEditingRetro(false) : undefined}
+          onCancel={
+            answered
+              ? () => {
+                  focusRetro.current = true
+                  setEditingRetro(false)
+                  setRetroDirty(false)
+                }
+              : undefined
+          }
         />
       ) : null}
 
@@ -227,55 +259,94 @@ function HistoryCard({
 // 구매 후 회고 (F12): 잘 샀다·그저 그렇다·후회한다 + 한 줄(선택, 200자)
 function RetroForm({
   item,
+  autoFocus,
+  onDirty,
   onSave,
   onCancel,
 }: {
   item: WishItem
+  /** 사용자가 "회고 고치기"로 열었을 때만 고른 답(없으면 첫 선택지)으로 포커스를 옮긴다 */
+  autoFocus?: boolean
+  /** 답을 고르거나 한 줄 회고를 쓰기 시작했을 때 */
+  onDirty?: () => void
   onSave: (satisfaction: Satisfaction, note?: string) => void
   onCancel?: () => void
 }) {
   const [satisfaction, setSatisfaction] = useState<Satisfaction | undefined>(item.satisfaction)
   const [note, setNote] = useState(item.reviewNote ?? '')
   const [errors, setErrors] = useState<{ choice?: string; note?: string }>({})
+  const choiceErrorId = useId()
+  const groupRef = useRef<HTMLDivElement>(null)
+  // 폼을 열 때의 기록. 저장할 때 내용이 바뀌었으면 다른 탭에서 고친 것이라 덮어쓰지 않는다
+  const [opened] = useState(item)
+  const [stale, setStale] = useState(false)
+  const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
+  useEffect(() => {
+    if (!autoFocus) return
+    const group = groupRef.current
+    ;(group?.querySelector<HTMLInputElement>('input:checked') ?? group?.querySelector<HTMLInputElement>('input'))?.focus()
+  }, [autoFocus])
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const checked = validateNote(note)
     const next = { choice: satisfaction ? undefined : '잘 샀는지 하나를 골라 주세요', note: checked.error }
     setErrors(next)
-    if (!satisfaction || checked.error) return
+    if (!satisfaction || checked.error) {
+      focusFirstError()
+      return
+    }
+    if (!sameRecord(item, opened)) {
+      setStale(true)
+      return
+    }
     onSave(satisfaction, checked.value)
   }
 
   return (
-    <form className="stack retro" aria-label="구매 후 회고" onSubmit={submit} noValidate>
+    <form className="stack retro" aria-label="구매 후 회고" onSubmit={submit} noValidate ref={formRef}>
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="field-label">잘 샀나요?</legend>
-        <div className="radio-group">
+        <div className="radio-group" ref={groupRef}>
           {(Object.keys(SATISFACTION_TEXT) as Satisfaction[]).map((key) => (
             <label key={key}>
               <input
                 type="radio"
                 name={`retro-${item.id}`}
                 checked={satisfaction === key}
+                aria-invalid={errors.choice ? true : undefined}
+                aria-describedby={errors.choice ? choiceErrorId : undefined}
                 onChange={() => {
                   setSatisfaction(key)
                   setErrors((e) => ({ ...e, choice: undefined }))
+                  onDirty?.()
                 }}
               />{' '}
               {SATISFACTION_TEXT[key]}
             </label>
           ))}
         </div>
-        {errors.choice ? <p className="field-error">{errors.choice}</p> : null}
+        {errors.choice ? (
+          <p className="field-error" id={choiceErrorId}>
+            {errors.choice}
+          </p>
+        ) : null}
       </fieldset>
       <TextAreaField
         label="한 줄 회고 (선택)"
         placeholder="예: 매일 써요 / 생각보다 안 써요"
         value={note}
         error={errors.note}
-        onChange={(e) => setNote(e.target.value)}
+        onChange={(e) => {
+          setNote(e.target.value)
+          onDirty?.()
+        }}
       />
+      {stale ? (
+        <p className="field-error" role="alert">
+          다른 탭에서 이 기록이 바뀌었어요. 취소한 뒤 다시 열어 고쳐 주세요.
+        </p>
+      ) : null}
       <div className="btn-row">
         <Button variant="primary" type="submit">
           회고 저장

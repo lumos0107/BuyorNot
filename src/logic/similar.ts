@@ -10,7 +10,7 @@ import type { WishItem } from './wishlist'
 
 export const MAX_SIMILAR = 3
 
-/** "(예시)"와 괄호 안 내용을 지우고 공백을 정리한다. 검색 링크에도 쓴다 */
+/** "(예시)"와 괄호 안 내용을 지우고 공백을 정리한다 (비슷한 이름 판정용) */
 export function normalizeName(name: string): string {
   return name
     .replace(/\([^)]*\)/g, ' ')
@@ -61,9 +61,9 @@ export function describeSimilar({ item, daysAgo }: SimilarRecord): string {
 }
 
 /** 상품명으로 만든 비교용 검색 링크. 실제 추천이 아니라 검색 결과로 보낸다.
- *  검색어에서는 "(예시)" 표지만 빼고, 모델·세대 같은 괄호 정보는 남긴다 */
+ *  검색어에서는 "(예시)" 표지만(위치와 상관없이) 빼고, 모델·세대 같은 괄호 정보는 남긴다 */
 export function compareLinks(name: string): { label: string; href: string }[] {
-  const q = encodeURIComponent(name.replace(/^\(예시\)\s*/, '').trim() || name)
+  const q = encodeURIComponent(name.replace(/\(예시\)/g, ' ').replace(/\s+/g, ' ').trim() || name)
   return [
     { label: '네이버쇼핑', href: `https://search.shopping.naver.com/search/all?query=${q}` },
     { label: '다나와', href: `https://search.danawa.com/dsearch.php?query=${q}` },
