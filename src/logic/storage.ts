@@ -63,8 +63,10 @@ function hasValidOptionalFields(o: Record<string, unknown>): boolean {
   if (o.satisfaction !== undefined && !(isString(o.satisfaction) && SATISFACTIONS.has(o.satisfaction))) return false
   // 회고는 구매함 기록에만 있다 (F12)
   if (o.status !== 'purchased' && (o.satisfaction !== undefined || o.reviewNote !== undefined)) return false
+  // 회고 메모는 회고 답과 함께만 있다
+  if (o.reviewNote !== undefined && o.satisfaction === undefined) return false
   if (o.answers !== undefined) {
-    if (typeof o.answers !== 'object' || o.answers === null) return false
+    if (typeof o.answers !== 'object' || o.answers === null || Array.isArray(o.answers)) return false
     const a = o.answers as Record<string, unknown>
     if (a.haveOne !== undefined && !(isString(a.haveOne) && YES_NO.has(a.haveOne))) return false
     if (!isNote(a.problem)) return false

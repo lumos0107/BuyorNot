@@ -71,6 +71,7 @@ describe('키보드 조작 (ARIA 탭 패턴)', () => {
     expect(tab('고민 중인 물건')).toHaveAttribute('tabindex', '0')
     expect(tab('가격 비교')).toHaveAttribute('tabindex', '-1')
     expect(tab('결정 기록')).toHaveAttribute('tabindex', '-1')
+    expect(tab('구독')).toHaveAttribute('tabindex', '-1')
     const panel = screen.getByRole('tabpanel')
     expect(tab('고민 중인 물건')).toHaveAttribute('aria-controls', panel.id)
   })
@@ -89,11 +90,11 @@ describe('키보드 조작 (ARIA 탭 패턴)', () => {
     render(<App />)
     tab('고민 중인 물건').focus()
     await user.keyboard('{ArrowLeft}')
-    expect(screen.getByRole('tab', { name: '결정 기록', selected: true })).toHaveFocus()
+    expect(screen.getByRole('tab', { name: '구독', selected: true })).toHaveFocus()
     await user.keyboard('{Home}')
     expect(screen.getByRole('tab', { name: '고민 중인 물건', selected: true })).toHaveFocus()
     await user.keyboard('{End}')
-    expect(screen.getByRole('tab', { name: '결정 기록', selected: true })).toHaveFocus()
+    expect(screen.getByRole('tab', { name: '구독', selected: true })).toHaveFocus()
   })
 
   it('하위 탭도 방향키로 옮길 수 있다', async () => {

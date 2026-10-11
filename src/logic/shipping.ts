@@ -40,8 +40,9 @@ export function compareFreeShipping(input: ShippingInput): ShippingResult {
   const { price, shipping, threshold, add } = input
   const current = total(price, shipping, threshold)
 
-  if (shipping === 0) return { current, after: current + add, diff: add, outcome: 'no-shipping' }
+  // 이미 기준 이상이면 배송비와 상관없이 "이미 무료배송"이 먼저다
   if (price >= threshold) return { current, after: current, diff: 0, outcome: 'already-free' }
+  if (shipping === 0) return { current, after: current + add, diff: add, outcome: 'no-shipping' }
 
   const sum = price + add
   const after = total(sum, shipping, threshold)

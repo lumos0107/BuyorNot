@@ -56,8 +56,8 @@ describe('비슷한 이름 찾기 (F10)', () => {
   })
 
   it('AC21: 비슷한 기록이 4건이면 기준 시각이 최근인 3건만 보여준다', () => {
-    const items = [item('키보드 A', 10), item('키보드 B', 1), item('키보드 C', 5), item('키보드 D', 3)]
-    expect(findSimilar('키보드', items, NOW).map((f) => f.item.name)).toEqual(['키보드 B', '키보드 D', '키보드 C'])
+    const items = [item('A 키보드', 10), item('B 키보드', 1), item('C 키보드', 5), item('D 키보드', 3)]
+    expect(findSimilar('키보드', items, NOW).map((f) => f.item.name)).toEqual(['B 키보드', 'D 키보드', 'C 키보드'])
   })
 
   it('결정한 기록은 결정 시각, 고민 중은 담은 시각으로 날짜를 센다. 오늘이면 "오늘"이다', () => {

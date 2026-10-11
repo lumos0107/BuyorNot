@@ -104,6 +104,19 @@ p {
   font-size: 15px;
 }
 
+/* 좁은 화면에서도 주요 메뉴 4개가 한 줄에 모두 보이게 한다 (높이 44px은 유지) */
+@media (max-width: 420px) {
+  .tabs:not(.tabs-sub) {
+    gap: 0;
+    justify-content: space-between;
+  }
+
+  .tabs:not(.tabs-sub) .tab {
+    padding: 10px 6px;
+    font-size: 14px;
+  }
+}
+
 .screen-title {
   font-size: 20px;
   font-weight: 700;
@@ -185,6 +198,13 @@ fieldset.card > legend {
 .status-muted {
   background: var(--bg);
   color: var(--muted);
+}
+
+/* 해지 후보: 경고색 테두리와 글자로 표시 (색만으로 구분하지 않도록 글자도 함께) */
+.status-warn {
+  background: var(--surface);
+  color: var(--danger);
+  border: 1px solid var(--danger);
 }
 
 /* 아직 계산·저장이 연결되지 않은 예시 화면 표시 */

@@ -511,6 +511,12 @@ function ShippingResultCard({ result }: { result: ShippingResult }) {
             <span className="price">{formatWon(result.after)}</span>
           </li>
         )}
+        <li>
+          <span>총지출 차이</span>
+          <span className="price">
+            {result.diff > 0 ? `+${formatWon(result.diff)}` : result.diff < 0 ? `−${formatWon(-result.diff)}` : '같아요'}
+          </span>
+        </li>
       </ul>
       <p className="price price-lg">{shippingVerdict(result)}</p>
       <p className="note">총지출은 상품 금액과 배송비를 더한 금액이에요. 추가하는 물건이 정말 필요한지는 직접 판단해 주세요.</p>

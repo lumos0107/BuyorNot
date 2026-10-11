@@ -75,7 +75,7 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     const delay = Math.min(...delays)
     const timer = window.setTimeout(() => setNow(new Date()), Math.min(delay + 50, 2_147_483_647))
     return () => window.clearTimeout(timer)
-  }, [items])
+  }, [items, now])
 
   const persist = (next: WishItem[], current: StorageStatus): StorageStatus => {
     // 손상된 데이터 위에는 쓰지 않고, 저장소가 없으면 시도하지 않는다

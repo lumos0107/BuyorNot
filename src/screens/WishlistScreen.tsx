@@ -40,9 +40,21 @@ type Props = {
 
 export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, onRemove, onAddDemo }: Props) {
   const considering = sortConsidering(items, now)
+  // 결정·삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다 (키보드 사용자가 위치를 잃지 않게)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const decide = (id: string, decision: Decision, note?: string) => {
+    onDecide(id, decision, note)
+    headingRef.current?.focus()
+  }
+  const remove = (id: string) => {
+    onRemove(id)
+    headingRef.current?.focus()
+  }
   return (
     <div className="stack">
-      <h2 className="screen-title">고민 중인 물건</h2>
+      <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
+        고민 중인 물건
+      </h2>
       <AddForm onAdd={onAdd} items={items} now={now} />
       {considering.length === 0 ? (
         <div className="empty card stack">
@@ -58,9 +70,9 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
               item={item}
               now={now}
               onEdit={onEdit}
-              onDecide={onDecide}
+              onDecide={decide}
               onExtend={onExtend}
-              onRemove={onRemove}
+              onRemove={remove}
             />
           ))}
         </section>
@@ -76,7 +88,7 @@ function CoolingGuide() {
     <details className="card guide">
       <summary className="card-title">숙려가 왜 도움이 되나요?</summary>
       <div className="stack">
-        <p>사고 싶은 마음은 시간이 지나면 처음보다 약해지기도 해요. 며칠 기다린 뒤에도 필요하다면 그때 사도 늦지 않아요.</p>
+        <p>사고 싶은 마음은 시간이 지나면 처음보다 약해지기도 해요.</p>
         <p>살까말까는 담을 때 적은 이유와 답을 기간이 지난 뒤 다시 보여줘서, 그때의 마음과 지금의 생각을 나란히 볼 수 있게 해요.</p>
         <p>사기로 했다면 가격 비교에서 더 싼 조건을 고르고, 결정 기록에서 내가 어떤 물건을 사고 포기했는지 돌아볼 수 있어요.</p>
         <p>모든 사람에게 같은 효과가 있다고 말할 수는 없어요. 기록이 쌓이면 나에게 맞는 숙려 기간을 찾는 데 도움이 될 수 있어요.</p>
@@ -98,6 +110,7 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
   const [answers, setAnswers] = useState<AnswersRaw>(EMPTY_ANSWERS)
   const [attempted, setAttempted] = useState(false)
   const problemCheck = validateNote(answers.problem)
+  const questionsRef = useRef<HTMLDetailsElement>(null)
   const similar = findSimilar(raw.name, items, now)
   const days = raw.preset === 'custom' ? raw.customDays : String(raw.preset)
   const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url })
@@ -108,6 +121,11 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
     event.preventDefault()
     if (!value || problemCheck.error) {
       setAttempted(true)
+      // 접힌 질문 영역 안의 오류가 숨지 않게 펼치고 그 입력으로 포커스를 옮긴다
+      if (value && problemCheck.error && questionsRef.current) {
+        questionsRef.current.open = true
+        questionsRef.current.querySelector('textarea')?.focus()
+      }
       return
     }
     onAdd({ ...value, answers: { haveOne: answers.haveOne, problem: problemCheck.value, useInMonth: answers.useInMonth } })
@@ -202,7 +220,7 @@ function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; 
         onChange={(e) => set('url', e.target.value)}
       />
       {/* 담을 때 질문 3개 (F09). 모두 선택 */}
-      <details className="questions">
+      <details className="questions" ref={questionsRef}>
         <summary className="field-label">한 번만 생각해 볼까요? (선택)</summary>
         <div className="stack">
           <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
@@ -391,6 +409,7 @@ function CompareLinks({ name }: { name: string }) {
   return (
     <div className="compare-links">
       <span className="card-meta">비교해 볼 곳</span>
+      <span className="note">상품명 검색 결과예요. 추천이 아니에요. 새 창으로 열려요.</span>
       <ul className="link-list" aria-label="비교해 볼 곳">
         {compareLinks(name).map((link) => (
           <li key={link.label}>
@@ -408,7 +427,8 @@ function CompareLinks({ name }: { name: string }) {
 function ExtendPicker({ onPick, onCancel }: { onPick: (days: number) => void; onCancel: () => void }) {
   return (
     <div className="stack" role="group" aria-label="더 고민하기">
-      <p className="field-label">얼마나 더 고민할까요? 지금부터 세어요.</p>
+      <p className="field-label">얼마나 더 고민할까요?</p>
+      <p className="note">남은 기간에 더해요. 기간이 지났다면 지금부터 세어요.</p>
       <div className="btn-row">
         {EXTEND_DAYS.map((days, index) => (
           <Button key={days} autoFocus={index === 0} onClick={() => onPick(days)}>
@@ -498,7 +518,7 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
   return (
     <form className="stack" aria-label="물건 수정" onSubmit={submit} noValidate>
       <p className="card-title">물건 수정</p>
-      <TextField label="상품명" maxLength={80} value={raw.name} error={shown.name} onChange={(e) => set('name', e.target.value)} />
+      <TextField label="상품명" autoFocus maxLength={80} value={raw.name} error={shown.name} onChange={(e) => set('name', e.target.value)} />
       <TextField
         label="가격"
         inputMode="numeric"

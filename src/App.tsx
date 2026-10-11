@@ -1,24 +1,28 @@
 import { useState } from 'react'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
+import { SubscriptionScreen } from './screens/SubscriptionScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
 import { useSettings } from './store/useSettings'
+import { useSubscriptions } from './store/useSubscriptions'
 import { useWishlist, type StorageStatus } from './store/useWishlist'
 import { Button } from './ui/Button'
 import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
 
-type Screen = 'wishlist' | 'compare' | 'history'
+type Screen = 'wishlist' | 'compare' | 'history' | 'subscriptions'
 
 const SCREENS: readonly TabItem<Screen>[] = [
   { id: 'wishlist', label: '고민 중인 물건' },
   { id: 'compare', label: '가격 비교' },
   { id: 'history', label: '결정 기록' },
+  { id: 'subscriptions', label: '구독' },
 ]
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('wishlist')
   const wishlist = useWishlist()
   const settings = useSettings()
+  const subscriptions = useSubscriptions()
 
   return (
     <div className="app">
@@ -55,6 +59,19 @@ export default function App() {
             onWageChange={settings.setHourlyWage}
             onReview={wishlist.review}
             onRemove={wishlist.remove}
+          />
+        </TabPanel>
+        <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
+          <SubscriptionScreen
+            items={subscriptions.items}
+            today={wishlist.now}
+            status={subscriptions.status}
+            onAdd={subscriptions.add}
+            onEdit={subscriptions.edit}
+            onRemove={subscriptions.remove}
+            onAddDemo={subscriptions.addDemo}
+            onRetry={subscriptions.retrySave}
+            onReset={subscriptions.resetStorage}
           />
         </TabPanel>
       </main>

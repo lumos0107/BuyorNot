@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
 import { formatWon } from '../logic/number'
 import { validateWage } from '../logic/settings'
@@ -27,6 +27,11 @@ const SATISFACTION_TEXT: Record<Satisfaction, string> = {
 
 export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, onRemove }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const remove = (id: string) => {
+    onRemove(id)
+    headingRef.current?.focus()
+  }
   const history = sortHistory(items)
   const purchased = history.filter((item) => item.status === 'purchased')
   const skipped = history.filter((item) => item.status === 'skipped')
@@ -39,7 +44,9 @@ export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, 
 
   return (
     <div className="stack">
-      <h2 className="screen-title">결정 기록</h2>
+      <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
+        결정 기록
+      </h2>
       {history.length === 0 ? (
         <div className="empty card">
           <p>아직 결정한 물건이 없어요.</p>
@@ -62,7 +69,7 @@ export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, 
           ) : (
             <section className="stack" aria-label="결정 기록 목록">
               {shown.map((item) => (
-                <HistoryCard key={item.id} item={item} now={now} onReview={onReview} onRemove={onRemove} />
+                <HistoryCard key={item.id} item={item} now={now} onReview={onReview} onRemove={remove} />
               ))}
             </section>
           )}
@@ -136,6 +143,15 @@ function HistoryCard({
 }) {
   const [confirming, setConfirming] = useState(false)
   const [editingRetro, setEditingRetro] = useState(false)
+  // 삭제 확인을 취소하면 삭제 버튼으로 포커스를 돌려보낸다
+  const deleteRef = useRef<HTMLButtonElement>(null)
+  const returnFocus = useRef(false)
+  useEffect(() => {
+    if (!confirming && returnFocus.current) {
+      deleteRef.current?.focus()
+      returnFocus.current = false
+    }
+  }, [confirming])
   const purchased = item.status === 'purchased'
   const answered = Boolean(item.satisfaction)
   const askRetro = reviewDue(item, now) && (!answered || editingRetro)
@@ -189,10 +205,17 @@ function HistoryCard({
       ) : null}
 
       {confirming ? (
-        <DeleteConfirm name={item.name} onConfirm={() => onRemove(item.id)} onCancel={() => setConfirming(false)} />
+        <DeleteConfirm
+          name={item.name}
+          onConfirm={() => onRemove(item.id)}
+          onCancel={() => {
+            returnFocus.current = true
+            setConfirming(false)
+          }}
+        />
       ) : (
         <div className="card-actions">
-          <button type="button" className="link-btn" onClick={() => setConfirming(true)}>
+          <button type="button" className="link-btn" ref={deleteRef} onClick={() => setConfirming(true)}>
             삭제
           </button>
         </div>
