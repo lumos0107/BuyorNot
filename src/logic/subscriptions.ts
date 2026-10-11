@@ -1,5 +1,6 @@
 import { calendarDaysBetween } from './dates'
 import { MAX_WON, parseInteger } from './number'
+import { isUsageRecords, latestUseDay, type UsageRecord } from './usageRecords'
 import { NOTE_MAX, validateNote } from './wishlist'
 
 // PRD F14 구독 정리함. 날짜는 'YYYY-MM-DD'(현지 달력), 시각은 ISO.
@@ -25,6 +26,8 @@ export type Subscription = {
   useDates?: string[]
   /** 사용자가 직접 적은 최근 30일 사용량 (F25) */
   usageEntry?: UsageEntry
+  /** 이용 기록 파일 등에서 가져온 출처 기록 (F26) */
+  usageRecords?: UsageRecord[]
   createdAt: string
   updatedAt: string
 }
@@ -93,6 +96,8 @@ export function lastUsedOf(sub: Subscription): string | null {
   const days = [sub.lastUsedDate, ...(sub.useDates ?? [])]
   // 사용량을 1 이상 적었으면 최근 30일 안에 썼다는 뜻이라 적은 날을 사용한 날로 본다(실제보다 늦게 잡힐 수 있다)
   if (sub.usageEntry && sub.usageEntry.value > 0) days.push(sub.usageEntry.day)
+  // 가져온 이용 기록이 있는 가장 늦은 날도 쓴 증거다. 기록이 없다는 것은 미사용의 증거로 쓰지 않는다 (F26)
+  days.push(latestUseDay(sub.usageRecords))
   const known = days.filter((d): d is string => Boolean(d))
   return known.length > 0 ? known.reduce((a, b) => (b > a ? b : a)) : null
 }
@@ -230,7 +235,7 @@ export function createSubscription(input: SubscriptionInput, now: Date, id: stri
 
 export function updateSubscription(sub: Subscription, input: SubscriptionInput, now: Date): Subscription {
   // 예시 사용량(F16)과 "오늘 썼어요" 기록(F19)은 입력 폼에 없으므로 고쳐도 그대로 둔다
-  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates, usageEntry: sub.usageEntry }
+  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates, usageEntry: sub.usageEntry, usageRecords: sub.usageRecords }
   return cleanSub({ id: sub.id, ...input, ...usage, createdAt: sub.createdAt, updatedAt: now.toISOString() })
 }
 
@@ -244,6 +249,7 @@ function cleanSub(sub: Subscription): Subscription {
   if (out.exampleUseCount === undefined) delete out.exampleUseCount
   if (!out.useDates || out.useDates.length === 0) delete out.useDates
   if (out.usageEntry === undefined) delete out.usageEntry
+  if (out.usageRecords === undefined) delete out.usageRecords
   return out
 }
 
@@ -336,6 +342,8 @@ function isSubscription(v: unknown): v is Subscription {
     if (typeof e !== 'object' || e === null || !isDay(e.day)) return false
     if (e.kind === 'minutes' ? !isIntIn(e.value, USAGE_MAX_MINUTES) : e.kind === 'count' ? !isIntIn(e.value, USE_COUNT_MAX) : true) return false
   }
+  // 가져온 출처 기록(F26)
+  if (o.usageRecords !== undefined && !isUsageRecords(o.usageRecords)) return false
   // "오늘 썼어요" 기록(F19): 실제 날짜 배열, 중복 없음
   if (o.useDates !== undefined) {
     if (!Array.isArray(o.useDates) || o.useDates.length > 400 || !o.useDates.every(isDay)) return false
