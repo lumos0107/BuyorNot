@@ -26,7 +26,7 @@ describe('저장 오류 안내 (AC13)', () => {
     localStorage.setItem(STORAGE_KEY, '{not json')
     const user = userEvent.setup()
     render(<App />)
-    const banner = within(screen.getByRole('status'))
+    const banner = within(screen.getByRole('status', { name: '저장 상태' }))
     expect(banner.getByText(/저장된 기록을 읽을 수 없어요/)).toBeInTheDocument()
 
     // 초기화 전에는 손상된 원본을 그대로 둔다
@@ -36,7 +36,7 @@ describe('저장 오류 안내 (AC13)', () => {
 
     await user.click(banner.getByRole('button', { name: '기록 초기화' }))
     await user.click(banner.getByRole('button', { name: '초기화' }))
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: '저장 상태' })).not.toBeInTheDocument()
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
     expect(saved.schemaVersion).toBe(1)
     expect(saved.items.map((i: { name: string }) => i.name)).toEqual(['무선 헤드폰'])
@@ -49,13 +49,13 @@ describe('저장 오류 안내 (AC13)', () => {
     const user = userEvent.setup()
     render(<App />)
     await addItem(user)
-    const banner = within(screen.getByRole('status'))
+    const banner = within(screen.getByRole('status', { name: '저장 상태' }))
     expect(banner.getByText(/저장하지 못했어요/)).toBeInTheDocument()
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
 
     spy.mockRestore()
     await user.click(banner.getByRole('button', { name: '다시 저장' }))
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: '저장 상태' })).not.toBeInTheDocument()
     expect(localStorage.getItem(STORAGE_KEY)).toContain('무선 헤드폰')
   })
 
@@ -64,7 +64,7 @@ describe('저장 오류 안내 (AC13)', () => {
       throw new DOMException('blocked', 'SecurityError')
     })
     render(<App />)
-    expect(within(screen.getByRole('status')).getByText(/이 브라우저에서는 기록을 저장할 수 없어요/)).toBeInTheDocument()
+    expect(within(screen.getByRole('status', { name: '저장 상태' })).getByText(/이 브라우저에서는 기록을 저장할 수 없어요/)).toBeInTheDocument()
   })
 })
 
@@ -126,10 +126,10 @@ describe('여러 탭과 초기화 취소', () => {
     localStorage.setItem(STORAGE_KEY, '{not json')
     const user = userEvent.setup()
     render(<App />)
-    const banner = within(screen.getByRole('status'))
+    const banner = within(screen.getByRole('status', { name: '저장 상태' }))
     await user.click(banner.getByRole('button', { name: '기록 초기화' }))
     await user.click(banner.getByRole('button', { name: '취소' }))
-    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '저장 상태' })).toBeInTheDocument()
     expect(localStorage.getItem(STORAGE_KEY)).toBe('{not json')
   })
 })

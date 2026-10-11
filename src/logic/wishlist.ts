@@ -48,7 +48,14 @@ export function validateNote(raw: string): { value?: string; error?: string } {
   return { value: trimmed }
 }
 
-export type NewWishInput = { name: string; priceKrw: number; reason: string; days: number; url: string | null }
+export type NewWishInput = {
+  name: string
+  priceKrw: number
+  reason: string
+  days: number
+  url: string | null
+  answers?: Answers
+}
 export type WishRawInput = { name: string; price: string; reason: string; days: string; url: string }
 export type WishFieldErrors = Partial<Record<keyof WishRawInput, string>>
 
@@ -146,7 +153,7 @@ export function coolingDays(item: Pick<WishItem, 'createdAt' | 'reviewAt'>): num
 
 export function createItem(input: NewWishInput, now: Date, id: string): WishItem {
   const createdAt = now.toISOString()
-  return {
+  const item: WishItem = {
     id,
     name: input.name,
     priceKrw: input.priceKrw,
@@ -158,6 +165,33 @@ export function createItem(input: NewWishInput, now: Date, id: string): WishItem
     status: 'considering',
     decidedAt: null,
   }
+  const answers = cleanAnswers(input.answers)
+  if (answers) item.answers = answers
+  return item
+}
+
+/** 답한 항목만 남긴다. 하나도 없으면 undefined (F09) */
+export function cleanAnswers(answers: Answers | undefined): Answers | undefined {
+  if (!answers) return undefined
+  const out: Answers = {}
+  if (answers.haveOne) out.haveOne = answers.haveOne
+  const problem = answers.problem?.trim()
+  if (problem) out.problem = problem
+  if (answers.useInMonth) out.useInMonth = answers.useInMonth
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+const HAVE_ONE_TEXT = { yes: '지금 쓰는 게 있어요', no: '지금 쓰는 게 없어요' } as const
+const USE_IN_MONTH_TEXT = { yes: '쓸 것 같아요', no: '아닐 것 같아요', unsure: '모르겠어요' } as const
+
+/** 재검토 카드에 보여줄 답 문장 (F09) */
+export function describeAnswers(answers: Answers | undefined): string[] {
+  if (!answers) return []
+  const lines: string[] = []
+  if (answers.haveOne) lines.push(HAVE_ONE_TEXT[answers.haveOne])
+  if (answers.problem) lines.push(`없으면 생기는 문제: ${answers.problem}`)
+  if (answers.useInMonth) lines.push(`한 달 뒤에도 쓸지: ${USE_IN_MONTH_TEXT[answers.useInMonth]}`)
+  return lines
 }
 
 export type WishPatch = Pick<WishItem, 'name' | 'priceKrw' | 'reason' | 'url'>

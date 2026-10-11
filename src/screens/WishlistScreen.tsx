@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
 import { formatWon } from '../logic/number'
+import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
 import {
   COOLING_PRESETS,
   EXTEND_DAYS,
   coolingDays,
+  describeAnswers,
   formatRemaining,
   reviewState,
   sortConsidering,
   validateNote,
   validateWishInput,
   validateWishPatch,
+  type Answers,
   type NewWishInput,
   type WishFieldErrors,
   type WishItem,
@@ -40,7 +43,7 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
   return (
     <div className="stack">
       <h2 className="screen-title">고민 중인 물건</h2>
-      <AddForm onAdd={onAdd} />
+      <AddForm onAdd={onAdd} items={items} now={now} />
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
@@ -62,7 +65,23 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
           ))}
         </section>
       )}
+      <CoolingGuide />
     </div>
+  )
+}
+
+// 안내문 (F11): 효과를 단정하지 않고 이 앱이 하는 일만 적는다
+function CoolingGuide() {
+  return (
+    <details className="card guide">
+      <summary className="card-title">숙려가 왜 도움이 되나요?</summary>
+      <div className="stack">
+        <p>사고 싶은 마음은 시간이 지나면 처음보다 약해지기도 해요. 며칠 기다린 뒤에도 필요하다면 그때 사도 늦지 않아요.</p>
+        <p>살까말까는 담을 때 적은 이유와 답을 기간이 지난 뒤 다시 보여줘서, 그때의 마음과 지금의 생각을 나란히 볼 수 있게 해요.</p>
+        <p>사기로 했다면 가격 비교에서 더 싼 조건을 고르고, 결정 기록에서 내가 어떤 물건을 사고 포기했는지 돌아볼 수 있어요.</p>
+        <p>모든 사람에게 같은 효과가 있다고 말할 수는 없어요. 기록이 쌓이면 나에게 맞는 숙려 기간을 찾는 데 도움이 될 수 있어요.</p>
+      </div>
+    </details>
   )
 }
 
@@ -71,10 +90,15 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, 
 type Preset = (typeof COOLING_PRESETS)[number] | 'custom'
 type AddRaw = { name: string; price: string; reason: string; url: string; preset: Preset; customDays: string }
 const EMPTY_ADD: AddRaw = { name: '', price: '', reason: '', url: '', preset: 3, customDays: '' }
+type AnswersRaw = { haveOne?: Answers['haveOne']; problem: string; useInMonth?: Answers['useInMonth'] }
+const EMPTY_ANSWERS: AnswersRaw = { problem: '' }
 
-function AddForm({ onAdd }: { onAdd: (input: NewWishInput) => void }) {
+function AddForm({ onAdd, items, now }: { onAdd: (input: NewWishInput) => void; items: WishItem[]; now: Date }) {
   const [raw, setRaw] = useState<AddRaw>(EMPTY_ADD)
+  const [answers, setAnswers] = useState<AnswersRaw>(EMPTY_ANSWERS)
   const [attempted, setAttempted] = useState(false)
+  const problemCheck = validateNote(answers.problem)
+  const similar = findSimilar(raw.name, items, now)
   const days = raw.preset === 'custom' ? raw.customDays : String(raw.preset)
   const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url })
   const shown: WishFieldErrors = attempted ? errors : {}
@@ -82,12 +106,13 @@ function AddForm({ onAdd }: { onAdd: (input: NewWishInput) => void }) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (!value) {
+    if (!value || problemCheck.error) {
       setAttempted(true)
       return
     }
-    onAdd(value)
+    onAdd({ ...value, answers: { haveOne: answers.haveOne, problem: problemCheck.value, useInMonth: answers.useInMonth } })
     setRaw(EMPTY_ADD)
+    setAnswers(EMPTY_ANSWERS)
     setAttempted(false)
   }
 
@@ -102,6 +127,16 @@ function AddForm({ onAdd }: { onAdd: (input: NewWishInput) => void }) {
         error={shown.name}
         onChange={(e) => set('name', e.target.value)}
       />
+      {/* 내 기록 기반 알림 (F10): 비슷한 이름을 전에 담거나 결정했으면 알려준다 */}
+      <div role="status" aria-label="비슷한 기록" className={similar.length > 0 ? 'similar-notice' : 'similar-empty'}>
+        {similar.length > 0 ? (
+          <ul className="plain-list">
+            {similar.map((record) => (
+              <li key={record.item.id}>{describeSimilar(record)}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
       <TextField
         label="가격"
         inputMode="numeric"
@@ -166,6 +201,56 @@ function AddForm({ onAdd }: { onAdd: (input: NewWishInput) => void }) {
         error={shown.url}
         onChange={(e) => set('url', e.target.value)}
       />
+      {/* 담을 때 질문 3개 (F09). 모두 선택 */}
+      <details className="questions">
+        <summary className="field-label">한 번만 생각해 볼까요? (선택)</summary>
+        <div className="stack">
+          <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend className="field-label">지금 쓰는 게 있나요?</legend>
+            <div className="radio-group">
+              {(['yes', 'no'] as const).map((v) => (
+                <label key={v}>
+                  <input
+                    type="radio"
+                    name="haveOne"
+                    checked={answers.haveOne === v}
+                    onChange={() => setAnswers((a) => ({ ...a, haveOne: v }))}
+                  />{' '}
+                  {v === 'yes' ? '있어요' : '없어요'}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <TextAreaField
+            label="없으면 어떤 문제가 있나요?"
+            placeholder="예: 출퇴근길에 음악을 못 들어요"
+            value={answers.problem}
+            error={attempted ? problemCheck.error : undefined}
+            onChange={(e) => setAnswers((a) => ({ ...a, problem: e.target.value }))}
+          />
+          <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend className="field-label">한 달 뒤에도 쓸까요?</legend>
+            <div className="radio-group">
+              {([
+                ['yes', '쓸 것 같아요'],
+                ['no', '아닐 것 같아요'],
+                ['unsure', '모르겠어요'],
+              ] as const).map(([v, label]) => (
+                <label key={v}>
+                  <input
+                    type="radio"
+                    name="useInMonth"
+                    checked={answers.useInMonth === v}
+                    onChange={() => setAnswers((a) => ({ ...a, useInMonth: v }))}
+                  />{' '}
+                  {label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <p className="note">기간이 지나 다시 볼 때 이 답을 함께 보여줘요.</p>
+        </div>
+      </details>
       <Button variant="primary" block type="submit">
         담아 두기
       </Button>
@@ -248,6 +333,14 @@ function WishCard({ item, now, onEdit, onDecide, onExtend, onRemove }: CardProps
         ) : null}
       </p>
       <p>처음 적은 이유: {item.reason}</p>
+      {state.phase === 'ready' && describeAnswers(item.answers).length > 0 ? (
+        <ul className="plain-list answers" aria-label="담을 때 답한 것">
+          {describeAnswers(item.answers).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
+      <CompareLinks name={item.name} />
 
       {mode === 'confirm-delete' ? (
         <DeleteConfirm name={item.name} onConfirm={() => onRemove(item.id)} onCancel={() => setMode('view')} />
@@ -290,6 +383,24 @@ function WishCard({ item, now, onEdit, onDecide, onExtend, onRemove }: CardProps
         </>
       )}
     </article>
+  )
+}
+
+// 비교해 볼 곳 (F10): 실제 추천이 아니라 상품명으로 검색한 결과로 보낸다
+function CompareLinks({ name }: { name: string }) {
+  return (
+    <div className="compare-links">
+      <span className="card-meta">비교해 볼 곳</span>
+      <ul className="link-list" aria-label="비교해 볼 곳">
+        {compareLinks(name).map((link) => (
+          <li key={link.label}>
+            <a href={link.href} target="_blank" rel="noopener noreferrer" aria-label={`${link.label} 검색 결과 (새 창)`}>
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

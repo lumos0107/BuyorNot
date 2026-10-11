@@ -397,6 +397,69 @@ a {
   font-size: 14px;
 }
 
+/* 2차: 비슷한 기록 알림, 답 목록, 비교 링크, 접이식 영역 */
+.similar-notice {
+  background: var(--accent-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.answers {
+  font-size: 14px;
+  color: var(--muted);
+  border-left: 3px solid var(--line);
+  padding-left: 10px;
+}
+
+.compare-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 12px;
+}
+
+.link-list a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 기본 펼침 표시(▸)를 살리고 여백으로 44px 터치 높이를 맞춘다 */
+details > summary {
+  cursor: pointer;
+  padding: 11px 0;
+  margin-bottom: 0;
+}
+
+/* 알림이 없을 때 빈 상태 영역이 간격을 차지하지 않게 한다. 영역 자체는 남겨 두어야 새 알림을 읽어 준다 */
+.similar-empty {
+  margin-top: -12px;
+}
+
+.guide p {
+  font-size: 15px;
+}
+
 .app-footer {
   margin-top: 32px;
   font-size: 13px;

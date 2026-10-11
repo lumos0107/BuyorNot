@@ -63,7 +63,7 @@ function StorageBanner({ status, onRetry, onReset }: { status: StorageStatus; on
   if (status.kind === 'ok') return null
 
   return (
-    <div className="banner stack" role="status">
+    <div className="banner stack" role="status" aria-label="저장 상태">
       {status.kind === 'unavailable' ? (
         <p>이 브라우저에서는 기록을 저장할 수 없어요. 이번 방문 동안만 유지되고, 새로고침하면 사라져요.</p>
       ) : null}

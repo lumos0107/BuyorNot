@@ -31,10 +31,17 @@ export function formatFixed(value: number, digits: number): string {
 
 export const MAX_WON = 1_000_000_000
 
-/** 마지막 글자의 받침 유무로 조사를 고른다. "배송비" + 을/를 → "배송비를" */
-export function withJosa(word: string, pair: '을/를' | '은/는' | '이/가'): string {
+type JosaPair = '을/를' | '은/는' | '이/가'
+
+/** 마지막 글자의 받침 유무로 조사만 고른다. "키보드" + 을/를 → "를" */
+export function josa(word: string, pair: JosaPair): string {
   const code = word.charCodeAt(word.length - 1) - 0xac00
   const hasBatchim = code >= 0 && code <= 11171 && code % 28 !== 0
   const [withB, withoutB] = pair.split('/')
-  return word + (hasBatchim ? withB : withoutB)
+  return (hasBatchim ? withB : withoutB) ?? ''
+}
+
+/** "배송비" + 을/를 → "배송비를" */
+export function withJosa(word: string, pair: JosaPair): string {
+  return word + josa(word, pair)
 }
