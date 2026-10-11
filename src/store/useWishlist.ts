@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { STORAGE_KEY, getLocalStorage, loadStore, saveStore, type LoadResult } from '../logic/storage'
+import { nextRetroDelay, review } from '../logic/summary'
 import {
   createItem,
   decideItem,
@@ -9,6 +10,7 @@ import {
   nextReviewDelay,
   updateItem,
   type NewWishInput,
+  type Satisfaction,
   type WishItem,
   type WishPatch,
 } from '../logic/wishlist'
@@ -65,10 +67,12 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     return () => window.removeEventListener('storage', onStorage)
   }, [storage])
 
-  // 가장 가까운 숙려 종료 시각에 맞춰 한 번 더 갱신한다. 30초 주기만으로는 정각 뒤 최대 30초까지 '숙려 중'으로 남기 때문이다
+  // 가장 가까운 숙려 종료·회고 시점에 맞춰 한 번 더 갱신한다. 30초 주기만으로는 정각 뒤 최대 30초까지 늦기 때문이다
   useEffect(() => {
-    const delay = nextReviewDelay(items, new Date())
-    if (delay === null) return
+    const now = new Date()
+    const delays = [nextReviewDelay(items, now), nextRetroDelay(items, now)].filter((d): d is number => d !== null)
+    if (delays.length === 0) return
+    const delay = Math.min(...delays)
     const timer = window.setTimeout(() => setNow(new Date()), Math.min(delay + 50, 2_147_483_647))
     return () => window.clearTimeout(timer)
   }, [items])
@@ -95,6 +99,8 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
       commit(items.map((item) => (item.id === id ? updateItem(item, patch, new Date()) : item))),
     decide: (id: string, decision: 'purchased' | 'skipped', note?: string) =>
       commit(items.map((item) => (item.id === id ? decideItem(item, decision, new Date(), note) : item))),
+    review: (id: string, satisfaction: Satisfaction, note?: string) =>
+      commit(items.map((item) => (item.id === id ? review(item, satisfaction, note, new Date()) : item))),
     extend: (id: string, days: number) =>
       commit(items.map((item) => (item.id === id ? extendItem(item, days, new Date()) : item))),
     remove: (id: string) => commit(items.filter((item) => item.id !== id)),

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
+import { useSettings } from './store/useSettings'
 import { useWishlist, type StorageStatus } from './store/useWishlist'
 import { Button } from './ui/Button'
 import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
@@ -17,6 +18,7 @@ const SCREENS: readonly TabItem<Screen>[] = [
 export default function App() {
   const [screen, setScreen] = useState<Screen>('wishlist')
   const wishlist = useWishlist()
+  const settings = useSettings()
 
   return (
     <div className="app">
@@ -46,7 +48,14 @@ export default function App() {
           <CompareScreen onGoToWishlist={() => setScreen('wishlist')} />
         </TabPanel>
         <TabPanel id="history" hidden={screen !== 'history'}>
-          <HistoryScreen items={wishlist.items} onRemove={wishlist.remove} />
+          <HistoryScreen
+            items={wishlist.items}
+            now={wishlist.now}
+            hourlyWage={settings.hourlyWage}
+            onWageChange={settings.setHourlyWage}
+            onReview={wishlist.review}
+            onRemove={wishlist.remove}
+          />
         </TabPanel>
       </main>
 

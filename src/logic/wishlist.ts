@@ -272,6 +272,8 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
     make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 3),
     make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 1, 7),
     make('게이밍 키보드', 149000, '세일이라 담았는데 지금 키보드도 멀쩡해서', 7, 3, { status: 'skipped', daysAgo: 3 }),
+    // 구매 후 7일이 지나 회고를 물을 수 있는 기록 (F12)
+    make('무선 청소기', 189000, '바닥 청소할 시간이 없어서', 14, 3, { status: 'purchased', daysAgo: 9 }),
   ]
 }
 
