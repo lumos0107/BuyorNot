@@ -18,10 +18,11 @@ export function useSettings(storage: Storage | null = getLocalStorage()) {
 
   return {
     hourlyWage: settings.hourlyWage,
-    setHourlyWage: (hourlyWage: number | null) => {
+    /** 저장했으면 true (백업 불러오기에서 저장 결과를 모으는 데 쓴다) */
+    setHourlyWage: (hourlyWage: number | null): boolean => {
       const next: Settings = { schemaVersion: 1, hourlyWage }
       setSettings(next)
-      saveSettings(storage, next)
+      return saveSettings(storage, next)
     },
   }
 }

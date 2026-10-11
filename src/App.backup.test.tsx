@@ -93,7 +93,7 @@ describe('백업·복원 (F20)', () => {
     const user = await openBackup()
     await user.upload(screen.getByLabelText('백업 파일 불러오기'), new File([backup], 'b.json', { type: 'application/json' }))
     const confirm = within(await screen.findByRole('group', { name: '백업 불러오기 확인' }))
-    expect(confirm.getByText('이 파일에는 물건 1개, 구독 1개, 시급 12,000원이 들어 있어요. 지금 기록을 이 파일의 기록으로 바꿀까요?')).toBeInTheDocument()
+    expect(confirm.getByText('파일 내용: 물건 1개, 구독 1개, 시급 12,000원. 지금 기록을 이 파일의 기록으로 바꿀까요?')).toBeInTheDocument()
     expect(confirm.getByRole('button', { name: '바꾸기' })).toHaveFocus()
     await user.click(confirm.getByRole('button', { name: '바꾸기' }))
 

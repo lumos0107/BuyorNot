@@ -42,7 +42,8 @@ export function usageInfo(sub: Subscription, today: Date): UsageInfo | null {
       return ago >= 0 && ago < 30
     }).length
     if (count === 0) return { source: 'manual', text: '최근 30일 사용 없음' }
-    return { source: 'manual', text: `최근 30일 ${count}번 사용 · 1번에 약 ${formatWon(round10(monthlyEquivalent(sub) / count))}` }
+    // 오늘 썼어요는 하루에 한 번 기록하므로 횟수가 아니라 쓴 날 수로 말한다
+    return { source: 'manual', text: `최근 30일 중 ${count}일 사용 · 쓴 날 하루에 약 ${formatWon(round10(monthlyEquivalent(sub) / count))}` }
   }
   const text = usageText(sub)
   return text ? { source: 'example', text } : null

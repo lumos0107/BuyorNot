@@ -74,7 +74,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       {exampleCount > 0 ? (
         <ExampleBar
           label="예시 구독만 지우기"
-          message={`예시 구독 ${exampleCount}개를 지울까요? 직접 넣은 구독은 그대로예요.`}
+          message={`이름이 '(예시)'로 시작하는 구독 ${exampleCount}개를 지울까요?`}
           onConfirm={() => {
             onRemoveExamples()
             headingRef.current?.focus()

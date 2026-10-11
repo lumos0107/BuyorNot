@@ -84,7 +84,8 @@ export function nextBillingDate(sub: Subscription, today: Date): string {
 
 /** 마지막 사용일: 직접 적은 날과 "오늘 썼어요"로 기록한 날 중 늦은 날 (F19) */
 export function lastUsedOf(sub: Subscription): string | null {
-  const recorded = sub.useDates?.reduce((a, b) => (b > a ? b : a)) ?? null
+  // 빈 배열도 복원 검증을 통과하므로 기록이 없는 것으로 본다
+  const recorded = sub.useDates && sub.useDates.length > 0 ? sub.useDates.reduce((a, b) => (b > a ? b : a)) : null
   if (!sub.lastUsedDate) return recorded
   if (!recorded) return sub.lastUsedDate
   return recorded > sub.lastUsedDate ? recorded : sub.lastUsedDate

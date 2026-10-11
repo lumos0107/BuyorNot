@@ -40,7 +40,7 @@ describe('오늘 썼어요 (F19)', () => {
     expect(card('티빙').getByRole('button', { name: '오늘 썼어요' })).toHaveAttribute('aria-pressed', 'true')
     expect(card('티빙').getByText('마지막 사용 2026-10-11')).toBeInTheDocument()
     expect(card('티빙').queryByText('해지 후보')).not.toBeInTheDocument()
-    expect(card('티빙').getByText('사용량(직접 기록): 최근 30일 1번 사용 · 1번에 약 9,500원')).toBeInTheDocument()
+    expect(card('티빙').getByText('사용량(직접 기록): 최근 30일 중 1일 사용 · 쓴 날 하루에 약 9,500원')).toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem(SUBS_KEY) ?? '{}').items[0].useDates).toEqual(['2026-10-11'])
 
     await user.click(card('티빙').getByRole('button', { name: '오늘 썼어요' }))
@@ -52,7 +52,7 @@ describe('오늘 썼어요 (F19)', () => {
     const user = await openSubs()
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))
     await user.click(card('(예시) 넷플릭스').getByRole('button', { name: '오늘 썼어요' }))
-    expect(card('(예시) 넷플릭스').getByText('사용량(직접 기록): 최근 30일 1번 사용 · 1번에 약 13,500원')).toBeInTheDocument()
+    expect(card('(예시) 넷플릭스').getByText('사용량(직접 기록): 최근 30일 중 1일 사용 · 쓴 날 하루에 약 13,500원')).toBeInTheDocument()
     expect(card('(예시) 넷플릭스').queryByText(/사용량\(예시\)/)).not.toBeInTheDocument()
   })
 })

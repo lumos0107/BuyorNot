@@ -32,7 +32,7 @@ describe('예시만 지우기', () => {
 
     await user.click(screen.getByRole('button', { name: '예시만 지우기' }))
     const confirm = within(screen.getByRole('group', { name: '예시 지우기 확인' }))
-    expect(confirm.getByText('예시 물건 4개를 지울까요? 결정 기록의 예시도 함께 지워지고, 직접 담은 물건은 그대로예요.')).toBeInTheDocument()
+    expect(confirm.getByText("이름이 '(예시)'로 시작하는 물건 4개를 지울까요? 결정 기록의 예시도 함께 지워져요.")).toBeInTheDocument()
     expect(confirm.getByRole('button', { name: '지우기' })).toHaveFocus()
     await user.click(confirm.getByRole('button', { name: '지우기' }))
 
@@ -64,7 +64,7 @@ describe('예시만 지우기', () => {
 
     await user.click(screen.getByRole('button', { name: '예시 구독만 지우기' }))
     const confirm = within(screen.getByRole('group', { name: '예시 지우기 확인' }))
-    expect(confirm.getByText('예시 구독 5개를 지울까요? 직접 넣은 구독은 그대로예요.')).toBeInTheDocument()
+    expect(confirm.getByText("이름이 '(예시)'로 시작하는 구독 5개를 지울까요?")).toBeInTheDocument()
     await user.click(confirm.getByRole('button', { name: '지우기' }))
     expect(names(SUBS_KEY)).toEqual(['티빙'])
     expect(screen.getByRole('heading', { level: 2, name: '구독' })).toHaveFocus()

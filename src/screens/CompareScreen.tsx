@@ -229,10 +229,12 @@ function DiscountResultCard({ a, b, onAdd }: { a: DiscountSide; b: DiscountSide;
       <DiscountSideSummary name="B안" side={b} />
       <p className="price price-lg">{verdictText}</p>
       {onAdd ? (
-        <div className="btn-row">
-          <Button onClick={() => onAdd(discountDraft('A안', a))}>A안으로 담기</Button>
-          <Button onClick={() => onAdd(discountDraft('B안', b))}>B안으로 담기</Button>
-        </div>
+        <AddButtons
+          sides={[
+            ['A안으로 담기', a.total, () => onAdd(discountDraft('A안', a))],
+            ['B안으로 담기', b.total, () => onAdd(discountDraft('B안', b))],
+          ]}
+        />
       ) : null}
       <div className="stack">
         <p className="field-label">계산 근거</p>
@@ -248,6 +250,25 @@ function DiscountResultCard({ a, b, onAdd }: { a: DiscountSide; b: DiscountSide;
         </ul>
       </div>
     </section>
+  )
+}
+
+// 비교 결과를 고민 목록에 담기 (F21). 고민 목록의 가격은 1원 이상이라 0원인 쪽은 버튼 대신 안내한다
+function AddButtons({ sides }: { sides: [string, number, () => void][] }) {
+  const blocked = sides.some(([, price]) => price < 1)
+  return (
+    <div className="stack">
+      <div className="btn-row">
+        {sides.map(([label, price, add]) =>
+          price >= 1 ? (
+            <Button key={label} onClick={add}>
+              {label}
+            </Button>
+          ) : null,
+        )}
+      </div>
+      {blocked ? <p className="note">0원인 쪽은 고민 목록에 담을 수 없어요.</p> : null}
+    </div>
   )
 }
 
@@ -438,10 +459,12 @@ function BundleResultCard({
       {verdict.displayTie ? <p className="note">표시 단가는 같지만 아주 작은 차이가 있어요.</p> : null}
       <p className="note">가격만 비교한 결과예요. 품질이나 필요한 양은 따로 생각해 주세요.</p>
       {onAdd ? (
-        <div className="btn-row">
-          <Button onClick={() => onAdd(bundleDraft('상품 A', a))}>상품 A로 담기</Button>
-          <Button onClick={() => onAdd(bundleDraft('상품 B', b))}>상품 B로 담기</Button>
-        </div>
+        <AddButtons
+          sides={[
+            ['상품 A로 담기', a.price, () => onAdd(bundleDraft('상품 A', a))],
+            ['상품 B로 담기', b.price, () => onAdd(bundleDraft('상품 B', b))],
+          ]}
+        />
       ) : null}
     </section>
   )

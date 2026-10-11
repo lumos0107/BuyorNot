@@ -114,9 +114,12 @@ export default function App() {
       <BackupSection
         data={{ items: wishlist.items, hourlyWage: settings.hourlyWage, subscriptions: subscriptions.items }}
         onImport={(data) => {
-          wishlist.replaceAll(data.items)
-          settings.setHourlyWage(data.hourlyWage)
-          subscriptions.replaceAll(data.subscriptions)
+          // 저장하지 못한 부분의 이름을 돌려준다. 물건 기록·구독은 각 화면의 저장 안내에서 다시 저장할 수 있다
+          const failed: string[] = []
+          if (wishlist.replaceAll(data.items).kind !== 'ok') failed.push('물건 기록')
+          if (!settings.setHourlyWage(data.hourlyWage)) failed.push('시급')
+          if (subscriptions.replaceAll(data.subscriptions).kind !== 'ok') failed.push('구독')
+          return failed
         }}
       />
 

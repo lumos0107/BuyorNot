@@ -140,8 +140,14 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     add: (input: NewWishInput) => commit([createItem(input, new Date(), newId()), ...items]),
     edit: (id: string, patch: WishPatch) =>
       commit(items.map((item) => (item.id === id ? updateItem(item, patch, new Date()) : item))),
-    decide: (id: string, decision: 'purchased' | 'skipped', note?: string) =>
-      commit(items.map((item) => (item.id === id ? decideItem(item, decision, new Date(), note) : item))),
+    /** 결정한 기록을 돌려준다 (되돌리기 알림이 지금 기록과 맞는지 확인하는 데 쓴다) */
+    decide: (id: string, decision: 'purchased' | 'skipped', note?: string): WishItem | undefined => {
+      const target = items.find((item) => item.id === id)
+      if (!target) return undefined
+      const decided = decideItem(target, decision, new Date(), note)
+      commit(items.map((item) => (item.id === id ? decided : item)))
+      return decided
+    },
     review: (id: string, satisfaction: Satisfaction, note?: string) =>
       commit(items.map((item) => (item.id === id ? review(item, satisfaction, note, new Date()) : item))),
     extend: (id: string, days: number) =>
@@ -170,10 +176,12 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
       setStatus(write(items))
     },
     /** 백업 불러오기 (F20): 사용자가 확인했으므로 지금 기록을 파일의 기록으로 바꾼다 */
-    replaceAll: (next: WishItem[]) => {
+    replaceAll: (next: WishItem[]): StorageStatus => {
+      const result = write(next)
       setItems(next)
-      setStatus(write(next))
+      setStatus(result)
       setNow(new Date())
+      return result
     },
     /** 다른 탭 내용을 불러왔다는 알림을 닫는다 */
     dismissNotice: () => setStatus({ kind: 'ok' }),

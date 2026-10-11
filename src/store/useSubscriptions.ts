@@ -126,9 +126,11 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
     },
     dismissNotice: () => setStatus({ kind: 'ok' }),
     /** 백업 불러오기 (F20): 사용자가 확인했으므로 지금 구독을 파일의 구독으로 바꾼다 */
-    replaceAll: (next: Subscription[]) => {
+    replaceAll: (next: Subscription[]): StorageStatus => {
+      const result = write(next)
       setItems(next)
-      setStatus(write(next))
+      setStatus(result)
+      return result
     },
   }
 }

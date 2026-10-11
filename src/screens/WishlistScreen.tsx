@@ -37,7 +37,8 @@ type Props = {
   now: Date
   onAdd: (input: NewWishInput) => void
   onEdit: (id: string, patch: WishPatch) => void
-  onDecide: (id: string, decision: Decision, note?: string) => void
+  /** 결정한 기록을 돌려주면 되돌리기 알림을 지금 기록과 맞춰 볼 수 있다 */
+  onDecide: (id: string, decision: Decision, note?: string) => WishItem | undefined | void
   onExtend: (id: string, days: number) => void
   onRemove: (id: string) => void
   /** 시연용 예시 데이터 넣기. 목록이 비어 있을 때만 보여준다 */
@@ -72,12 +73,14 @@ export function WishlistScreen({
   const exampleCount = items.filter((item) => isExample(item.name)).length
   // 결정·삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다 (키보드 사용자가 위치를 잃지 않게)
   const headingRef = useRef<HTMLHeadingElement>(null)
-  // 결정 직후에는 "되돌리기"를 보여준다 (F18). 다음 결정이 생기면 바뀐다
-  const [undo, setUndo] = useState<{ id: string; name: string; decision: Decision } | null>(null)
+  // 결정 직후에는 "되돌리기"를 보여준다 (F18). 다음 결정이 생기면 바뀐다.
+  // 다시 고민하기·예시 지우기·백업 불러오기 등으로 그 결정이 바뀌면(같은 ID·결정·결정 시각이 아니면) 숨긴다
+  const [undo, setUndo] = useState<{ id: string; name: string; decision: Decision; decidedAt: string | null } | null>(null)
+  const undoActive =
+    undo !== null && items.some((item) => item.id === undo.id && item.status === undo.decision && item.decidedAt === undo.decidedAt)
   const decide = (id: string, decision: Decision, note?: string) => {
-    const target = items.find((item) => item.id === id)
-    onDecide(id, decision, note)
-    if (target && onReconsider) setUndo({ id, name: target.name, decision })
+    const decided = onDecide(id, decision, note)
+    if (decided && onReconsider) setUndo({ id, name: decided.name, decision, decidedAt: decided.decidedAt })
     headingRef.current?.focus()
   }
   const remove = (id: string) => {
@@ -89,8 +92,8 @@ export function WishlistScreen({
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
         고민 중인 물건
       </h2>
-      <div role="status" aria-label="결정 알림" className={undo ? undefined : 'similar-empty'}>
-        {undo ? (
+      <div role="status" aria-label="결정 알림" className={undo && undoActive ? undefined : 'similar-empty'}>
+        {undo && undoActive ? (
           <div className="example-bar">
             <span className="note">{`‘${undo.name}’${josa(undo.name, '을/를')} ${undo.decision === 'purchased' ? '구매함으로' : '구매 포기로'} 옮겼어요.`}</span>
             <button
@@ -110,7 +113,7 @@ export function WishlistScreen({
       {onRemoveExamples && exampleCount > 0 ? (
         <ExampleBar
           label="예시만 지우기"
-          message={`예시 물건 ${exampleCount}개를 지울까요? 결정 기록의 예시도 함께 지워지고, 직접 담은 물건은 그대로예요.`}
+          message={`이름이 '(예시)'로 시작하는 물건 ${exampleCount}개를 지울까요? 결정 기록의 예시도 함께 지워져요.`}
           onConfirm={() => {
             onRemoveExamples()
             headingRef.current?.focus()
