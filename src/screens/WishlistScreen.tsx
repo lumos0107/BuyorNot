@@ -98,6 +98,21 @@ export function WishlistScreen({
     onRemove(id)
     headingRef.current?.focus()
   }
+  // 정도·답 저장이 다른 탭 기록 때문에 반영되지 않았는데 누른 요소가 사라졌으면(카드가 결정·삭제됐거나 같은 질문에 먼저 답함)
+  // 화면 제목으로 포커스를 옮긴다. 누른 요소가 남아 있으면 그대로 둔다 (F22)
+  const rescueFocus = useRef(false)
+  useEffect(() => {
+    if (!rescueFocus.current) return
+    rescueFocus.current = false
+    const active = document.activeElement
+    if (!active || active === document.body) headingRef.current?.focus()
+  }, [items])
+  const watch = (applied: boolean) => {
+    if (!applied) rescueFocus.current = true
+    return applied
+  }
+  const checkDesire = (id: string, level: DesireLevel) => watch(onCheckDesire(id, level))
+  const answer = (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => watch(onAnswer(id, key, value))
   // 고민 중인 물건이 있으면 목록을 담기 폼보다 먼저 보여준다(F22: 매일 오늘의 고민에 바로 닿게).
   // 같은 key로 순서만 바꿔 담기 폼에 쓰던 내용이 사라지지 않게 한다
   const addFormId = useId()
@@ -167,8 +182,8 @@ export function WishlistScreen({
                   onDecide={decide}
                   onExtend={onExtend}
                   onRemove={remove}
-                  onCheckDesire={onCheckDesire}
-                  onAnswer={onAnswer}
+                  onCheckDesire={checkDesire}
+                  onAnswer={answer}
                 />
               ))}
             </section>,
@@ -532,7 +547,7 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
         <ul className="plain-list answers" aria-label="답한 것">
           {answerLines(item.answers).map(({ key, text }) => (
             <li key={key}>
-              {text}{' '}
+              <span className="answer-text">{text}</span>{' '}
               <button type="button" className="link-btn" aria-label={`‘${text}’ 다시 답하기`} onClick={() => answerAndFocus(key, undefined)}>
                 다시 답하기
               </button>
@@ -926,8 +941,9 @@ function ProblemAnswer({ labelledBy, onAnswer }: { labelledBy: string; onAnswer:
           setError(undefined)
         }}
       />
+      {/* Enter로 다시 제출하면 포커스 이동이 없어 오류를 알림으로 읽힌다 (GPT 코드 검토) */}
       {error ? (
-        <p id={errorId} className="field-error">
+        <p id={errorId} className="field-error" role="alert">
           {error}
         </p>
       ) : null}

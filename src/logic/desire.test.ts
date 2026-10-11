@@ -57,6 +57,16 @@ describe('갖고 싶은 정도 기록 (F22)', () => {
     expect(next[next.length - 1]).toEqual({ day: '2026-10-11', level: 2 })
   })
 
+  it('기기 날짜를 되돌려 빈 날에 기록해도 방금 고른 오늘 기록은 남긴다 (첫 기록 + 오늘 + 나머지 최근 것, GPT 코드 검토)', () => {
+    // 1월 2일만 비어 있는 100개 기록에서 기기 날짜가 1월 2일이 됨
+    const gap = item({ desireChecks: [0, ...Array.from({ length: 99 }, (_, i) => i + 2)].map((i) => ({ day: nthDay(i), level: 3 as DesireLevel })) })
+    const next = checkDesire(gap, 1, new Date(2026, 0, 2, 9)).desireChecks!
+    expect(next).toHaveLength(DESIRE_KEEP)
+    expect(next[0].day).toBe(nthDay(0))
+    expect(next).toContainEqual({ day: nthDay(1), level: 1 })
+    expect(next.map((check) => check.day)).not.toContain(nthDay(2))
+  })
+
   it('복원한 기록이 100개를 넘어도 그날 값만 바꿀 때는 줄이지 않고, 새 날짜를 기록할 때 줄인다 (AC36-2)', () => {
     const restored = Array.from({ length: 149 }, (_, i) => ({ day: nthDay(i), level: 3 as DesireLevel }))
     const withToday = item({ desireChecks: [...restored, { day: '2026-10-11', level: 4 }] })
@@ -83,6 +93,13 @@ describe('변화 문장 (F22)', () => {
   it('같은 날 안에서 바꾼 것은 값만 보이고 판정하지 않는다 (AC36)', () => {
     expect(desireTrend(item({ desireStart: 4, desireChecks: checks(['2026-10-08', 2]) }))).toBe('담을 때 4 → 2')
     expect(desireChange(item({ desireStart: 4, desireChecks: checks(['2026-10-08', 2]) }))).toBeNull()
+  })
+
+  it('담을 때 고른 날을 저장해 두었으면 그 날을 쓴다 (나중에 시간대가 바뀌어도 같은 판정, GPT 코드 검토)', () => {
+    // 등록 시각을 지금 시간대로 바꾸면 10월 8일이지만, 담을 때 고른 날은 10월 9일로 저장돼 있다
+    const moved = item({ createdAt: iso(8, 23), desireStart: 4, desireStartDay: '2026-10-09', desireChecks: checks(['2026-10-09', 2]) })
+    expect(desireTrend(moved)).toBe('담을 때 4 → 2')
+    expect(desireChange(moved)).toBeNull()
   })
 
   it('담을 때 날짜는 등록 시각의 현지 날짜다 (UTC 문자열을 잘라 쓰지 않는다)', () => {

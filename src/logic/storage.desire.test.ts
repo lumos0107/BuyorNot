@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { desireEffect, desireTrend } from './desire'
+import { makeBackup, parseBackup } from './backup'
+import { checkDesire, desireEffect, desireTrend } from './desire'
 import { parseStore } from './storage'
 import { historySummary } from './summary'
 import { demoItems, type WishItem } from './wishlist'
@@ -55,6 +56,12 @@ describe('정도 기록 복원 (F22, AC40)', () => {
     for (const checks of bad) expect(load({ desireChecks: checks })).toMatchObject({ ok: false, reason: 'corrupt' })
   })
 
+  it('담을 때 고른 날은 실제 날짜여야 하고, 담을 때 정도와 함께만 있다', () => {
+    expect(load({ desireStart: 4, desireStartDay: '2026-10-08' })).toMatchObject({ ok: true })
+    expect(load({ desireStart: 4, desireStartDay: '2026-02-30' })).toMatchObject({ ok: false, reason: 'corrupt' })
+    expect(load({ desireStartDay: '2026-10-08' })).toMatchObject({ ok: false, reason: 'corrupt' })
+  })
+
   it('복원은 400개까지 받는다 (AC36-2)', () => {
     const checks = (n: number) => Array.from({ length: n }, (_, i) => ({ day: nthDay(i), level: 3 }))
     expect(load({ desireChecks: checks(400) })).toMatchObject({ ok: true })
@@ -70,6 +77,22 @@ describe('정도 기록 복원 (F22, AC40)', () => {
 
   it('기기 시각이 바뀌어 등록일보다 이른 날짜가 있어도 손상으로 보지 않는다', () => {
     expect(load({ desireStart: 4, desireChecks: [{ day: '2026-10-01', level: 2 }] })).toMatchObject({ ok: true })
+  })
+})
+
+describe('400개 기록의 백업 왕복 (AC36-2, GPT 코드 검토)', () => {
+  it('400개를 백업했다가 불러오면 그대로이고, 같은 날 값만 바꾸면 줄지 않고, 새 날짜를 기록하면 100개가 된다', () => {
+    const restored = item({ desireStart: 4, desireStartDay: '2025-01-01', desireChecks: Array.from({ length: 400 }, (_, i) => ({ day: nthDay(i), level: 3 })) }) as unknown as WishItem
+    const back = parseBackup(makeBackup({ items: [restored], hourlyWage: null, subscriptions: [] }, NOW))
+    expect(back.ok).toBe(true)
+    const roundTrip = (back as { ok: true; data: { items: WishItem[] } }).data.items[0]
+    expect(roundTrip).toEqual(restored)
+    const lastDay = new Date(2025, 0, 400)
+    expect(checkDesire(roundTrip, 2, lastDay).desireChecks).toHaveLength(400)
+    const next = checkDesire(roundTrip, 2, NOW).desireChecks!
+    expect(next).toHaveLength(100)
+    expect(next[0].day).toBe(nthDay(0))
+    expect(next[next.length - 1]).toEqual({ day: '2026-10-11', level: 2 })
   })
 })
 

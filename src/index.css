@@ -483,6 +483,18 @@ a {
   white-space: nowrap;
 }
 
+/* 띄어쓰기 없는 긴 답·이름도 칸 안에서 줄을 바꾼다 (낱말 단위 줄바꿈의 예외, GPT 코드 검토) */
+.answer-text,
+.card-row .card-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.card-row .status {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* 오늘의 고민 (F22) */
 .gomin-note {
   border: 1px solid var(--line);

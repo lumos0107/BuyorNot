@@ -50,6 +50,8 @@ export type WishItem = {
   // 4차 선택 필드 (F22)
   /** 담을 때 고른 갖고 싶은 정도 */
   desireStart?: DesireLevel
+  /** 담을 때 정도를 고른 날(그때의 기기 현지 날짜). 나중에 시간대가 바뀌어도 같은 판정을 하려고 저장한다 */
+  desireStartDay?: string
   /** 고민하는 동안 날마다 기록한 정도 (같은 날은 하나) */
   desireChecks?: DesireCheck[]
 }
@@ -186,7 +188,10 @@ export function createItem(input: NewWishInput, now: Date, id: string): WishItem
   }
   const answers = cleanAnswers(input.answers)
   if (answers) item.answers = answers
-  if (input.desire !== undefined) item.desireStart = input.desire
+  if (input.desire !== undefined) {
+    item.desireStart = input.desire
+    item.desireStartDay = formatDate(createdAt)
+  }
   return item
 }
 
@@ -318,7 +323,7 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
       status: decided?.status ?? 'considering',
       decidedAt,
       ...(answers ? { answers } : {}),
-      ...(desire ? { desireStart: desire.start } : {}),
+      ...(desire ? { desireStart: desire.start, desireStartDay: formatDate(created) } : {}),
       ...(desire && desire.checks.length > 0
         ? { desireChecks: desire.checks.map(([daysAgo, level]) => ({ day: formatDate(ago(daysAgo).toISOString()), level })) }
         : {}),

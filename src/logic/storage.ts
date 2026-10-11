@@ -87,6 +87,8 @@ function hasValidOptionalFields(o: Record<string, unknown>): boolean {
   // 회고 메모는 회고 답과 함께만 있다
   if (o.reviewNote !== undefined && o.satisfaction === undefined) return false
   if (o.desireStart !== undefined && !isDesireLevel(o.desireStart)) return false
+  // 담을 때 고른 날은 실제 날짜이고, 담을 때 정도와 함께만 있다
+  if (o.desireStartDay !== undefined && (o.desireStart === undefined || !isString(o.desireStartDay) || parseDay(o.desireStartDay) === null)) return false
   if (o.desireChecks !== undefined && !isDesireChecks(o.desireChecks)) return false
   if (o.answers !== undefined) {
     if (typeof o.answers !== 'object' || o.answers === null || Array.isArray(o.answers)) return false

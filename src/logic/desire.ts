@@ -19,7 +19,8 @@ function sortedChecks(item: Pick<WishItem, 'desireChecks'>): DesireCheck[] {
   return [...(item.desireChecks ?? [])].sort(byDay)
 }
 
-/** 오늘(기기 현지 날짜)의 정도를 기록한다. 같은 날이면 그날 값을 바꾼다 */
+/** 오늘(기기 현지 날짜)의 정도를 기록한다. 같은 날이면 그날 값을 바꾼다.
+ *  새 날짜로 100개를 넘으면 첫 기록과 방금 고른 오늘 기록을 남기고, 나머지는 최근 것부터 채운다 */
 export function checkDesire(item: WishItem, level: DesireLevel, now: Date): WishItem {
   const day = formatDate(now.toISOString())
   const current = sortedChecks(item)
@@ -28,18 +29,26 @@ export function checkDesire(item: WishItem, level: DesireLevel, now: Date): Wish
     next = current.map((check) => (check.day === day ? { day, level } : check))
   } else {
     next = [...current, { day, level }].sort(byDay)
-    if (next.length > DESIRE_KEEP) next = [next[0], ...next.slice(next.length - (DESIRE_KEEP - 1))]
+    if (next.length > DESIRE_KEEP) {
+      // 기기 날짜를 되돌려 빈 날에 기록해도 방금 고른 오늘 기록이 잘리지 않게 한다
+      const keep = new Set([next[0].day, day])
+      const rest = next.filter((check) => !keep.has(check.day))
+      for (const check of rest.slice(rest.length - (DESIRE_KEEP - keep.size))) keep.add(check.day)
+      next = next.filter((check) => keep.has(check.day))
+    }
   }
   return { ...item, desireChecks: next, updatedAt: now.toISOString() }
 }
 
 type Series = { label: '담을 때' | '처음'; points: DesireCheck[] }
 
-// 처음 값(담을 때 정도, 날짜는 등록 시각의 현지 날짜)과 기록을 날짜순으로 잇는다. 담을 때 정도가 없으면 가장 이른 기록이 처음 값이다
+// 처음 값(담을 때 정도)을 맨 앞에 두고 기록을 날짜순으로 잇는다. 담을 때 정도가 없으면 가장 이른 기록이 처음 값이다.
+// 담을 때 날짜는 저장해 둔 날을 쓰고, 없는 이전 기록만 등록 시각의 현지 날짜로 본다
 function series(item: WishItem): Series | null {
   const checks = sortedChecks(item)
   if (item.desireStart !== undefined) {
-    return { label: '담을 때', points: [{ day: formatDate(item.createdAt), level: item.desireStart }, ...checks] }
+    const day = item.desireStartDay ?? formatDate(item.createdAt)
+    return { label: '담을 때', points: [{ day, level: item.desireStart }, ...checks] }
   }
   return checks.length > 0 ? { label: '처음', points: checks } : null
 }

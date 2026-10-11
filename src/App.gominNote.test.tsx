@@ -70,6 +70,7 @@ describe('갖고 싶은 정도 (F22, AC36)', () => {
     await user.click(within(startScale).getByRole('radio', { name: '4 많이' }))
     await user.click(form().getByRole('button', { name: '담아 두기' }))
     expect(saved()[0].desireStart).toBe(4)
+    expect(saved()[0].desireStartDay).toBe(TODAY)
     expect(note('전기 포트').getByText('담을 때 4')).toBeInTheDocument()
     expect(within(form().getByRole('group', { name: '지금 얼마나 갖고 싶나요? (선택)' })).getByRole('radio', { name: '4 많이' })).not.toBeChecked()
   })
@@ -125,6 +126,14 @@ describe('생각해 볼 질문 (F22, AC37)', () => {
     expect(saved()[0].answers).toEqual({ problem: '출퇴근 때 못 들어요' })
     expect(note('무선 헤드폰').getByText('생각해 볼 질문 · 5개 남음')).toBeInTheDocument()
     expect(note('무선 헤드폰').getByText('한 달 뒤에도 쓸까요?')).toHaveFocus()
+  })
+
+  it('문제 설명 오류는 알림으로 읽히고, 입력에서 Enter로 제출해도 같다 (GPT 코드 검토)', async () => {
+    const user = setup(thing())
+    await user.type(note('무선 헤드폰').getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' }), '{Enter}')
+    expect(note('무선 헤드폰').getByRole('alert')).toHaveTextContent('답을 적어 주세요')
+    expect(note('무선 헤드폰').getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' })).toHaveFocus()
+    expect(saved()[0]).not.toHaveProperty('answers')
   })
 
   it('문제 설명이 201자면 오류를 보여주고 저장하지 않는다', async () => {
@@ -193,6 +202,33 @@ describe('저장과 여러 탭 (F22, AC37-2)', () => {
     expect(saved()[0]).toMatchObject({ answers: { problem: '음악' }, reason: '다른 탭에서 고친 이유' })
     expect(screen.getByRole('status', { name: '저장 상태' })).toHaveTextContent('다른 탭에서 저장한 기록을 불러왔어요')
     expect(note('무선 헤드폰').getByText('한 달 뒤에도 쓸까요?')).not.toHaveFocus()
+    expect(button).toHaveFocus()
+  })
+
+  it('다른 탭에서 결정한 물건이면 카드가 사라지므로 화면 제목으로 포커스를 옮긴다 (GPT 코드 검토)', async () => {
+    const user = setup(thing({ answers: { problem: '음악' } }))
+    localStorage.setItem(STORAGE_KEY, store(thing({ answers: { problem: '음악' }, status: 'skipped', decidedAt: at(0) })))
+    await user.click(note('무선 헤드폰').getByRole('button', { name: '쓸 것 같아요' }))
+    expect(screen.queryByRole('article', { name: '무선 헤드폰' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: '고민 중인 물건' })).toHaveFocus()
+  })
+
+  it('다른 탭이 같은 질문에 먼저 답했으면 누른 버튼이 사라지므로 화면 제목으로 포커스를 옮긴다', async () => {
+    const user = setup(thing({ answers: { problem: '음악' } }))
+    localStorage.setItem(STORAGE_KEY, store(thing({ answers: { problem: '음악', useInMonth: 'no' } })))
+    await user.click(note('무선 헤드폰').getByRole('button', { name: '쓸 것 같아요' }))
+    expect(saved()[0].answers).toEqual({ problem: '음악', useInMonth: 'no' })
+    expect(screen.getByRole('heading', { level: 2, name: '고민 중인 물건' })).toHaveFocus()
+  })
+
+  it('답할 때 저장에 실패해도 화면에는 반영하고 다음 질문으로 포커스를 옮긴다', async () => {
+    const user = setup(thing({ answers: { problem: '음악' } }))
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError')
+    })
+    await user.click(note('무선 헤드폰').getByRole('button', { name: '쓸 것 같아요' }))
+    expect(note('무선 헤드폰').getByText('지금 쓰는 게 있나요?')).toHaveFocus()
+    expect(screen.getByRole('status', { name: '저장 상태' })).toHaveTextContent('저장하지 못했어요')
   })
 
   it('고민 중이 아닌 물건에는 정도도 답도 기록하지 않는다', () => {
@@ -224,6 +260,8 @@ describe('저장과 여러 탭 (F22, AC37-2)', () => {
   it('수정 폼을 연 동안 다른 탭에서 정도를 기록하면 저장을 멈추고, 다시 열어 저장하면 정도 기록이 남는다', async () => {
     const user = setup(thing({ desireStart: 4 }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '수정' }))
+    // 수정 폼을 연 카드에는 오늘의 고민이 없어 같은 탭에서는 수정 중에 정도·답이 바뀌지 않는다
+    expect(card('무선 헤드폰').queryByRole('region', { name: '오늘의 고민' })).not.toBeInTheDocument()
     otherTabWrites(store(thing({ desireStart: 4, desireChecks: [{ day: TODAY, level: 2 }], updatedAt: at(0) })))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '저장' }))
     expect(card('무선 헤드폰').getByRole('alert')).toHaveTextContent('다른 탭에서 이 물건이 바뀌었어요')
