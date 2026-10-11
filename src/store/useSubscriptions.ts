@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getLocalStorage } from '../logic/storage'
+import { replaceRecord, type UsageRecord } from '../logic/usageRecords'
 import {
   SUBS_KEY,
   createSubscription,
@@ -112,6 +113,9 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
     /** 사용량 적기·지우기 (F25) */
     setUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) =>
       commit(items.map((sub) => (sub.id === id ? setUsageEntry(sub, input, new Date()) : sub))),
+    /** 이용 기록 가져오기 (F26): 같은 출처는 합치지 않고 바꾼다 */
+    importUsage: (id: string, record: UsageRecord) =>
+      commit(items.map((sub) => (sub.id === id ? { ...sub, usageRecords: replaceRecord(sub.usageRecords, record), updatedAt: new Date().toISOString() } : sub))),
     /** 예시 구독만 지운다 */
     removeExamples: () => commit(items.filter((sub) => !isExample(sub.name))),
     addDemo: () => commit([...demoSubscriptions(new Date(), newId), ...items]),

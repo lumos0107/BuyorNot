@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatWon } from '../logic/number'
 import { sameRecord } from '../logic/records'
+import { netflixRecord, parseNetflixCsv, type DayOrder } from '../logic/netflixCsv'
 import { usageInfo, validateUsageInput } from '../logic/usage'
+import { describeRecord, type UsageRecord } from '../logic/usageRecords'
 import {
   type UsageEntry,
   daysUntil,
@@ -43,12 +45,14 @@ type Props = {
   onToggleUse: (id: string) => void
   /** 사용량 적기·지우기 (F25) */
   onSetUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) => void
+  /** 이용 기록 가져오기 (F26) */
+  onImportUsage: (id: string, record: UsageRecord) => void
   onRetry: () => void
   onReset: () => void
   onDismiss: () => void
 }
 
-export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRemoveExamples, onToggleUse, onSetUsage, onRetry, onReset, onDismiss }: Props) {
+export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRemoveExamples, onToggleUse, onSetUsage, onImportUsage, onRetry, onReset, onDismiss }: Props) {
   const sorted = sortSubscriptions(items, today)
   const s = subscriptionSummary(items, today)
   const exampleCount = items.filter((sub) => isExample(sub.name)).length
@@ -123,7 +127,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       ) : (
         <section className="stack" aria-label="구독 목록">
           {sorted.map((sub) => (
-            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} onToggleUse={onToggleUse} onSetUsage={onSetUsage} />
+            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} onToggleUse={onToggleUse} onSetUsage={onSetUsage} onImportUsage={onImportUsage} />
           ))}
         </section>
       )}
@@ -307,6 +311,7 @@ function SubscriptionCard({
   onRemove,
   onToggleUse,
   onSetUsage,
+  onImportUsage,
 }: {
   sub: Subscription
   today: Date
@@ -314,10 +319,18 @@ function SubscriptionCard({
   onRemove: (id: string) => void
   onToggleUse: (id: string) => void
   onSetUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) => void
+  onImportUsage: (id: string, record: UsageRecord) => void
 }) {
   const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete'>('view')
   // 사용량 적기 폼 (F25). 닫으면 연 버튼으로 포커스를 돌려보낸다
   const [usageOpen, setUsageOpen] = useState(false)
+  // 이용 기록 가져오기 (F26). 닫으면 연 버튼으로 포커스를 돌려보낸다
+  const [importOpen, setImportOpen] = useState(false)
+  const importRef = useRef<HTMLButtonElement>(null)
+  const closeImport = () => {
+    setImportOpen(false)
+    queueMicrotask(() => importRef.current?.focus())
+  }
   const usageRef = useRef<HTMLButtonElement>(null)
   const closeUsage = () => {
     setUsageOpen(false)
@@ -393,6 +406,11 @@ function SubscriptionCard({
       </p>
       <p className="card-meta">{lastUsed ? `마지막 사용 ${lastUsed}` : '사용 기록 없음'}</p>
       {usage ? <p className="card-meta">{`사용량(${usageLabel(usage)}): ${usage.text}`}</p> : null}
+      {(sub.usageRecords ?? []).map((record) => (
+        <p key={record.source} className="card-meta">
+          {describeRecord(record, today)}
+        </p>
+      ))}
       {sub.memo ? <p>{sub.memo}</p> : null}
       <div className="btn-row">
         <Button aria-pressed={usedToday} onClick={() => onToggleUse(sub.id)}>
@@ -431,8 +449,21 @@ function SubscriptionCard({
           <button type="button" className="link-btn" ref={deleteRef} onClick={() => setMode('confirm-delete')}>
             삭제
           </button>
+          <button type="button" className="link-btn" ref={importRef} aria-expanded={importOpen} onClick={() => setImportOpen(true)}>
+            이용 기록 가져오기
+          </button>
         </div>
       )}
+      {importOpen ? (
+        <UsageImport
+          sub={sub}
+          onImport={(record) => {
+            onImportUsage(sub.id, record)
+            closeImport()
+          }}
+          onCancel={closeImport}
+        />
+      ) : null}
     </article>
   )
 }
@@ -518,5 +549,110 @@ function UsageEntryForm({
         <Button onClick={onCancel}>취소</Button>
       </div>
     </form>
+  )
+}
+
+// 이용 기록 가져오기 (F26 13-3): 파일 선택 → 브라우저 안에서 읽기 → 미리보기 → 확인 → 저장.
+// 지금은 넷플릭스 시청 기록 CSV만. 파일과 제목은 저장하지 않고 날짜별 기록 수만 남긴다
+const MAX_USAGE_FILE_BYTES = 5 * 1024 * 1024
+const IMPORT_ERROR = {
+  format: '넷플릭스 시청 기록 파일이 아니에요. 첫 줄이 Title,Date(또는 제목,날짜)인 CSV인지 확인해 주세요.',
+  empty: '파일에 시청 기록이 없어요.',
+  'no-dates': '날짜를 하나도 읽지 못했어요. 넷플릭스에서 받은 파일 그대로인지 확인해 주세요.',
+  size: '파일이 너무 커요. 5MB 이하의 시청 기록 파일을 골라 주세요.',
+  read: '파일을 읽지 못했어요. 다시 골라 주세요.',
+} as const
+
+function readFileText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(file)
+  })
+}
+
+function UsageImport({ sub, onImport, onCancel }: { sub: Subscription; onImport: (record: UsageRecord) => void; onCancel: () => void }) {
+  const inputId = `usage-file-${sub.id}`
+  const errorId = `usage-file-error-${sub.id}`
+  const [text, setText] = useState<string | null>(null)
+  const [order, setOrder] = useState<DayOrder | undefined>()
+  const [error, setError] = useState<string | null>(null)
+  // 파일을 연달아 고르면 마지막 선택만 반영한다
+  const readSeq = useRef(0)
+  const parsed = text === null ? null : parseNetflixCsv(text, order)
+  const shownError = error ?? (parsed && !parsed.ok ? IMPORT_ERROR[parsed.reason] : null)
+  const replacing = (sub.usageRecords ?? []).some((record) => record.source === 'netflix-csv')
+
+  const choose = async (file: File | undefined) => {
+    const seq = ++readSeq.current
+    setText(null)
+    setOrder(undefined)
+    setError(null)
+    if (!file) return
+    if (file.size > MAX_USAGE_FILE_BYTES) {
+      setError(IMPORT_ERROR.size)
+      return
+    }
+    const content = await readFileText(file).catch(() => null)
+    if (seq !== readSeq.current) return
+    if (content === null) setError(IMPORT_ERROR.read)
+    else setText(content)
+  }
+
+  // 미리보기는 행에서 바로 센다. 가져온 시각은 가져오기를 누를 때 정한다
+  const days = parsed && parsed.ok ? [...new Set(parsed.rows.map((row) => row.day))].sort() : []
+
+  return (
+    <section className="stack import-panel" aria-label="이용 기록 가져오기">
+      <p className="note">
+        지금은 넷플릭스 시청 기록 파일(CSV)만 가져올 수 있어요. PC 브라우저에서 넷플릭스 계정 → 프로필 → 시청 기록 → 모두 다운로드로 받은 파일이에요. 파일은 이 기기 안에서만 읽고, 제목은 저장하지 않아요.
+      </p>
+      <div className="field">
+        <label className="field-label" htmlFor={inputId}>
+          시청 기록 파일 (CSV)
+        </label>
+        <input
+          id={inputId}
+          className="file-input"
+          type="file"
+          accept=".csv,text/csv"
+          aria-invalid={shownError ? true : undefined}
+          aria-describedby={shownError ? errorId : undefined}
+          onChange={(e) => void choose(e.target.files?.[0])}
+        />
+        {shownError ? (
+          <p id={errorId} className="field-error" role="alert">
+            {shownError}
+          </p>
+        ) : null}
+      </div>
+      {parsed && parsed.ok && days.length > 0 ? (
+        <div className="stack" role="group" aria-label="가져오기 미리보기">
+          <p>{`넷플릭스 시청 기록 · 기록 ${parsed.rows.length}개${parsed.merged > 0 ? ` (같은 날 같은 제목 ${parsed.merged}개 합침)` : ''}`}</p>
+          <p>{`기간 ${days[0]} ~ ${days[days.length - 1]} · 이용 일수 ${days.length}일`}</p>
+          {parsed.skipped > 0 ? <p className="note">{`날짜를 읽지 못한 줄 ${parsed.skipped}개는 빼요.`}</p> : null}
+          {parsed.ambiguous ? (
+            <div className="example-bar">
+              <span className="note">{`날짜를 ${parsed.order === 'md' ? '월/일' : '일/월'} 순서로 읽었어요.`}</span>
+              <button type="button" className="link-btn" onClick={() => setOrder(parsed.order === 'md' ? 'dm' : 'md')}>
+                {parsed.order === 'md' ? '일/월로 다시 읽기' : '월/일로 다시 읽기'}
+              </button>
+            </div>
+          ) : null}
+          <p className="field-label">{replacing ? '이 구독의 넷플릭스 시청 기록을 이 파일로 바꿀까요?' : '이 구독에 이 기록을 저장할까요?'}</p>
+          <div className="btn-row">
+            <Button variant="primary" onClick={() => onImport(netflixRecord(parsed.rows, new Date()))}>
+              가져오기
+            </Button>
+            <Button onClick={onCancel}>취소</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="btn-row">
+          <Button onClick={onCancel}>취소</Button>
+        </div>
+      )}
+    </section>
   )
 }

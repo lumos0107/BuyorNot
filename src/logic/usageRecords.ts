@@ -115,3 +115,14 @@ export function isUsageRecords(v: unknown): boolean {
   }
   return true
 }
+
+/** 카드에 보여줄 출처 기록 한 줄: 최근 30일 이용 일수·기록 수, 일부만 있으면 그렇다고, 수집 기간과 가져온 날 */
+export function describeRecord(record: UsageRecord, today: Date): string {
+  const label = SOURCE_LABEL[record.source]
+  const imported = new Date(record.updatedAt)
+  const meta = `(파일 ${record.from}~${record.to} · ${imported.getMonth() + 1}/${imported.getDate()} 가져옴)`
+  const s = analyzeRecord(record, recentPeriod(today))
+  if (s.coverage === 'none') return `${label}: 최근 30일은 파일 기간 밖이에요 ${meta}`
+  const part = s.coverage === 'partial' ? ` · 최근 30일 중 ${s.coveredDays}일분만 있어요` : ''
+  return `${label}: 최근 30일 ${s.days}일 · 기록 ${s.plays}개${part} ${meta}`
+}

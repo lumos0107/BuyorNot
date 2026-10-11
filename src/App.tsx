@@ -108,6 +108,7 @@ export default function App() {
             onRemoveExamples={subscriptions.removeExamples}
             onToggleUse={subscriptions.toggleUse}
             onSetUsage={subscriptions.setUsage}
+            onImportUsage={subscriptions.importUsage}
             onRetry={subscriptions.retrySave}
             onReset={subscriptions.resetStorage}
             onDismiss={subscriptions.dismissNotice}
