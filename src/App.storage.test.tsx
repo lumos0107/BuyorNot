@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -95,5 +95,41 @@ describe('화면 연결과 안내', () => {
     // 예시도 보통 기록처럼 저장된다
     expect(localStorage.getItem(STORAGE_KEY)).toContain('(예시)')
     expect(screen.queryByRole('button', { name: '예시 물건 넣기' })).not.toBeInTheDocument()
+  })
+})
+
+// GPT 4단계 검토 반영: 다른 탭의 변경 반영, 초기화 취소
+describe('여러 탭과 초기화 취소', () => {
+  it('다른 탭에서 저장한 기록을 이 탭에도 반영한다', async () => {
+    render(<App />)
+    expect(screen.getByText('아직 담아 둔 물건이 없어요.')).toBeInTheDocument()
+    const item = {
+      id: 'other-tab',
+      name: '다른 탭 물건',
+      priceKrw: 1000,
+      reason: '이유',
+      url: null,
+      createdAt: '2026-10-11T00:00:00.000Z',
+      updatedAt: '2026-10-11T00:00:00.000Z',
+      reviewAt: '2026-10-14T00:00:00.000Z',
+      status: 'considering',
+      decidedAt: null,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
+    await act(async () => {
+      window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }))
+    })
+    expect(screen.getByRole('article', { name: '다른 탭 물건' })).toBeInTheDocument()
+  })
+
+  it('초기화를 취소하면 손상 안내와 원본이 그대로 남는다', async () => {
+    localStorage.setItem(STORAGE_KEY, '{not json')
+    const user = userEvent.setup()
+    render(<App />)
+    const banner = within(screen.getByRole('status'))
+    await user.click(banner.getByRole('button', { name: '기록 초기화' }))
+    await user.click(banner.getByRole('button', { name: '취소' }))
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('{not json')
   })
 })

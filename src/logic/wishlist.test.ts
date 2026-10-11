@@ -173,3 +173,29 @@ describe('등록 입력 검증 (F01)', () => {
     expect(validateWishInput({ ...validRaw, url: 'example.com' }).errors.url).toBeTruthy()
   })
 })
+
+// GPT 4단계 검토 반영
+import { demoItems, nextReviewDelay } from './wishlist'
+
+describe('정렬과 갱신 시점', () => {
+  it('결정 기록은 표기가 달라도 실제 시각 순으로 정렬한다', () => {
+    const laterActual = decideItem(item({ id: 'later' }), 'purchased', new Date('2026-10-11T05:00:00Z'))
+    const earlierActual = { ...decideItem(item({ id: 'earlier' }), 'skipped', new Date('2026-10-11T01:00:00Z')), decidedAt: '2026-10-11T10:00:00+09:00' }
+    expect(sortHistory([earlierActual, laterActual]).map((i) => i.id)).toEqual(['later', 'earlier'])
+  })
+
+  it('가장 가까운 종료 시각까지의 시간을 알려주고, 고민 중인 것이 없으면 null이다', () => {
+    const now = at(T0, hours(10))
+    const soon = item({ id: 'soon', reviewAt: reviewAtFrom(T0, 1) })
+    const late = item({ id: 'late', reviewAt: reviewAtFrom(T0, 3) })
+    const passed = item({ id: 'passed', reviewAt: reviewAtFrom(T0, 0) })
+    const done = decideItem(item({ id: 'done', reviewAt: reviewAtFrom(T0, 1) }), 'purchased', now)
+    expect(nextReviewDelay([late, soon, passed, done], now)).toBe(hours(14))
+    expect(nextReviewDelay([passed, done], now)).toBeNull()
+  })
+
+  it('예시 데이터의 결정된 항목은 수정 시각이 결정 시각과 같다', () => {
+    const decided = demoItems(T0, () => 'x').find((i) => i.status !== 'considering')!
+    expect(decided.updatedAt).toBe(decided.decidedAt)
+  })
+})

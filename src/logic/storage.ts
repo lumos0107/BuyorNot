@@ -1,7 +1,9 @@
-import type { WishItem } from './wishlist'
+import { MAX_WON } from './number'
+import { NAME_MAX, REASON_MAX, type WishItem } from './wishlist'
 
 // PRD F06 로컬 저장: 현재 브라우저의 localStorage에만 저장한다.
 // 손상된 데이터는 조용히 덮어쓰지 않고, 저장 실패는 성공으로 알리지 않는다. (AC13)
+// 복원할 때는 타입뿐 아니라 값의 의미(가격 범위, 날짜, 상태와 결정 시각, 링크, id 중복)도 검사한다.
 
 export type WishStore = { schemaVersion: 1; items: WishItem[] }
 
@@ -17,22 +19,33 @@ function isString(v: unknown): v is string {
   return typeof v === 'string'
 }
 
+function isTimestamp(v: unknown): v is string {
+  return isString(v) && Number.isFinite(Date.parse(v))
+}
+
+function isHttpUrl(v: string): boolean {
+  try {
+    const url = new URL(v)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 function isWishItem(v: unknown): v is WishItem {
   if (typeof v !== 'object' || v === null) return false
   const o = v as Record<string, unknown>
-  return (
-    isString(o.id) &&
-    isString(o.name) &&
-    typeof o.priceKrw === 'number' &&
-    isString(o.reason) &&
-    (o.url === null || isString(o.url)) &&
-    isString(o.createdAt) &&
-    isString(o.updatedAt) &&
-    isString(o.reviewAt) &&
-    isString(o.status) &&
-    STATUSES.has(o.status) &&
-    (o.decidedAt === null || isString(o.decidedAt))
-  )
+  if (!isString(o.id) || o.id.length === 0) return false
+  if (!isString(o.name) || o.name.length === 0 || o.name.length > NAME_MAX) return false
+  if (!Number.isInteger(o.priceKrw) || (o.priceKrw as number) < 0 || (o.priceKrw as number) > MAX_WON) return false
+  if (!isString(o.reason) || o.reason.length === 0 || o.reason.length > REASON_MAX) return false
+  if (o.url !== null && !(isString(o.url) && isHttpUrl(o.url))) return false
+  if (!isTimestamp(o.createdAt) || !isTimestamp(o.updatedAt) || !isTimestamp(o.reviewAt)) return false
+  // 종료 시각은 등록 시각 뒤여야 한다. 수정·결정 시각은 기기 시각 변경으로 앞설 수 있어 검사하지 않는다
+  if (Date.parse(o.reviewAt) < Date.parse(o.createdAt)) return false
+  if (!isString(o.status) || !STATUSES.has(o.status)) return false
+  if (o.status === 'considering' ? o.decidedAt !== null : !isTimestamp(o.decidedAt)) return false
+  return true
 }
 
 export function parseStore(raw: string | null): LoadResult {
@@ -48,7 +61,9 @@ export function parseStore(raw: string | null): LoadResult {
   if (o.schemaVersion !== 1 || !Array.isArray(o.items) || !o.items.every(isWishItem)) {
     return { ok: false, reason: 'corrupt' }
   }
-  return { ok: true, store: { schemaVersion: 1, items: o.items } }
+  const items = o.items as WishItem[]
+  if (new Set(items.map((item) => item.id)).size !== items.length) return { ok: false, reason: 'corrupt' }
+  return { ok: true, store: { schemaVersion: 1, items } }
 }
 
 export function loadStore(storage: Storage | null): LoadResult {

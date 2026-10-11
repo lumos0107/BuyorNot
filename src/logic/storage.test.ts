@@ -64,3 +64,37 @@ describe('저장과 복원', () => {
     expect(loadStore(null)).toMatchObject({ ok: false, reason: 'unavailable' })
   })
 })
+
+// GPT 4단계 검토 반영: 타입만이 아니라 값의 의미도 검증한다 (AC13)
+describe('복원 데이터의 의미 검증', () => {
+  const base = store.items[0]!
+  const withItem = (over: Partial<typeof base>) => JSON.stringify({ schemaVersion: 1, items: [{ ...base, ...over }] })
+
+  it('음수·소수·상한 초과 가격은 손상이다', () => {
+    expect(parseStore(withItem({ priceKrw: -1 }))).toMatchObject({ ok: false, reason: 'corrupt' })
+    expect(parseStore(withItem({ priceKrw: 12.5 }))).toMatchObject({ ok: false, reason: 'corrupt' })
+    expect(parseStore(withItem({ priceKrw: 1_000_000_001 }))).toMatchObject({ ok: false, reason: 'corrupt' })
+  })
+
+  it('읽을 수 없는 날짜나 등록보다 이른 종료 시각은 손상이다', () => {
+    expect(parseStore(withItem({ reviewAt: 'not a date' }))).toMatchObject({ ok: false, reason: 'corrupt' })
+    expect(parseStore(withItem({ reviewAt: '2026-10-10T00:00:00.000Z' }))).toMatchObject({ ok: false, reason: 'corrupt' })
+  })
+
+  it('상태와 결정 시각이 어긋나면 손상이다', () => {
+    expect(parseStore(withItem({ status: 'considering', decidedAt: '2026-10-12T00:00:00.000Z' }))).toMatchObject({ ok: false })
+    expect(parseStore(withItem({ status: 'purchased', decidedAt: null }))).toMatchObject({ ok: false })
+    expect(parseStore(withItem({ status: 'purchased', decidedAt: '2026-10-12T00:00:00.000Z' }))).toMatchObject({ ok: true })
+  })
+
+  it('허용되지 않은 링크나 중복 id는 손상이다', () => {
+    expect(parseStore(withItem({ url: 'ftp://x' }))).toMatchObject({ ok: false })
+    expect(parseStore(withItem({ url: 'https://shop.example.com/1' }))).toMatchObject({ ok: true })
+    const dup = JSON.stringify({ schemaVersion: 1, items: [base, { ...base }] })
+    expect(parseStore(dup)).toMatchObject({ ok: false, reason: 'corrupt' })
+  })
+
+  it('수정 시각이 등록보다 앞서는 것은 기기 시각 변경일 수 있으므로 손상으로 보지 않는다', () => {
+    expect(parseStore(withItem({ updatedAt: '2026-10-01T00:00:00.000Z' }))).toMatchObject({ ok: true })
+  })
+})

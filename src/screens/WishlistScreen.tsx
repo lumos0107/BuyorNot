@@ -131,7 +131,7 @@ function AddForm({ onAdd }: { onAdd: (input: NewWishInput) => void }) {
             직접 입력
           </label>
         </div>
-        {shown.days ? <p className="field-error">{shown.days}</p> : null}
+        {shown.days && raw.preset !== 'custom' ? <p className="field-error">{shown.days}</p> : null}
       </fieldset>
       {raw.preset === 'custom' ? (
         <TextField
@@ -140,6 +140,7 @@ function AddForm({ onAdd }: { onAdd: (input: NewWishInput) => void }) {
           placeholder="1~30"
           hint="1일부터 30일까지"
           value={raw.customDays}
+          error={shown.days}
           onChange={(e) => set('customDays', e.target.value)}
         />
       ) : null}

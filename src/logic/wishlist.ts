@@ -144,16 +144,25 @@ export function decideItem(item: WishItem, status: 'purchased' | 'skipped', now:
   return { ...item, status, decidedAt: at, updatedAt: at }
 }
 
-// 재검토 가능한 것(종료 시각이 지난 것)이 먼저, 그다음 종료가 가까운 순
+const ts = (iso: string | null) => (iso ? Date.parse(iso) : 0)
+
+// 재검토 가능한 것(종료 시각이 지난 것)이 먼저, 그다음 종료가 가까운 순. 표기가 달라도 실제 시각으로 정렬한다
 export function sortConsidering(items: readonly WishItem[], _now: Date): WishItem[] {
-  return items.filter((item) => item.status === 'considering').sort((a, b) => a.reviewAt.localeCompare(b.reviewAt))
+  return items.filter((item) => item.status === 'considering').sort((a, b) => ts(a.reviewAt) - ts(b.reviewAt))
 }
 
 // 결정 기록은 최신 결정 순 (F03)
 export function sortHistory(items: readonly WishItem[]): WishItem[] {
-  return items
-    .filter((item) => item.status !== 'considering')
-    .sort((a, b) => (b.decidedAt ?? '').localeCompare(a.decidedAt ?? ''))
+  return items.filter((item) => item.status !== 'considering').sort((a, b) => ts(b.decidedAt) - ts(a.decidedAt))
+}
+
+/** 가장 가까운 숙려 종료까지 남은 ms. 앞으로 끝날 것이 없으면 null (화면 갱신 타이머용) */
+export function nextReviewDelay(items: readonly WishItem[], now: Date): number | null {
+  const upcoming = items
+    .filter((item) => item.status === 'considering')
+    .map((item) => ts(item.reviewAt) - now.getTime())
+    .filter((ms) => ms > 0)
+  return upcoming.length > 0 ? Math.min(...upcoming) : null
 }
 
 // 발표·시연용 가상 데이터. 재검토 가능한 것, 숙려 중인 것, 이미 결정한 것을 하나씩 만든다. 보통 기록처럼 저장된다.
@@ -168,6 +177,7 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
     decided?: { status: 'purchased' | 'skipped'; daysAgo: number },
   ): WishItem => {
     const created = ago(createdDaysAgo).toISOString()
+    const decidedAt = decided ? ago(decided.daysAgo).toISOString() : null
     return {
       id: nextId(),
       name: `(예시) ${name}`,
@@ -175,10 +185,10 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
       reason,
       url: null,
       createdAt: created,
-      updatedAt: created,
+      updatedAt: decidedAt ?? created,
       reviewAt: reviewAtFrom(created, days),
       status: decided?.status ?? 'considering',
-      decidedAt: decided ? ago(decided.daysAgo).toISOString() : null,
+      decidedAt,
     }
   }
   return [

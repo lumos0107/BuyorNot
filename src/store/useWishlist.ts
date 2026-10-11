@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { getLocalStorage, loadStore, saveStore, type LoadResult } from '../logic/storage'
+import { STORAGE_KEY, getLocalStorage, loadStore, saveStore, type LoadResult } from '../logic/storage'
 import {
   createItem,
   decideItem,
   demoItems,
   newId,
+  nextReviewDelay,
   updateItem,
   type NewWishInput,
   type WishItem,
@@ -48,6 +49,28 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [])
+
+  // 다른 탭이 저장하면 이 탭도 그 내용으로 맞춘다. 서로의 기록을 덮어쓰지 않게 하기 위해서다
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== null && event.key !== STORAGE_KEY) return
+      const loaded = loadStore(storage)
+      if (!loaded.ok) return
+      setItems(loaded.store.items)
+      setStatus({ kind: 'ok' })
+      setNow(new Date())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [storage])
+
+  // 가장 가까운 숙려 종료 시각에 맞춰 한 번 더 갱신한다. 30초 주기만으로는 정각 뒤 최대 30초까지 '숙려 중'으로 남기 때문이다
+  useEffect(() => {
+    const delay = nextReviewDelay(items, new Date())
+    if (delay === null) return
+    const timer = window.setTimeout(() => setNow(new Date()), Math.min(delay + 50, 2_147_483_647))
+    return () => window.clearTimeout(timer)
+  }, [items])
 
   const persist = (next: WishItem[], current: StorageStatus): StorageStatus => {
     // 손상된 데이터 위에는 쓰지 않고, 저장소가 없으면 시도하지 않는다

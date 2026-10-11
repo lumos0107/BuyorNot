@@ -156,3 +156,21 @@ describe('숙려 리스트', () => {
     expect(screen.getByText('아직 담아 둔 물건이 없어요.')).toBeInTheDocument()
   })
 })
+
+// GPT 4단계 검토 반영: 직접 입력 일수의 오류 연결
+describe('직접 입력 일수', () => {
+  it('범위를 벗어나면 그 입력에 오류가 연결된다', async () => {
+    const { user } = setup()
+    const form = within(screen.getByRole('form', { name: '물건 담기' }))
+    await user.type(form.getByLabelText('상품명'), '로봇청소기')
+    await user.type(form.getByLabelText('가격'), '450000')
+    await user.type(form.getByLabelText('사고 싶은 이유'), '이유')
+    await user.click(form.getByRole('radio', { name: '직접 입력' }))
+    await user.type(form.getByLabelText('숙려 일수'), '40')
+    await user.click(form.getByRole('button', { name: '담아 두기' }))
+    const days = form.getByLabelText('숙려 일수')
+    expect(days).toHaveAttribute('aria-invalid', 'true')
+    expect(days).toHaveAccessibleDescription(/1~30일/)
+    expect(screen.queryByRole('article')).not.toBeInTheDocument()
+  })
+})
