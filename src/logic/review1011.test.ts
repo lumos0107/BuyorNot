@@ -59,7 +59,9 @@ describe('날짜 입력 범위', () => {
 
 describe('요약 반올림 순서', () => {
   it('월 합계는 카드에 보이는 월 환산(반올림 값)의 합이다: 연 120,005원 두 건 → 월 20,000원, 연 240,010원', () => {
-    const s = subscriptionSummary([yearly, { ...yearly, id: 'y2' }], localDay(2026, 10, 11))
+    // 해지 후보는 기록상 31일 이상 안 쓴 구독이다 (F23)
+    const unused = { ...yearly, lastUsedDate: '2026-09-01' }
+    const s = subscriptionSummary([unused, { ...unused, id: 'y2' }], localDay(2026, 10, 11))
     expect(s.monthlyTotal).toBe(20000)
     expect(s.candidateMonthly).toBe(20000)
     expect(s.yearlyTotal).toBe(240010)

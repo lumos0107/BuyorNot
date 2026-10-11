@@ -68,10 +68,10 @@ describe('다음 결제일 (F14)', () => {
 
 describe('해지 후보 (F14)', () => {
   const today = day('2026-10-11')
-  it('AC27: 마지막 사용이 30일 전이면 아직 아니고, 31일 전이거나 비어 있으면 해지 후보다', () => {
+  it('AC27: 마지막 사용이 30일 전이면 아직 아니고, 31일 전이면 해지 후보다. 비어 있으면 확인 필요라 후보가 아니다 (F23)', () => {
     expect(isCancelCandidate(monthly('A', 1000, 1, '2026-09-11'), today)).toBe(false)
     expect(isCancelCandidate(monthly('A', 1000, 1, '2026-09-10'), today)).toBe(true)
-    expect(isCancelCandidate(monthly('A', 1000, 1, null), today)).toBe(true)
+    expect(isCancelCandidate(monthly('A', 1000, 1, null), today)).toBe(false)
     expect(isCancelCandidate(monthly('A', 1000, 1, '2026-10-11'), today)).toBe(false)
   })
 })
@@ -89,7 +89,7 @@ describe('요약과 정렬 (F14)', () => {
   })
 
   it('해지 후보의 월 환산 합계를 따로 보여준다', () => {
-    const subs = [monthly('A', 10000, 1, null), yearly('C', 120005, '2027-01-01', null), monthly('B', 5000, 2, '2026-10-10')]
+    const subs = [monthly('A', 10000, 1, '2026-09-01'), yearly('C', 120005, '2027-01-01', '2026-09-01'), monthly('B', 5000, 2, '2026-10-10')]
     const s = subscriptionSummary(subs, today)
     expect(s.candidateCount).toBe(2)
     expect(s.candidateMonthly).toBe(20000)

@@ -6,6 +6,7 @@ import {
   daysUntil,
   isCancelCandidate,
   lastUsedOf,
+  needsUsageCheck,
   monthlyEquivalent,
   nextBillingDate,
   sortSubscriptions,
@@ -98,6 +99,10 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
             <p className="field-label">
               해지 후보 {s.candidateCount}개 · 월 {formatWon(s.candidateMonthly)}
             </p>
+          ) : null}
+          {/* 사용 기록이 없으면 안 쓰는지 알 수 없어 해지 후보로 세지 않는다 (F23) */}
+          {s.unknownCount > 0 ? (
+            <p className="note">{`사용 기록이 없는 구독 ${s.unknownCount}개는 마지막으로 쓴 날을 적거나 '오늘 썼어요'를 누르면 해지 후보인지 알려 줘요.`}</p>
           ) : null}
           <p className="note">연 구독은 12로 나눈 값을 월에 더해 보여줘요. 연 합계는 실제 요금으로 계산해요.</p>
           {items.some((sub) => usageInfo(sub, today)?.source === 'example') ? (
@@ -271,7 +276,7 @@ function SubscriptionForm({
         label="마지막 사용일 (선택)"
         type="date"
         max={toDayIso(today)}
-        hint="비워 두거나 31일 이상 안 쓰면 해지 후보로 표시해요"
+        hint="31일 이상 안 쓰면 해지 후보로 표시해요. 비워 두면 '확인 필요'로 보여요"
         value={raw.lastUsedDate}
         error={shown.lastUsedDate}
         onChange={(e) => set('lastUsedDate', e.target.value)}
@@ -363,7 +368,11 @@ function SubscriptionCard({
     <article className="card stack" aria-label={sub.name}>
       <div className="card-row">
         <p className="card-title">{sub.name}</p>
-        {candidate ? <span className="status status-warn">해지 후보</span> : null}
+        {candidate ? (
+          <span className="status status-warn">해지 후보</span>
+        ) : needsUsageCheck(sub) ? (
+          <span className="status status-muted">확인 필요</span>
+        ) : null}
       </div>
       <p className="price">{priceText}</p>
       <p className="card-meta">

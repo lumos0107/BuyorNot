@@ -1,5 +1,6 @@
 import { formatFixed, josa } from './number'
 import { QUESTION_ORDER, QUESTION_TEXT, hasAnswer } from './questions'
+import { userWrittenReason } from './draft'
 import { describeSimilar, findSimilar } from './similar'
 import { describeAnswers, formatRemaining, reviewState, type Answers, type WishItem } from './wishlist'
 
@@ -39,8 +40,10 @@ export function impulseSignals(item: WishItem, items: readonly WishItem[], now: 
   return signals
 }
 
+// 할인 문구는 사용자가 쓴 부분에서만 찾는다. 가격 비교에서 가져온 문장의 "할인 8,000원"·"쿠폰 적용 불가"는 빼고 본다 (F23)
 function saleWordIn(reason: string): string | undefined {
-  return SALE_WORDS.find((word) => reason.includes(word))
+  const own = userWrittenReason(reason)
+  return SALE_WORDS.find((word) => own.includes(word))
 }
 
 /** 답하지 않은 질문 (중요한 순서). 이유의 할인 문구가 이미 걸리는 점이면 할인 질문은 뺀다 */

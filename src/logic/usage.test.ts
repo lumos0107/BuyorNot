@@ -57,7 +57,7 @@ describe('예시 구독과 예시 사용량 (F14·F16)', () => {
   })
 
   it('예시 요약: 월 46,280원, 연 555,360원, 해지 후보는 음악 스트리밍 1개', () => {
-    expect(subscriptionSummary(demo, NOW)).toEqual({ monthlyTotal: 46280, yearlyTotal: 555360, candidateCount: 1, candidateMonthly: 10900 })
+    expect(subscriptionSummary(demo, NOW)).toEqual({ monthlyTotal: 46280, yearlyTotal: 555360, candidateCount: 1, candidateMonthly: 10900, unknownCount: 0 })
   })
 
   it('복원할 때 예시 사용 시간은 0~43,200분, 사용 횟수는 0~999 정수만 받고, 둘이 함께 있으면 손상이다', () => {

@@ -14,7 +14,7 @@ export type Subscription = {
   billingDay?: number
   /** 연 구독: 다음(또는 지난) 갱신일. 지났으면 1년씩 더해 계산한다 */
   renewalDate?: string
-  /** 마지막으로 쓴 날. 비어 있으면 해지 후보 */
+  /** 마지막으로 쓴 날. 비어 있고 오늘 썼어요 기록도 없으면 "확인 필요"(해지 후보 아님, F23) */
   lastUsedDate: string | null
   memo?: string
   /** 시연용 예시 사용 시간: 최근 30일, 분 (F16). 직접 넣은 구독에는 없다 */
@@ -91,9 +91,10 @@ export function lastUsedOf(sub: Subscription): string | null {
   return recorded > sub.lastUsedDate ? recorded : sub.lastUsedDate
 }
 
+/** 해지 후보: 기록상 31일 이상 안 쓴 구독. 사용 기록이 없으면 후보가 아니라 확인 필요다 (F14, F23) */
 export function isCancelCandidate(sub: Subscription, today: Date): boolean {
   const last = lastUsedOf(sub)
-  if (!last) return true
+  if (!last) return false
   const used = parseDay(last)
   return !used || calendarDaysBetween(used, today) >= CANCEL_AFTER_DAYS
 }
@@ -111,6 +112,11 @@ export function toggleUseToday(sub: Subscription, today: Date, now: Date): Subsc
   return out
 }
 
+/** 사용 기록(마지막 사용일·오늘 썼어요)이 없어 쓰는지 알 수 없는 구독 (F23 "확인 필요") */
+export function needsUsageCheck(sub: Subscription): boolean {
+  return lastUsedOf(sub) === null
+}
+
 export type SubscriptionSummary = {
   /** 월 구독 요금 합 + 연 구독 월 환산(카드에 보이는 반올림 값) 합. 요약이 카드 숫자의 합과 같게 한다 (표시용) */
   monthlyTotal: number
@@ -118,6 +124,8 @@ export type SubscriptionSummary = {
   yearlyTotal: number
   candidateCount: number
   candidateMonthly: number
+  /** 사용 기록이 없는 구독 수 (F23) */
+  unknownCount: number
 }
 
 export function subscriptionSummary(subs: readonly Subscription[], today: Date): SubscriptionSummary {
@@ -129,6 +137,7 @@ export function subscriptionSummary(subs: readonly Subscription[], today: Date):
     yearlyTotal: monthlyRaw * 12 + yearlyRaw,
     candidateCount: candidates.length,
     candidateMonthly: candidates.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
+    unknownCount: subs.filter(needsUsageCheck).length,
   }
 }
 
@@ -248,7 +257,7 @@ export function demoSubscriptions(today: Date, nextId: () => string): Subscripti
     },
     {
       ...createSubscription(
-        { name: '(예시) 음악 스트리밍', priceKrw: 10900, cycle: 'monthly', billingDay: 1, lastUsedDate: null, memo: '요즘 거의 안 들음' },
+        { name: '(예시) 음악 스트리밍', priceKrw: 10900, cycle: 'monthly', billingDay: 1, lastUsedDate: shift(-40), memo: '요즘 거의 안 들음' },
         today,
         nextId(),
       ),

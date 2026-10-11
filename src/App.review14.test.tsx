@@ -46,7 +46,8 @@ describe('빈 사용 기록 (높음)', () => {
     render(<App />)
     await user.click(screen.getByRole('tab', { name: '구독' }))
     expect(card('티빙').getByText('사용 기록 없음')).toBeInTheDocument()
-    expect(card('티빙').getByText('해지 후보')).toBeInTheDocument()
+    // 사용 기록이 없으면 해지 후보가 아니라 확인 필요다 (F23)
+    expect(card('티빙').getByText('확인 필요')).toBeInTheDocument()
   })
 })
 

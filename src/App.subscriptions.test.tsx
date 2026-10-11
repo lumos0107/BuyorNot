@@ -57,9 +57,9 @@ describe('구독 정리함 (F14)', () => {
     expect(summary().getByText('연 162,000원')).toBeInTheDocument()
   })
 
-  it('AC27: 연 구독은 월 환산을 함께 보여주고, 사용 기록이 없으면 해지 후보다', async () => {
+  it('AC27: 연 구독은 월 환산을 함께 보여주고, 기록상 31일 이상 안 썼으면 해지 후보다 (F23)', async () => {
     const { user } = await openSubs()
-    await addSub(user, { name: '클라우드', price: '120005', cycle: '매년', renewal: '2027-01-01' })
+    await addSub(user, { name: '클라우드', price: '120005', cycle: '매년', renewal: '2027-01-01', lastUsed: '2026-09-01' })
     expect(card('클라우드').getByText('연 120,005원 · 월 10,000원')).toBeInTheDocument()
     expect(card('클라우드').getByText('다음 결제 2027-01-01 · D-82')).toBeInTheDocument()
     expect(card('클라우드').getByText('해지 후보')).toBeInTheDocument()

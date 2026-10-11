@@ -87,6 +87,30 @@ describe('사기 전 점검 신호 (F15)', () => {
   })
 })
 
+describe('가격 비교 문장은 할인 근거로 세지 않는다 (F23, AC41)', () => {
+  const compare = '가격 비교: B안 결제액 72,000원 (할인 8,000원 · 배송비 포함)'
+
+  it('결제액·단가 비교 문장의 할인·쿠폰은 근거가 아니다', () => {
+    expect(texts(item({ reason: compare, answers: undefined }))).toEqual([])
+    expect(texts(item({ reason: '가격 비교: A안 결제액 52,000원 (쿠폰 적용 불가)', answers: undefined }))).toEqual([])
+    expect(texts(item({ reason: '가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원)', answers: undefined }))).toEqual([])
+  })
+
+  it('사용자가 덧붙인 말의 할인 문구는 근거로 센다', () => {
+    expect(texts(item({ reason: `${compare} 세일이라서`, answers: undefined }))).toEqual(["사고 싶은 이유에 '세일'이 있어요. 할인이 없어도 살까요?"])
+  })
+
+  it('문장을 고쳐 형식이 달라지면 사용자가 쓴 것으로 본다', () => {
+    expect(texts(item({ reason: '가격 비교: B안 결제액 72,000원 할인', answers: undefined }))).toEqual([
+      "사고 싶은 이유에 '할인'이 있어요. 할인이 없어도 살까요?",
+    ])
+  })
+
+  it('비교 문장만 있으면 생각해 볼 질문에 할인 질문이 들어간다', () => {
+    expect(unansweredQuestions(item({ reason: compare, answers: undefined }))).toContain('할인·한정 때문인가요?')
+  })
+})
+
 describe('그 밖에 답한 것 (F22)', () => {
   it('걸리는 점이 되지 않은 답을 질문의 중요한 순서로, 답 목록과 같은 문장으로 돌려준다', () => {
     const calmAll = { haveOne: 'no', problem: '선이 자꾸 끊겨요', useInMonth: 'yes', saleDriven: 'no', spaceTime: 'yes', alternative: 'no' } as const
