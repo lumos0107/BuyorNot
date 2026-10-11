@@ -64,7 +64,7 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
   it('마지막 사용을 비워 두면 해지 후보가 아니라 확인 필요이고, 오늘 썼어요를 누르면 사라졌다가 다시 누르면 돌아온다', async () => {
     const user = await openSubs()
     const form = within(screen.getByRole('form', { name: '구독 담기' }))
-    expect(form.getByLabelText('마지막 사용일 (선택)')).toHaveAccessibleDescription("31일 이상 안 쓰면 해지 후보로 표시해요. 비워 두면 '확인 필요'로 보여요")
+    expect(form.getByLabelText('마지막 사용일 (선택)')).toHaveAccessibleDescription("31일 이상 안 쓰면 해지 후보로 표시해요. 비워 두고 '오늘 썼어요' 기록도 없으면 '확인 필요'로 보여요")
     await user.type(form.getByLabelText('구독 이름'), '티빙')
     await user.type(form.getByLabelText('요금'), '9500')
     await user.type(form.getByLabelText('결제일 (매월)'), '10')
@@ -79,6 +79,22 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
     expect(summary().queryByText(NOTE)).not.toBeInTheDocument()
     await user.click(card('티빙').getByRole('button', { name: '오늘 썼어요' }))
     expect(card('티빙').getByText('확인 필요')).toBeInTheDocument()
+  })
+
+  it('해지 후보에서 오늘 썼어요를 켰다 끄면 이전 마지막 사용일과 해지 후보·요약 금액이 돌아온다 (GPT 후속 확인)', async () => {
+    const sub = { id: 's1', name: '왓챠', priceKrw: 7900, cycle: 'monthly', billingDay: 5, lastUsedDate: '2026-09-01', createdAt: at(-60), updatedAt: at(-60) }
+    localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub] }))
+    const user = await openSubs()
+    expect(card('왓챠').getByText('해지 후보')).toBeInTheDocument()
+    expect(summary().getByText('해지 후보 1개 · 월 7,900원')).toBeInTheDocument()
+    await user.click(card('왓챠').getByRole('button', { name: '오늘 썼어요' }))
+    expect(card('왓챠').queryByText('해지 후보')).not.toBeInTheDocument()
+    expect(card('왓챠').getByText('마지막 사용 2026-10-11')).toBeInTheDocument()
+    expect(summary().queryByText(/^해지 후보 \d+개/)).not.toBeInTheDocument()
+    await user.click(card('왓챠').getByRole('button', { name: '오늘 썼어요' }))
+    expect(card('왓챠').getByText('해지 후보')).toBeInTheDocument()
+    expect(card('왓챠').getByText('마지막 사용 2026-09-01')).toBeInTheDocument()
+    expect(summary().getByText('해지 후보 1개 · 월 7,900원')).toBeInTheDocument()
   })
 
   it('기록상 31일 이상 안 쓴 구독은 해지 후보다', async () => {

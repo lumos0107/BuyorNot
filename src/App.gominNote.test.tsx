@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -203,6 +203,14 @@ describe('저장과 여러 탭 (F22, AC37-2)', () => {
     expect(screen.getByRole('status', { name: '저장 상태' })).toHaveTextContent('다른 탭에서 저장한 기록을 불러왔어요')
     expect(note('무선 헤드폰').getByText('한 달 뒤에도 쓸까요?')).not.toHaveFocus()
     expect(button).toHaveFocus()
+  })
+
+  it('버튼에 포커스가 가지 않는 클릭(사파리 등)에서 요소가 남아 있으면 제목으로 옮기지 않는다 (GPT 후속 확인)', () => {
+    setup(thing({ answers: { problem: '음악' } }))
+    localStorage.setItem(STORAGE_KEY, store(thing({ answers: { problem: '음악' }, reason: '다른 탭에서 고친 이유' })))
+    fireEvent.click(note('무선 헤드폰').getByRole('button', { name: '쓸 것 같아요' }))
+    expect(screen.getByRole('status', { name: '저장 상태' })).toHaveTextContent('다른 탭에서 저장한 기록을 불러왔어요')
+    expect(screen.getByRole('heading', { level: 2, name: '고민 중인 물건' })).not.toHaveFocus()
   })
 
   it('다른 탭에서 결정한 물건이면 카드가 사라지므로 화면 제목으로 포커스를 옮긴다 (GPT 코드 검토)', async () => {

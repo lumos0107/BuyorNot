@@ -37,6 +37,12 @@ describe('사용자가 쓴 이유만 남기기 (F23)', () => {
     expect(userWrittenReason(`세일 중이라 ${discount} 다시 봄`).replace(/\s+/g, ' ').trim()).toBe('세일 중이라 다시 봄')
   })
 
+  it('"가격 비교:"로 시작해도 앱이 만드는 형식이 아니면 사용자가 쓴 것이다 (GPT 후속 확인)', () => {
+    expect(userWrittenReason('가격 비교: 세일이라 쌈 (오늘만)')).toBe('가격 비교: 세일이라 쌈 (오늘만)')
+    expect(userWrittenReason('가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원)').trim()).toBe('')
+    expect(userWrittenReason('가격 비교: 상품 B 1개당 1,234.5원 (총 12개 · 14,814원)').trim()).toBe('')
+  })
+
   it('문장을 고쳐 형식이 달라지면 사용자가 쓴 것으로 본다', () => {
     expect(userWrittenReason('가격 비교: B안 결제액 72,000원 할인')).toBe('가격 비교: B안 결제액 72,000원 할인')
   })

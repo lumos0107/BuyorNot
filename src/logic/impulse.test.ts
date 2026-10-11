@@ -106,6 +106,16 @@ describe('가격 비교 문장은 할인 근거로 세지 않는다 (F23, AC41)'
     ])
   })
 
+  it('"가격 비교:"로 시작해도 앱이 만드는 형식이 아니면 그 안의 할인 문구를 센다', () => {
+    expect(texts(item({ reason: '가격 비교: 세일이라 쌈 (오늘만)', answers: undefined }))).toEqual(["사고 싶은 이유에 '세일'이 있어요. 할인이 없어도 살까요?"])
+  })
+
+  it('비교 문장 사이에 사용자가 말을 넣어 형식이 깨지면 그 안의 할인 문구를 센다 (GPT 후속 확인)', () => {
+    expect(texts(item({ reason: '가격 비교: B안 결제액 72,000원 세일이라서 사고 싶어요 (오늘까지만)', answers: undefined }))).toEqual([
+      "사고 싶은 이유에 '세일'이 있어요. 할인이 없어도 살까요?",
+    ])
+  })
+
   it('비교 문장만 있으면 생각해 볼 질문에 할인 질문이 들어간다', () => {
     expect(unansweredQuestions(item({ reason: compare, answers: undefined }))).toContain('할인·한정 때문인가요?')
   })

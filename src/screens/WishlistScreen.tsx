@@ -99,16 +99,17 @@ export function WishlistScreen({
     headingRef.current?.focus()
   }
   // 정도·답 저장이 다른 탭 기록 때문에 반영되지 않았는데 누른 요소가 사라졌으면(카드가 결정·삭제됐거나 같은 질문에 먼저 답함)
-  // 화면 제목으로 포커스를 옮긴다. 누른 요소가 남아 있으면 그대로 둔다 (F22)
-  const rescueFocus = useRef(false)
+  // 화면 제목으로 포커스를 옮긴다. 누르기 직전의 요소를 기억해 그 요소가 화면에서 빠졌을 때만 옮긴다
+  // (버튼을 눌러도 포커스가 가지 않는 브라우저에서 요소가 남아 있는데 옮기지 않게, F22·GPT 후속 확인)
+  const rescueFrom = useRef<Element | null>(null)
   useEffect(() => {
-    if (!rescueFocus.current) return
-    rescueFocus.current = false
-    const active = document.activeElement
-    if (!active || active === document.body) headingRef.current?.focus()
+    const from = rescueFrom.current
+    if (!from) return
+    rescueFrom.current = null
+    if (!from.isConnected) headingRef.current?.focus()
   }, [items])
   const watch = (applied: boolean) => {
-    if (!applied) rescueFocus.current = true
+    if (!applied) rescueFrom.current = document.activeElement
     return applied
   }
   const checkDesire = (id: string, level: DesireLevel) => watch(onCheckDesire(id, level))

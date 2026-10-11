@@ -276,7 +276,7 @@ function SubscriptionForm({
         label="마지막 사용일 (선택)"
         type="date"
         max={toDayIso(today)}
-        hint="31일 이상 안 쓰면 해지 후보로 표시해요. 비워 두면 '확인 필요'로 보여요"
+        hint="31일 이상 안 쓰면 해지 후보로 표시해요. 비워 두고 '오늘 썼어요' 기록도 없으면 '확인 필요'로 보여요"
         value={raw.lastUsedDate}
         error={shown.lastUsedDate}
         onChange={(e) => set('lastUsedDate', e.target.value)}
