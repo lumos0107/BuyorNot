@@ -4,6 +4,7 @@ import {
   createItem,
   decideItem,
   demoItems,
+  extendItem,
   newId,
   nextReviewDelay,
   updateItem,
@@ -92,8 +93,10 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     add: (input: NewWishInput) => commit([createItem(input, new Date(), newId()), ...items]),
     edit: (id: string, patch: WishPatch) =>
       commit(items.map((item) => (item.id === id ? updateItem(item, patch, new Date()) : item))),
-    decide: (id: string, decision: 'purchased' | 'skipped') =>
-      commit(items.map((item) => (item.id === id ? decideItem(item, decision, new Date()) : item))),
+    decide: (id: string, decision: 'purchased' | 'skipped', note?: string) =>
+      commit(items.map((item) => (item.id === id ? decideItem(item, decision, new Date(), note) : item))),
+    extend: (id: string, days: number) =>
+      commit(items.map((item) => (item.id === id ? extendItem(item, days, new Date()) : item))),
     remove: (id: string) => commit(items.filter((item) => item.id !== id)),
     addDemo: () => commit([...demoItems(new Date(), newId), ...items]),
     /** 저장 실패 뒤 다시 시도 */

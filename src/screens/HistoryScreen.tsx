@@ -2,13 +2,25 @@ import { useState } from 'react'
 import { formatDate } from '../logic/dates'
 import { formatWon } from '../logic/number'
 import { sortHistory, type WishItem } from '../logic/wishlist'
+import { Button } from '../ui/Button'
 import { DeleteConfirm } from './WishlistScreen'
 
-// PRD F03 결정 기록: 최신 결정 순, 구매 이유와 등록 당시 가격을 보여준다. 합계·통계는 1차 범위 밖.
+// PRD F03 결정 기록: 최신 결정 순, 구매 이유와 등록 가격, 결정 메모(F08), 필터(F12)
 type Props = { items: WishItem[]; onRemove: (id: string) => void }
+type Filter = 'all' | 'purchased' | 'skipped'
 
 export function HistoryScreen({ items, onRemove }: Props) {
+  const [filter, setFilter] = useState<Filter>('all')
   const history = sortHistory(items)
+  const purchased = history.filter((item) => item.status === 'purchased')
+  const skipped = history.filter((item) => item.status === 'skipped')
+  const shown = filter === 'all' ? history : filter === 'purchased' ? purchased : skipped
+  const filters: { key: Filter; label: string; count: number }[] = [
+    { key: 'all', label: '전체', count: history.length },
+    { key: 'purchased', label: '구매함', count: purchased.length },
+    { key: 'skipped', label: '구매 포기', count: skipped.length },
+  ]
+
   return (
     <div className="stack">
       <h2 className="screen-title">결정 기록</h2>
@@ -18,11 +30,26 @@ export function HistoryScreen({ items, onRemove }: Props) {
           <p className="note">고민 중인 물건에서 구매함·구매 포기를 고르면 여기에 쌓여요.</p>
         </div>
       ) : (
-        <section className="stack" aria-label="결정 기록 목록">
-          {history.map((item) => (
-            <HistoryCard key={item.id} item={item} onRemove={onRemove} />
-          ))}
-        </section>
+        <>
+          <div className="btn-row filter-row" role="group" aria-label="결정 기록 필터">
+            {filters.map(({ key, label, count }) => (
+              <Button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>
+                {label} ({count})
+              </Button>
+            ))}
+          </div>
+          {shown.length === 0 ? (
+            <div className="empty card">
+              <p>이 조건의 기록이 없어요.</p>
+            </div>
+          ) : (
+            <section className="stack" aria-label="결정 기록 목록">
+              {shown.map((item) => (
+                <HistoryCard key={item.id} item={item} onRemove={onRemove} />
+              ))}
+            </section>
+          )}
+        </>
       )}
     </div>
   )
@@ -50,6 +77,12 @@ function HistoryCard({ item, onRemove }: { item: WishItem; onRemove: (id: string
         ) : null}
       </p>
       <p>{item.reason}</p>
+      {item.decisionNote ? (
+        <>
+          <p className="card-meta">결정 메모</p>
+          <p>{item.decisionNote}</p>
+        </>
+      ) : null}
       {confirming ? (
         <DeleteConfirm name={item.name} onConfirm={() => onRemove(item.id)} onCancel={() => setConfirming(false)} />
       ) : (

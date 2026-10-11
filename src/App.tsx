@@ -37,6 +37,7 @@ export default function App() {
             onAdd={wishlist.add}
             onEdit={wishlist.edit}
             onDecide={wishlist.decide}
+            onExtend={wishlist.extend}
             onRemove={wishlist.remove}
             onAddDemo={wishlist.addDemo}
           />

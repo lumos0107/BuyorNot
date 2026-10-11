@@ -5,6 +5,16 @@ import { MAX_WON, parseInteger } from './number'
 
 export type ItemStatus = 'considering' | 'purchased' | 'skipped'
 
+/** 담을 때 답하는 질문 3개 (F09). 모두 선택 */
+export type Answers = {
+  haveOne?: 'yes' | 'no'
+  problem?: string
+  useInMonth?: 'yes' | 'no' | 'unsure'
+}
+
+/** 구매 후 회고 (F12) */
+export type Satisfaction = 'good' | 'meh' | 'regret'
+
 export type WishItem = {
   id: string
   name: string
@@ -17,6 +27,25 @@ export type WishItem = {
   reviewAt: string
   status: ItemStatus
   decidedAt: string | null
+  // 2차 선택 필드. 1차 기록에는 없으므로 모두 optional (PRD #10)
+  /** 더 고민하기 횟수 (F07) */
+  extensions?: number
+  /** 결정할 때 적은 메모 (F08) */
+  decisionNote?: string
+  answers?: Answers
+  satisfaction?: Satisfaction
+  reviewNote?: string
+}
+
+export const NOTE_MAX = 200
+export const EXTEND_DAYS = [1, 3, 7] as const
+
+/** 메모(결정·회고)는 앞뒤 공백을 지우고 200자까지. 비어 있으면 값 없음 */
+export function validateNote(raw: string): { value?: string; error?: string } {
+  const trimmed = raw.trim()
+  if (trimmed.length === 0) return {}
+  if (trimmed.length > NOTE_MAX) return { error: `메모는 ${NOTE_MAX}자 이하로 적어 주세요` }
+  return { value: trimmed }
 }
 
 export type NewWishInput = { name: string; priceKrw: number; reason: string; days: number; url: string | null }
@@ -138,10 +167,24 @@ export function updateItem(item: WishItem, patch: WishPatch, now: Date): WishIte
   return { ...item, ...patch, updatedAt: now.toISOString() }
 }
 
-// 숙려 중에도 결정할 수 있다. 결정 시각을 저장하고 상태를 바꾼다. (F02)
-export function decideItem(item: WishItem, status: 'purchased' | 'skipped', now: Date): WishItem {
+// 숙려 중에도 결정할 수 있다. 결정 시각을 저장하고 상태를 바꾼다. 메모는 비어 있으면 저장하지 않는다. (F02, F08)
+export function decideItem(item: WishItem, status: 'purchased' | 'skipped', now: Date, note?: string): WishItem {
   const at = now.toISOString()
-  return { ...item, status, decidedAt: at, updatedAt: at }
+  const decisionNote = note?.trim() || undefined
+  const next: WishItem = { ...item, status, decidedAt: at, updatedAt: at }
+  if (decisionNote) next.decisionNote = decisionNote
+  return next
+}
+
+// 더 고민하기: 새 종료 시각 = max(지금, 기존 종료) + 일수. 등록 시각과 이유는 그대로, 횟수만 +1 (F07)
+export function extendItem(item: WishItem, days: number, now: Date): WishItem {
+  const base = Math.max(now.getTime(), Date.parse(item.reviewAt))
+  return {
+    ...item,
+    reviewAt: new Date(base + days * DAY_MS).toISOString(),
+    extensions: (item.extensions ?? 0) + 1,
+    updatedAt: now.toISOString(),
+  }
 }
 
 const ts = (iso: string | null) => (iso ? Date.parse(iso) : 0)

@@ -1,5 +1,5 @@
 import { MAX_WON } from './number'
-import { NAME_MAX, REASON_MAX, type WishItem } from './wishlist'
+import { NAME_MAX, NOTE_MAX, REASON_MAX, type WishItem } from './wishlist'
 
 // PRD F06 로컬 저장: 현재 브라우저의 localStorage에만 저장한다.
 // 손상된 데이터는 조용히 덮어쓰지 않고, 저장 실패는 성공으로 알리지 않는다. (AC13)
@@ -45,6 +45,31 @@ function isWishItem(v: unknown): v is WishItem {
   if (Date.parse(o.reviewAt) < Date.parse(o.createdAt)) return false
   if (!isString(o.status) || !STATUSES.has(o.status)) return false
   if (o.status === 'considering' ? o.decidedAt !== null : !isTimestamp(o.decidedAt)) return false
+  return hasValidOptionalFields(o)
+}
+
+const SATISFACTIONS = new Set(['good', 'meh', 'regret'])
+const YES_NO = new Set(['yes', 'no'])
+const YES_NO_UNSURE = new Set(['yes', 'no', 'unsure'])
+
+function isNote(v: unknown): boolean {
+  return v === undefined || (isString(v) && v.length <= NOTE_MAX)
+}
+
+// 2차 선택 필드(PRD #10). 없으면 1차 기록이고, 있으면 규칙에 맞아야 한다
+function hasValidOptionalFields(o: Record<string, unknown>): boolean {
+  if (o.extensions !== undefined && !(Number.isInteger(o.extensions) && (o.extensions as number) >= 0)) return false
+  if (!isNote(o.decisionNote) || !isNote(o.reviewNote)) return false
+  if (o.satisfaction !== undefined && !(isString(o.satisfaction) && SATISFACTIONS.has(o.satisfaction))) return false
+  // 회고는 구매함 기록에만 있다 (F12)
+  if (o.status !== 'purchased' && (o.satisfaction !== undefined || o.reviewNote !== undefined)) return false
+  if (o.answers !== undefined) {
+    if (typeof o.answers !== 'object' || o.answers === null) return false
+    const a = o.answers as Record<string, unknown>
+    if (a.haveOne !== undefined && !(isString(a.haveOne) && YES_NO.has(a.haveOne))) return false
+    if (!isNote(a.problem)) return false
+    if (a.useInMonth !== undefined && !(isString(a.useInMonth) && YES_NO_UNSURE.has(a.useInMonth))) return false
+  }
   return true
 }
 

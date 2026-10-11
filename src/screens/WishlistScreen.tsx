@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
 import { formatWon } from '../logic/number'
 import {
   COOLING_PRESETS,
+  EXTEND_DAYS,
   coolingDays,
   formatRemaining,
   reviewState,
   sortConsidering,
+  validateNote,
   validateWishInput,
   validateWishPatch,
   type NewWishInput,
@@ -18,19 +20,22 @@ import {
 import { Button } from '../ui/Button'
 import { TextAreaField, TextField } from '../ui/Field'
 
-// PRD F01 상품 등록·관리, F02 숙려와 결정
+// PRD F01 상품 등록·관리, F02 숙려와 결정, F07 연장, F08 결정 메모
+type Decision = 'purchased' | 'skipped'
+
 type Props = {
   items: WishItem[]
   now: Date
   onAdd: (input: NewWishInput) => void
   onEdit: (id: string, patch: WishPatch) => void
-  onDecide: (id: string, decision: 'purchased' | 'skipped') => void
+  onDecide: (id: string, decision: Decision, note?: string) => void
+  onExtend: (id: string, days: number) => void
   onRemove: (id: string) => void
   /** 시연용 예시 데이터 넣기. 목록이 비어 있을 때만 보여준다 */
   onAddDemo?: () => void
 }
 
-export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onRemove, onAddDemo }: Props) {
+export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onExtend, onRemove, onAddDemo }: Props) {
   const considering = sortConsidering(items, now)
   return (
     <div className="stack">
@@ -45,7 +50,15 @@ export function WishlistScreen({ items, now, onAdd, onEdit, onDecide, onRemove, 
       ) : (
         <section className="stack" aria-label="고민 중인 물건 목록">
           {considering.map((item) => (
-            <WishCard key={item.id} item={item} now={now} onEdit={onEdit} onDecide={onDecide} onRemove={onRemove} />
+            <WishCard
+              key={item.id}
+              item={item}
+              now={now}
+              onEdit={onEdit}
+              onDecide={onDecide}
+              onExtend={onExtend}
+              onRemove={onRemove}
+            />
           ))}
         </section>
       )}
@@ -166,15 +179,35 @@ type CardProps = {
   item: WishItem
   now: Date
   onEdit: (id: string, patch: WishPatch) => void
-  onDecide: (id: string, decision: 'purchased' | 'skipped') => void
+  onDecide: (id: string, decision: Decision, note?: string) => void
+  onExtend: (id: string, days: number) => void
   onRemove: (id: string) => void
 }
 
-type CardMode = 'view' | 'edit' | 'confirm-delete'
+type CardMode = 'view' | 'edit' | 'confirm-delete' | 'extend' | 'decide-purchased' | 'decide-skipped'
 
-function WishCard({ item, now, onEdit, onDecide, onRemove }: CardProps) {
+type Trigger = 'purchased' | 'skipped' | 'extend' | 'edit' | 'delete'
+
+function WishCard({ item, now, onEdit, onDecide, onExtend, onRemove }: CardProps) {
   const [mode, setMode] = useState<CardMode>('view')
   const state = reviewState(item.reviewAt, now)
+  const extensions = item.extensions ?? 0
+
+  // 하위 화면(연장·메모·삭제 확인)을 닫으면 그 화면을 연 버튼으로 포커스를 돌려보낸다. 키보드 사용자가 위치를 잃지 않게 (F06)
+  const triggers = useRef<Partial<Record<Trigger, HTMLButtonElement | null>>>({})
+  const returnTo = useRef<Trigger | null>(null)
+  const open = (next: CardMode, from: Trigger) => {
+    returnTo.current = from
+    setMode(next)
+  }
+  useEffect(() => {
+    if (mode !== 'view' || !returnTo.current) return
+    triggers.current[returnTo.current]?.focus()
+    returnTo.current = null
+  }, [mode])
+  const bind = (key: Trigger) => (el: HTMLButtonElement | null) => {
+    triggers.current[key] = el
+  }
 
   if (mode === 'edit') {
     return (
@@ -204,6 +237,7 @@ function WishCard({ item, now, onEdit, onDecide, onRemove }: CardProps) {
       <p className="price">{formatWon(item.priceKrw)}</p>
       <p className="card-meta">
         담은 날 {formatDate(item.createdAt)} · {coolingDays(item)}일 숙려
+        {extensions > 0 ? ` · ${extensions}번 연장` : ''}
         {item.url ? (
           <>
             {' · '}
@@ -217,20 +251,39 @@ function WishCard({ item, now, onEdit, onDecide, onRemove }: CardProps) {
 
       {mode === 'confirm-delete' ? (
         <DeleteConfirm name={item.name} onConfirm={() => onRemove(item.id)} onCancel={() => setMode('view')} />
+      ) : mode === 'extend' ? (
+        <ExtendPicker
+          onPick={(days) => {
+            onExtend(item.id, days)
+            setMode('view')
+          }}
+          onCancel={() => setMode('view')}
+        />
+      ) : mode === 'decide-purchased' || mode === 'decide-skipped' ? (
+        <DecisionForm
+          decision={mode === 'decide-purchased' ? 'purchased' : 'skipped'}
+          onConfirm={(note) => onDecide(item.id, mode === 'decide-purchased' ? 'purchased' : 'skipped', note)}
+          onCancel={() => setMode('view')}
+        />
       ) : (
         <>
           <p className="field-label">{state.phase === 'ready' ? '아직 필요한가요?' : '지금 결정해도 돼요'}</p>
           <div className="btn-row">
-            <Button variant="primary" onClick={() => onDecide(item.id, 'purchased')}>
+            <Button variant="primary" ref={bind('purchased')} onClick={() => open('decide-purchased', 'purchased')}>
               구매함
             </Button>
-            <Button onClick={() => onDecide(item.id, 'skipped')}>구매 포기</Button>
+            <Button ref={bind('skipped')} onClick={() => open('decide-skipped', 'skipped')}>
+              구매 포기
+            </Button>
           </div>
           <div className="card-actions">
-            <button type="button" className="link-btn" onClick={() => setMode('edit')}>
+            <button type="button" className="link-btn" ref={bind('extend')} onClick={() => open('extend', 'extend')}>
+              더 고민하기
+            </button>
+            <button type="button" className="link-btn" ref={bind('edit')} onClick={() => open('edit', 'edit')}>
               수정
             </button>
-            <button type="button" className="link-btn" onClick={() => setMode('confirm-delete')}>
+            <button type="button" className="link-btn" ref={bind('delete')} onClick={() => open('confirm-delete', 'delete')}>
               삭제
             </button>
           </div>
@@ -240,12 +293,68 @@ function WishCard({ item, now, onEdit, onDecide, onRemove }: CardProps) {
   )
 }
 
+// 더 고민하기: 1·3·7일 중 고른다. 새 종료 시각은 로직(extendItem)이 정한다 (F07)
+function ExtendPicker({ onPick, onCancel }: { onPick: (days: number) => void; onCancel: () => void }) {
+  return (
+    <div className="stack" role="group" aria-label="더 고민하기">
+      <p className="field-label">얼마나 더 고민할까요? 지금부터 세어요.</p>
+      <div className="btn-row">
+        {EXTEND_DAYS.map((days, index) => (
+          <Button key={days} autoFocus={index === 0} onClick={() => onPick(days)}>
+            {days}일 더
+          </Button>
+        ))}
+        <Button onClick={onCancel}>취소</Button>
+      </div>
+    </div>
+  )
+}
+
+// 결정 메모(선택)를 적고 확인해야 결정이 저장된다 (F08)
+function DecisionForm({ decision, onConfirm, onCancel }: { decision: Decision; onConfirm: (note?: string) => void; onCancel: () => void }) {
+  const [note, setNote] = useState('')
+  const [error, setError] = useState<string | undefined>()
+  const label = decision === 'purchased' ? '구매함' : '구매 포기'
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const checked = validateNote(note)
+    if (checked.error) {
+      setError(checked.error)
+      return
+    }
+    onConfirm(checked.value)
+  }
+
+  return (
+    <form className="stack" aria-label={`${label} 확인`} onSubmit={submit} noValidate>
+      <TextAreaField
+        label="결정 메모 (선택)"
+        autoFocus
+        placeholder={decision === 'purchased' ? '왜 사기로 했나요?' : '왜 안 사기로 했나요?'}
+        value={note}
+        error={error}
+        onChange={(e) => {
+          setNote(e.target.value)
+          setError(undefined)
+        }}
+      />
+      <div className="btn-row">
+        <Button variant="primary" type="submit">
+          {label} 확인
+        </Button>
+        <Button onClick={onCancel}>취소</Button>
+      </div>
+    </form>
+  )
+}
+
 export function DeleteConfirm({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div className="stack" role="group" aria-label="삭제 확인">
       <p className="field-label">‘{name}’을 지울까요?</p>
       <div className="btn-row">
-        <Button variant="danger" onClick={onConfirm}>
+        <Button variant="danger" autoFocus onClick={onConfirm}>
           지우기
         </Button>
         <Button onClick={onCancel}>취소</Button>

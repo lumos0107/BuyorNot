@@ -303,6 +303,17 @@ textarea.input {
   flex: 1 1 auto;
 }
 
+/* 눌린 상태의 필터 버튼: 색과 함께 테두리로도 구분한다 */
+.btn[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-row .btn {
+  flex: 0 1 auto;
+}
+
 /* A·B 입력: 모바일은 위아래, 768px 이상은 좌우 */
 .ab-grid {
   display: grid;
