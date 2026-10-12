@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
 import { formatDate } from '../logic/dates'
-import { DESIRE_LEVELS, DESIRE_TEXT, desireTrend } from '../logic/desire'
+import { DESIRE_LEVELS, DESIRE_TEXT, desireDueToday, desireTrend } from '../logic/desire'
 import type { WishDraft } from '../logic/draft'
 import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
@@ -164,6 +164,7 @@ export function WishlistScreen({
           </Button>
         </div>
       ) : null}
+      <TodayNudge items={considering} now={now} />
       {/* 담기 폼은 짧아서 고민 중인 물건이 있어도 맨 위에 둔다 (F24) */}
       <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} exampleFill={exampleFill} />
       {considering.length === 0 ? (
@@ -194,6 +195,27 @@ export function WishlistScreen({
     </div>
   )
 }
+
+// 오늘의 고민으로 이동 (2026-10-13 G): 담기 폼 위 한 줄. 오늘 갖고 싶은 정도를 안 적은 물건 수를 알리고,
+// 목록 순서상 첫 물건의 "오늘의 고민" 제목으로 옮긴다. 모두 적었으면 숨긴다(앱 밖에서 부르는 알림이 아니다)
+function TodayNudge({ items, now }: { items: WishItem[]; now: Date }) {
+  // 알림 칸(status)에는 문장만 둔다. 수가 바뀔 때 버튼 이름까지 함께 읽히지 않게 버튼은 칸 밖에 둔다 (GPT 28번)
+  const due = items.filter((item) => desireDueToday(item, now))
+  return (
+    <div className={due.length > 0 ? 'example-bar' : 'similar-empty'}>
+      <span role="status" aria-label="오늘 적을 물건" className="note">
+        {due.length > 0 ? `오늘 갖고 싶은 정도를 안 적은 물건 ${due.length}개` : null}
+      </span>
+      {due.length > 0 ? (
+        <button type="button" className="link-btn" onClick={() => document.getElementById(gominTitleId(due[0].id))?.focus()}>
+          적으러 가기
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+const gominTitleId = (itemId: string) => `gomin-title-${itemId}`
 
 // 안내문 (F11): 효과를 단정하지 않고 이 앱이 하는 일만 적는다
 function CoolingGuide() {
@@ -861,7 +883,7 @@ function GominNote({
 
   return (
     <section className="gomin-note stack" aria-label="오늘의 고민">
-      <p className="field-label" tabIndex={-1} ref={titleRef}>
+      <p className="field-label" id={gominTitleId(item.id)} tabIndex={-1} ref={titleRef}>
         오늘의 고민
       </p>
       <DesireScale legend="지금 얼마나 갖고 싶나요?" name={`desire-${item.id}`} value={todayLevel} trend={desireTrend(item)} onChange={onCheckDesire} />

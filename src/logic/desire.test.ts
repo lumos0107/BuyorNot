@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DESIRE_KEEP, checkDesire, desireChange, desireEffect, desireTrend } from './desire'
+import { DESIRE_KEEP, checkDesire, desireChange, desireDueToday, desireEffect, desireTrend } from './desire'
 import { type DesireCheck, type DesireLevel, type WishItem } from './wishlist'
 
 // PRD F22 고민 노트: 갖고 싶은 정도를 담을 때와 고민하는 동안 기록하고 변화를 보여준다 (AC36, AC36-2, AC40)
@@ -143,5 +143,24 @@ describe('결정 기록의 고민 효과 (F22, AC40)', () => {
     expect(desireEffect(items)).toEqual({ dropped: 2, droppedSkipped: 2 })
     const boughtAnyway = decided('purchased', { desireStart: 4, desireChecks: checks(['2026-10-10', 3]) })
     expect(desireEffect([...items, boughtAnyway])).toEqual({ dropped: 3, droppedSkipped: 2 })
+  })
+})
+
+describe('오늘 갖고 싶은 정도를 아직 안 적었는지 (2026-10-13 G)', () => {
+  const now = local(11, 21)
+  it('고민 중이고 오늘 날짜 기록이 없으면 적을 차례다', () => {
+    expect(desireDueToday(item(), now)).toBe(true)
+    expect(desireDueToday(item({ desireChecks: checks(['2026-10-10', 3]) }), now)).toBe(true)
+  })
+
+  it('오늘 기록했거나, 오늘 담으며 정도를 적었으면 아니다', () => {
+    expect(desireDueToday(item({ desireChecks: checks(['2026-10-10', 3], ['2026-10-11', 2]) }), now)).toBe(false)
+    expect(desireDueToday(item({ createdAt: iso(11, 8), desireStart: 4, desireStartDay: '2026-10-11' }), now)).toBe(false)
+  })
+
+  it('담을 때 정도는 담은 날에만 오늘 기록으로 친다. 결정한 물건은 적을 차례가 아니다', () => {
+    expect(desireDueToday(item({ desireStart: 4, desireStartDay: '2026-10-08' }), now)).toBe(true)
+    expect(desireDueToday(item({ status: 'purchased', decidedAt: iso(10) }), now)).toBe(false)
+    expect(desireDueToday(item({ status: 'skipped', decidedAt: iso(10) }), now)).toBe(false)
   })
 })

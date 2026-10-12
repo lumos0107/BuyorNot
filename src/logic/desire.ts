@@ -40,6 +40,15 @@ export function checkDesire(item: WishItem, level: DesireLevel, now: Date): Wish
   return { ...item, desireChecks: next, updatedAt: now.toISOString() }
 }
 
+/** 오늘(기기 현지 날짜) 갖고 싶은 정도를 아직 안 적은 고민 중 물건인지 (2026-10-13 G).
+ *  오늘 담으며 적은 정도는 오늘 기록으로 친다 */
+export function desireDueToday(item: WishItem, now: Date): boolean {
+  if (item.status !== 'considering') return false
+  const today = formatDate(now.toISOString())
+  if (item.desireStart !== undefined && item.desireStartDay === today) return false
+  return !(item.desireChecks ?? []).some((check) => check.day === today)
+}
+
 type Series = { label: '담을 때' | '처음'; points: DesireCheck[] }
 
 // 처음 값(담을 때 정도)을 맨 앞에 두고 기록을 날짜순으로 잇는다. 담을 때 정도가 없으면 가장 이른 기록이 처음 값이다.
