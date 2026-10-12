@@ -5,7 +5,7 @@ import { formatWon, josa } from '../logic/number'
 import { validateWage } from '../logic/settings'
 import { sameRecord } from '../logic/records'
 import { historySummary, reviewDue } from '../logic/summary'
-import { sortHistory, validateNote, type Satisfaction, type WishItem } from '../logic/wishlist'
+import { SATISFACTION_TEXT, sortHistory, validateNote, type Satisfaction, type WishItem } from '../logic/wishlist'
 import { Button } from '../ui/Button'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
@@ -23,12 +23,6 @@ type Props = {
   onRemove: (id: string) => void
 }
 type Filter = 'all' | 'purchased' | 'skipped'
-
-const SATISFACTION_TEXT: Record<Satisfaction, string> = {
-  good: '잘 샀어요',
-  meh: '그저 그래요',
-  regret: '후회해요',
-}
 
 export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, onReconsider, onRemove }: Props) {
   const [filter, setFilter] = useState<Filter>('all')

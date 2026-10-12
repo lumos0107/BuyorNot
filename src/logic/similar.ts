@@ -1,6 +1,6 @@
 import { calendarDaysBetween } from './dates'
 import { josa } from './number'
-import type { WishItem } from './wishlist'
+import { SATISFACTION_TEXT, type WishItem } from './wishlist'
 
 // PRD F10 내 기록 기반 알림
 // 비슷함 = ① 마지막 어절(보통 물건 종류: 헤드폰, 키보드)이 같거나 ② 공백을 지운 이름 중 하나가 다른 하나로 끝날 때.
@@ -55,7 +55,8 @@ export function findSimilar(input: string, items: readonly WishItem[], now: Date
 export function describeSimilar({ item, daysAgo }: SimilarRecord): string {
   const when = daysAgo === 0 ? '오늘' : `${daysAgo}일 전에`
   const quoted = `'${item.name}'${josa(item.name, '을/를')}`
-  if (item.status === 'purchased') return `${when} ${quoted} 구매했어요`
+  // 구매 후 회고가 있으면 함께 보여 준다. 지난 기록의 사실일 뿐 이번 구매를 판정하지 않는다 (2026-10-13 A)
+  if (item.status === 'purchased') return `${when} ${quoted} 구매했어요${item.satisfaction ? ` · 회고: ${SATISFACTION_TEXT[item.satisfaction]}` : ''}`
   if (item.status === 'skipped') return `${when} ${quoted} 구매 포기했어요`
   return `${when} ${quoted} 담아 뒀어요 (아직 고민 중)`
 }

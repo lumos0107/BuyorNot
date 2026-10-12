@@ -22,6 +22,13 @@ export type Answers = {
 /** 구매 후 회고 (F12) */
 export type Satisfaction = 'good' | 'meh' | 'regret'
 
+/** 회고 문구. 결정 기록과 비슷한 기록 알림(F10·F15)이 같이 쓴다 */
+export const SATISFACTION_TEXT: Record<Satisfaction, string> = {
+  good: '잘 샀어요',
+  meh: '그저 그래요',
+  regret: '후회해요',
+}
+
 /** 갖고 싶은 정도 1~5 (F22 고민 노트) */
 export type DesireLevel = 1 | 2 | 3 | 4 | 5
 /** 고민하는 동안 날마다 기록한 정도. day는 고른 순간의 기기 현지 날짜(YYYY-MM-DD) */

@@ -141,6 +141,21 @@ describe('사기 전에 한 번 더 (F15, AC29)', () => {
     expect(items.slice(3).map((li) => li.textContent)).toEqual(['할인·한정 때문인가요?', '놓을 곳과 쓸 시간이 있나요?', '빌리거나 중고로 대신할 수 있나요?'])
   })
 
+  it('결정 기록에서 남긴 회고가 담기 폼의 비슷한 기록 알림과 사기 전 점검에 바로 함께 보인다 (2026-10-13 A)', async () => {
+    const user = setup([headphone, bought])
+    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(card('블루투스 헤드폰').getByRole('radio', { name: '후회해요' }))
+    await user.click(card('블루투스 헤드폰').getByRole('button', { name: '회고 저장' }))
+    await user.click(screen.getByRole('tab', { name: '고민 중인 물건' }))
+    const form = within(screen.getByRole('form', { name: '물건 담기' }))
+    await user.type(form.getByLabelText('상품명'), '헤드폰')
+    const notice = within(form.getByRole('status', { name: '비슷한 기록' }))
+    expect(notice.getByText("20일 전에 '블루투스 헤드폰'을 구매했어요 · 회고: 후회해요")).toBeInTheDocument()
+    await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
+    const concerns = within(card('무선 헤드폰').getByRole('list', { name: '걸리는 점' }))
+    expect(concerns.getByText("비슷한 기록: 20일 전에 '블루투스 헤드폰'을 구매했어요 · 회고: 후회해요")).toBeInTheDocument()
+  })
+
   it('생각해 볼 질문이 3개 이하면 펼치기 버튼이 없다', async () => {
     const user = setup([calm])
     await user.click(card('전기 포트').getByRole('button', { name: '구매함' }))

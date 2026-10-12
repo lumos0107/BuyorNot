@@ -68,6 +68,34 @@ describe('비슷한 이름 찾기 (F10)', () => {
   })
 })
 
+describe('비슷한 기록에 구매 후 회고를 붙인다 (2026-10-13 A)', () => {
+  const boughtAt = new Date(NOW.getTime() - 10 * DAY)
+  const bought = (over: Partial<WishItem> = {}) => ({ ...decideItem(item('무선 청소기', 15), 'purchased', boughtAt), ...over })
+
+  it('구매함 기록의 회고 세 가지를 "· 회고: …"로 붙인다', () => {
+    const say = (it: WishItem) => describeSimilar(findSimilar('로봇 청소기', [it], NOW)[0]!)
+    expect(say(bought({ satisfaction: 'regret' }))).toBe("10일 전에 '무선 청소기'를 구매했어요 · 회고: 후회해요")
+    expect(say(bought({ satisfaction: 'good' }))).toBe("10일 전에 '무선 청소기'를 구매했어요 · 회고: 잘 샀어요")
+    expect(say(bought({ satisfaction: 'meh' }))).toBe("10일 전에 '무선 청소기'를 구매했어요 · 회고: 그저 그래요")
+  })
+
+  it('회고가 없으면 지금 문장 그대로이고, 회고를 고친 시각은 날짜·순서에 쓰지 않는다', () => {
+    expect(describeSimilar(findSimilar('청소기', [bought()], NOW)[0]!)).toBe("10일 전에 '무선 청소기'를 구매했어요")
+    const reviewedToday = bought({ satisfaction: 'regret', updatedAt: NOW.toISOString() })
+    expect(findSimilar('청소기', [reviewedToday], NOW)[0]!.daysAgo).toBe(10)
+    // 늦게 산 물건이 먼저다. 먼저 산 물건의 회고를 오늘 고쳐도 순서가 바뀌지 않는다 (GPT 25번)
+    const later = { ...decideItem(item('핸디 청소기', 5), 'purchased', new Date(NOW.getTime() - 3 * DAY)), updatedAt: new Date(NOW.getTime() - 3 * DAY).toISOString() }
+    expect(findSimilar('청소기', [reviewedToday, later], NOW).map((f) => f.item.name)).toEqual(['핸디 청소기', '무선 청소기'])
+  })
+
+  it('구매 포기·고민 중 기록에는 회고 값이 남아 있어도 붙이지 않는다', () => {
+    const skipped = { ...decideItem(item('무선 청소기', 15), 'skipped', boughtAt), satisfaction: 'regret' as const }
+    expect(describeSimilar(findSimilar('청소기', [skipped], NOW)[0]!)).toBe("10일 전에 '무선 청소기'를 구매 포기했어요")
+    const considering = { ...item('무선 청소기', 1), satisfaction: 'good' as const }
+    expect(describeSimilar(findSimilar('청소기', [considering], NOW)[0]!)).toBe("1일 전에 '무선 청소기'를 담아 뒀어요 (아직 고민 중)")
+  })
+})
+
 describe('날짜와 조사 도우미', () => {
   it('현지 달력으로 날짜 차이를 센다 (시각이 달라도 같은 날이면 0)', () => {
     const morning = new Date(2026, 9, 11, 1, 0)
