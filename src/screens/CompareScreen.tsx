@@ -1,5 +1,18 @@
 import { useState } from 'react'
-import { compareBundles, unitKind, validateBundleInput, type BundleFieldErrors, type BundleRawInput, type Unit, bundleSummary } from '../logic/bundle'
+import {
+  bundleSummary,
+  compareBundles,
+  supplyMonths,
+  supplySentence,
+  unitKind,
+  validateBundleInput,
+  validateMonthlyUse,
+  type BundleFieldErrors,
+  type BundleRawInput,
+  type MonthlyUse,
+  type MonthlyUseRaw,
+  type Unit,
+} from '../logic/bundle'
 import {
   calculateDiscount,
   compareDiscounts,
@@ -287,12 +300,16 @@ const EMPTY_BUNDLE: BundleRawInput = { price: '', unit: 'mL', size: '', count: '
 // AC10 예시: 900mL × 2개 6,000원 / 1.5L × 1개 5,400원
 const EXAMPLE_BUNDLE_A: BundleRawInput = { price: '6000', unit: 'mL', size: '900', count: '2' }
 const EXAMPLE_BUNDLE_B: BundleRawInput = { price: '5400', unit: 'L', size: '1.5', count: '1' }
+// 한 달에 쓰는 양 (P3): 예시는 한 달 500mL → 상품 A 약 3.6개월, 상품 B 약 3개월
+const EMPTY_USE: MonthlyUseRaw = { amount: '', unit: 'mL' }
+const EXAMPLE_USE: MonthlyUseRaw = { amount: '500', unit: 'mL' }
 
 const KIND_LABEL = { weight: '무게', volume: '부피', count: '개수' } as const
 
 function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft) => void; startWithExample: boolean }) {
   const [a, setA] = useState(() => (startWithExample ? filled(EXAMPLE_BUNDLE_A) : fresh(EMPTY_BUNDLE)))
   const [b, setB] = useState(() => (startWithExample ? filled(EXAMPLE_BUNDLE_B) : fresh(EMPTY_BUNDLE)))
+  const [use, setUse] = useState(() => (startWithExample ? filled(EXAMPLE_USE) : fresh(EMPTY_USE)))
 
   const checkedA = validateBundleInput(a.form)
   const checkedB = validateBundleInput(b.form)
@@ -300,6 +317,7 @@ function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft)
   const mismatchId = 'bundle-unit-mismatch'
   const result =
     checkedA.value && checkedB.value && !kindMismatch ? compareBundles(checkedA.value, checkedB.value) : null
+  const checkedUse = validateMonthlyUse(use.form, a.form.unit)
 
   return (
     <div className="stack">
@@ -313,10 +331,12 @@ function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft)
         onExample={() => {
           setA(filled(EXAMPLE_BUNDLE_A))
           setB(filled(EXAMPLE_BUNDLE_B))
+          setUse(filled(EXAMPLE_USE))
         }}
         onReset={() => {
           setA(fresh(EMPTY_BUNDLE))
           setB(fresh(EMPTY_BUNDLE))
+          setUse(fresh(EMPTY_USE))
         }}
       />
       <div className="ab-grid">
@@ -329,8 +349,9 @@ function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft)
           종류의 단위를 골라 주세요.
         </p>
       ) : null}
+      <MonthlyUseCard state={use} error={checkedUse.error} onChange={setUse} />
       {/* 결과가 자동으로 바뀌므로 보조기기에 알린다 */}
-      <div aria-live="polite">{result?.ok ? <BundleResultCard result={result} onAdd={onAdd} /> : null}</div>
+      <div aria-live="polite">{result?.ok ? <BundleResultCard result={result} use={checkedUse.value} onAdd={onAdd} /> : null}</div>
     </div>
   )
 }
@@ -403,11 +424,52 @@ function BundleCard({ name, state, errors, onChange, unitErrorId }: BundleCardPr
   )
 }
 
+// 내 사용량 (P3): 한 달에 쓰는 양(선택). 적으면 결과에 각 상품을 다 쓰는 데 걸리는 기간을 보여 준다
+function MonthlyUseCard({
+  state,
+  error,
+  onChange,
+}: {
+  state: SideState<MonthlyUseRaw>
+  error?: string
+  onChange: (next: SideState<MonthlyUseRaw>) => void
+}) {
+  const { form, touched } = state
+  const set = (field: keyof MonthlyUseRaw, value: string) =>
+    onChange({ form: { ...form, [field]: value }, touched: { ...touched, [field]: true } })
+  const shown = touched.amount || touched.unit ? error : undefined
+  return (
+    <fieldset className="card stack">
+      <legend className="card-title">내 사용량 (선택)</legend>
+      <TextField
+        label="한 달에 쓰는 양"
+        inputMode="decimal"
+        placeholder="예: 500"
+        hint="적으면 각 상품을 다 쓰는 데 걸리는 기간을 보여 줘요"
+        value={form.amount}
+        error={shown}
+        onChange={(e) => set('amount', e.target.value)}
+        onBlur={() => onChange({ form, touched: { ...touched, amount: true } })}
+      />
+      <SelectField label="단위" value={form.unit} invalid={Boolean(shown)} onChange={(e) => set('unit', e.target.value as Unit)}>
+        <option value="g">g</option>
+        <option value="kg">kg</option>
+        <option value="mL">mL</option>
+        <option value="L">L</option>
+        <option value="ea">개</option>
+      </SelectField>
+    </fieldset>
+  )
+}
+
 function BundleResultCard({
   result,
+  use,
   onAdd,
 }: {
   result: Extract<ReturnType<typeof compareBundles>, { ok: true }>
+  /** 한 달에 쓰는 양 (P3). 있으면 분량 문장을 보여 주고 담을 때 이유에 더한다 */
+  use?: MonthlyUse
   onAdd?: (draft: WishDraft) => void
 }) {
   const { a, b, verdict } = result
@@ -445,12 +507,19 @@ function BundleResultCard({
       <p className="price price-lg">{verdictText}</p>
       <p className="field-label">{bundleSummary(verdict)}</p>
       {verdict.displayTie ? <p className="note">표시 단가는 같지만 아주 작은 차이가 있어요.</p> : null}
-      <p className="note">가격만 비교한 결과예요. 품질이나 필요한 양은 따로 생각해 주세요.</p>
+      {use ? (
+        <>
+          <p>{supplySentence(supplyMonths(a, use), supplyMonths(b, use))}</p>
+          <p className="note">보관할 공간과 다 쓰는 데 걸리는 시간도 생각해 보세요.</p>
+        </>
+      ) : null}
+      {/* 분량을 계산했으면 "가격만"이 아니다 (GPT 31번) */}
+      <p className="note">{use ? '가격과 분량만 계산한 결과예요. 품질은 따로 생각해 주세요.' : '가격만 비교한 결과예요. 품질이나 필요한 양은 따로 생각해 주세요.'}</p>
       {onAdd ? (
         <AddButtons
           sides={[
-            ['상품 A로 담기', a.price, () => onAdd(bundleDraft('상품 A', a))],
-            ['상품 B로 담기', b.price, () => onAdd(bundleDraft('상품 B', b))],
+            ['상품 A로 담기', a.price, () => onAdd(bundleDraft('상품 A', a, use))],
+            ['상품 B로 담기', b.price, () => onAdd(bundleDraft('상품 B', b, use))],
           ]}
         />
       ) : null}

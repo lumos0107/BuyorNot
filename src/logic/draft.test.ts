@@ -21,6 +21,13 @@ describe('담기 폼에 채울 내용 (F21)', () => {
       bundleDraft('상품 A', { price: 6000, unitPrice: 333.33, unitPriceLabel: '333.33', referenceLabel: '100mL', total: 1800, totalLabel: '1,800mL' }),
     ).toEqual({ price: 6000, reason: '가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원)' })
   })
+  it('묶음 비교: 한 달에 쓰는 양을 적었으면 그 기간을 괄호 안에 더한다 (P3)', () => {
+    const side = { price: 6000, unitPrice: 333.33, unitPriceLabel: '333.33', referenceLabel: '100mL' as const, total: 1800, totalLabel: '1,800mL' }
+    expect(bundleDraft('상품 A', side, { amount: 500, unit: 'mL' }).reason).toBe('가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원 · 한 달 500mL면 약 3.6개월 분량)')
+    expect(bundleDraft('상품 A', side, { amount: 1.5, unit: 'L' }).reason).toBe('가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원 · 한 달 1.5L면 약 1.2개월 분량)')
+    // 앱이 만든 문장이라 사용자가 쓴 이유에서 뺀다 (F23)
+    expect(userWrittenReason(bundleDraft('상품 A', side, { amount: 500, unit: 'mL' }).reason + ' 세일이라').trim()).toBe('세일이라')
+  })
 })
 
 // PRD F23: 가격 비교에서 가져온 문장은 사용자가 쓴 이유가 아니다 (할인 문구 검사에서 뺀다)

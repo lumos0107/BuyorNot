@@ -45,7 +45,7 @@ describe('비교 결과를 고민 목록에 담기 (F21)', () => {
     await user.click(bundlePanel.getByRole('button', { name: '예시 넣기' }))
     await user.click(within(screen.getByRole('region', { name: '묶음상품 비교 결과' })).getByRole('button', { name: '상품 A로 담기' }))
     expect(wishForm().getByLabelText('가격')).toHaveValue('6000')
-    expect(wishForm().getByLabelText('사고 싶은 이유')).toHaveValue('가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원)')
+    expect(wishForm().getByLabelText('사고 싶은 이유')).toHaveValue('가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원 · 한 달 500mL면 약 3.6개월 분량)')
   })
 
   it('이미 적던 상품명은 지우지 않는다', async () => {

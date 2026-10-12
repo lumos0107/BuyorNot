@@ -1,4 +1,4 @@
-import type { BundleSide } from './bundle'
+import { formatSupply, monthlyUseLabel, supplyMonths, type BundleSide, type MonthlyUse } from './bundle'
 import type { DiscountSide } from './discount'
 import { formatWon } from './number'
 
@@ -11,17 +11,19 @@ export function discountDraft(name: string, side: DiscountSide): WishDraft {
   return { price: side.total, reason: `가격 비교: ${name} 결제액 ${formatWon(side.total)} (${detail})` }
 }
 
-export function bundleDraft(name: string, side: BundleSide): WishDraft {
+/** 한 달에 쓰는 양을 적었으면 괄호 안에 "· 한 달 500mL면 약 3.6개월 분량"을 더한다 (P3) */
+export function bundleDraft(name: string, side: BundleSide, use?: MonthlyUse): WishDraft {
+  const supply = use ? ` · 한 달 ${monthlyUseLabel(use)}면 ${formatSupply(supplyMonths(side, use))} 분량` : ''
   return {
     price: side.price,
-    reason: `가격 비교: ${name} ${side.referenceLabel}당 ${side.unitPriceLabel}원 (총 ${side.totalLabel} · ${formatWon(side.price)})`,
+    reason: `가격 비교: ${name} ${side.referenceLabel}당 ${side.unitPriceLabel}원 (총 ${side.totalLabel} · ${formatWon(side.price)}${supply})`,
   }
 }
 
 // 담기 폼에 채운 비교 문장. 위 두 함수가 만드는 형식만 찾는다("가격 비교:"로 시작해도 형식이 다르면 사용자가 쓴 것, PRD F23):
-// 할인 "가격 비교: B안 결제액 72,000원 (할인 8,000원 · 배송비 포함)"·"(쿠폰 적용 불가)", 묶음 "가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원)"
+// 할인 "가격 비교: B안 결제액 72,000원 (할인 8,000원 · 배송비 포함)"·"(쿠폰 적용 불가)", 묶음 "가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원)"(P3: 괄호 끝에 "· 한 달 500mL면 약 3.6개월 분량"이 붙을 수 있다)
 const COMPARE_NOTE =
-  /가격 비교: (?:[AB]안 결제액 [\d,]+원 \((?:할인 [\d,]+원 · 배송비 포함|쿠폰 적용 불가)\)|상품 [AB] (?:100g|100mL|1개)당 [\d.,]+원 \(총 [\d.,]+(?:g|mL|개) · [\d,]+원\))/g
+  /가격 비교: (?:[AB]안 결제액 [\d,]+원 \((?:할인 [\d,]+원 · 배송비 포함|쿠폰 적용 불가)\)|상품 [AB] (?:100g|100mL|1개)당 [\d.,]+원 \(총 [\d.,]+(?:g|mL|개) · [\d,]+원(?: · 한 달 [\d.,]+(?:g|kg|mL|L|개)면 약 [\d.]+(?:개월|일) 분량)?\))/g
 
 /** 사고 싶은 이유에서 가격 비교 문장을 뺀, 사용자가 쓴 부분 (F23: 사기 전 점검의 할인 문구 검사용) */
 export function userWrittenReason(reason: string): string {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compareBundles, validateBundleInput, type BundleInput } from './bundle'
+import { compareBundles, formatSupply, supplyMonths, supplySentence, validateBundleInput, validateMonthlyUse, type BundleInput } from './bundle'
 
 // PRD F05 묶음상품 가성비 비교, 검증 사례 AC10·AC11·AC12·AC17
 const bundle = (price: number, unit: BundleInput['unit'], size: number, count: number): BundleInput => ({
@@ -160,5 +160,58 @@ describe('묶음상품 입력 경계값', () => {
     expect(result.a.unitPriceLabel).toBe('333.33')
     expect(result.b.unitPriceLabel).toBe('333.33')
     expect(result.verdict.displayTie).toBe(true)
+  })
+})
+
+// 2026-10-13 P3 필요한 양 기준 비교: 한 달에 쓰는 양(선택)으로 각 상품을 다 쓰는 데 걸리는 기간을 보여 준다.
+// 남는 양처럼 알 수 없는 값은 계산하지 않는다
+describe('한 달에 쓰는 양 (P3)', () => {
+  it('비우면 값도 오류도 없다. 숫자·0보다 큼·소수 셋째 자리·상품과 같은 종류의 단위를 검사한다', () => {
+    expect(validateMonthlyUse({ amount: '', unit: 'mL' }, 'mL')).toEqual({})
+    expect(validateMonthlyUse({ amount: '  ', unit: 'mL' }, 'mL')).toEqual({})
+    expect(validateMonthlyUse({ amount: '오백', unit: 'mL' }, 'mL').error).toBe('한 달에 쓰는 양을 숫자로 입력해 주세요')
+    expect(validateMonthlyUse({ amount: '0', unit: 'mL' }, 'mL').error).toBe('한 달에 쓰는 양은 0보다 커야 해요')
+    expect(validateMonthlyUse({ amount: '1.2345', unit: 'L' }, 'mL').error).toBe('한 달에 쓰는 양은 소수 셋째 자리까지 입력할 수 있어요')
+    expect(validateMonthlyUse({ amount: '500', unit: 'g' }, 'mL').error).toBe('상품 A가 부피 단위라 한 달에 쓰는 양도 부피 단위(mL·L)로 골라 주세요')
+    expect(validateMonthlyUse({ amount: '1,500', unit: 'L' }, 'mL')).toEqual({ value: { amount: 1500, unit: 'L' } })
+    // 쉼표만 적은 것은 빈 칸이 아니라 숫자가 아니다 (GPT 31번)
+    expect(validateMonthlyUse({ amount: ',', unit: 'mL' }, 'mL').error).toBe('한 달에 쓰는 양을 숫자로 입력해 주세요')
+    expect(validateMonthlyUse({ amount: '10000001', unit: 'mL' }, 'mL').error).toBe('한 달에 쓰는 양은 1,000만 이하여야 해요')
+  })
+
+  it("개수 단위도 같은 방식이고, 아주 큰 총량을 아주 작은 사용량으로 나눠도 유한한 값이다 (GPT 31번)", () => {
+    const ea = compareBundles(bundle(9000, 'ea', 1, 30), bundle(4000, 'ea', 1, 10))
+    if (!ea.ok) throw new Error('비교 실패')
+    expect(validateMonthlyUse({ amount: '4', unit: 'ea' }, 'ea')).toEqual({ value: { amount: 4, unit: 'ea' } })
+    expect(supplySentence(supplyMonths(ea.a, { amount: 4, unit: 'ea' }), supplyMonths(ea.b, { amount: 4, unit: 'ea' }))).toBe(
+      '입력한 사용량이면 상품 A는 약 7.5개월, 상품 B는 약 2.5개월 분량이에요.',
+    )
+    const huge = compareBundles(bundle(1, 'kg', 10_000_000, 9999), bundle(1, 'g', 1, 1))
+    if (!huge.ok) throw new Error('비교 실패')
+    const months = supplyMonths(huge.a, { amount: 0.001, unit: 'g' })
+    expect(Number.isFinite(months)).toBe(true)
+    expect(formatSupply(months)).toMatch(/^약 [\d.e+]+개월$/)
+  })
+
+  it('총량 ÷ 한 달에 쓰는 양(같은 기준 단위로 환산)', () => {
+    const r = compareBundles(bundle(6000, 'mL', 900, 2), bundle(5400, 'L', 1.5, 1))
+    if (!r.ok) throw new Error('비교 실패')
+    expect(supplyMonths(r.a, { amount: 500, unit: 'mL' })).toBeCloseTo(3.6)
+    expect(supplyMonths(r.b, { amount: 0.5, unit: 'L' })).toBeCloseTo(3)
+    const g = compareBundles(bundle(9900, 'kg', 2, 1), bundle(9900, 'g', 500, 4))
+    if (!g.ok) throw new Error('비교 실패')
+    expect(supplyMonths(g.a, { amount: 0.5, unit: 'kg' })).toBeCloseTo(4)
+  })
+
+  it('1개월 이상은 소수 첫째 자리 개월(정수면 소수 없이), 1개월 미만은 30일 기준 일수(최소 1일)', () => {
+    expect(formatSupply(3.6)).toBe('약 3.6개월')
+    expect(formatSupply(3)).toBe('약 3개월')
+    expect(formatSupply(2.96)).toBe('약 3개월')
+    expect(formatSupply(0.6)).toBe('약 18일')
+    expect(formatSupply(0.001)).toBe('약 1일')
+  })
+
+  it('두 상품을 한 문장으로 말한다', () => {
+    expect(supplySentence(3.6, 3)).toBe('입력한 사용량이면 상품 A는 약 3.6개월, 상품 B는 약 3개월 분량이에요.')
   })
 })

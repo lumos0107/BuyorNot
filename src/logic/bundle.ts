@@ -145,6 +145,51 @@ export function validateBundleInput(raw: BundleRawInput): { value?: BundleInput;
   return { value: { price: price!, unit: raw.unit, size, count: count! }, errors }
 }
 
+// ---------- 한 달에 쓰는 양 (2026-10-13 P3, F05 보강) ----------
+// 한 달에 쓰는 양(선택)으로 각 상품을 다 쓰는 데 걸리는 기간만 보여 준다. 남는 양·버리는 양처럼
+// 보관 기간을 모르면 알 수 없는 값은 계산하지 않는다.
+
+export type MonthlyUseRaw = { amount: string; unit: Unit }
+export type MonthlyUse = { amount: number; unit: Unit }
+
+const KIND_UNITS: Record<UnitKind, string> = { weight: '무게 단위(g·kg)', volume: '부피 단위(mL·L)', count: '개수 단위(개)' }
+const KIND_NAME: Record<UnitKind, string> = { weight: '무게', volume: '부피', count: '개수' }
+
+/** 비우면 {}(쓰지 않음). 상품 A의 단위와 같은 종류여야 한다(A·B 종류가 다르면 비교 자체를 막는다) */
+export function validateMonthlyUse(raw: MonthlyUseRaw, productUnit: Unit): { value?: MonthlyUse; error?: string } {
+  // 공백만 빈 칸으로 본다. 쉼표만 적은 것은 숫자가 아니다 (GPT 31번)
+  if (raw.amount.trim() === '') return {}
+  const cleaned = raw.amount.replace(/[,\s]/g, '')
+  const parsed = parseDecimal(raw.amount)
+  if (parsed === null) return { error: '한 달에 쓰는 양을 숫자로 입력해 주세요' }
+  if (parsed <= 0) return { error: '한 달에 쓰는 양은 0보다 커야 해요' }
+  if (!SIZE_SHAPE.test(cleaned)) return { error: '한 달에 쓰는 양은 소수 셋째 자리까지 입력할 수 있어요' }
+  if (parsed > MAX_SIZE) return { error: '한 달에 쓰는 양은 1,000만 이하여야 해요' }
+  const kind = unitKind(productUnit)
+  if (unitKind(raw.unit) !== kind) return { error: `상품 A가 ${KIND_NAME[kind]} 단위라 한 달에 쓰는 양도 ${KIND_UNITS[kind]}로 골라 주세요` }
+  return { value: { amount: parsed, unit: raw.unit } }
+}
+
+/** 이 상품을 다 쓰는 데 걸리는 개월 수 = 총량 ÷ 한 달에 쓰는 양 (같은 기준 단위로 환산) */
+export function supplyMonths(side: Pick<BundleSide, 'total'>, use: MonthlyUse): number {
+  return side.total / (use.amount * TO_BASE[use.unit])
+}
+
+/** "약 3.6개월"·"약 3개월", 1개월 미만은 30일 기준 "약 18일"(최소 1일) */
+export function formatSupply(months: number): string {
+  if (months < 1) return `약 ${Math.max(1, Math.round(months * 30))}일`
+  return `약 ${Number(months.toFixed(1))}개월`
+}
+
+export function supplySentence(monthsA: number, monthsB: number): string {
+  return `입력한 사용량이면 상품 A는 ${formatSupply(monthsA)}, 상품 B는 ${formatSupply(monthsB)} 분량이에요.`
+}
+
+/** "500mL"·"1.5L"·"4개" */
+export function monthlyUseLabel(use: MonthlyUse): string {
+  return `${use.amount.toLocaleString('ko-KR', { maximumFractionDigits: 3 })}${UNIT_LABEL[use.unit]}`
+}
+
 /** 단가와 총지출을 한 문장으로 말한다 (F05 보강). 단가가 싼 쪽이 총지출은 더 클 수 있어, 엇갈리면 분명히 말한다 */
 export function bundleSummary(verdict: BundleVerdict): string {
   const other = (side: 'A' | 'B') => (side === 'A' ? 'B' : 'A')
