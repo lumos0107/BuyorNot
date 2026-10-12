@@ -15,6 +15,14 @@ function card(name: string) {
   return within(screen.getByRole('group', { name }))
 }
 
+describe('가격 비교 탭 (2026-10-13 제작자 결정: 무료배송 채우기를 뺌)', () => {
+  it('할인 비교와 묶음상품 비교 두 탭만 있다', () => {
+    render(<CompareScreen />)
+    const tabs = within(screen.getByRole('tablist', { name: '가격 비교 종류' })).getAllByRole('tab')
+    expect(tabs.map((t) => t.textContent)).toEqual(['할인 비교', '묶음상품 비교'])
+  })
+})
+
 describe('묶음상품 비교 화면', () => {
   it('두 상품을 입력하면 단가와 더 싼 쪽을 보여준다', async () => {
     const user = await openBundle()

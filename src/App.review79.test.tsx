@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { STORAGE_KEY } from './logic/storage'
-import { CompareScreen } from './screens/CompareScreen'
 
 // GPT 7~9단계 검토 반영 (화면·접근성)
 const T0 = new Date('2026-10-11T09:00:00+09:00')
@@ -107,20 +106,6 @@ describe('화면 보완', () => {
   it('안내문에 단정하는 문장이 없다', () => {
     render(<App />)
     expect(screen.queryByText(/늦지 않아요/)).not.toBeInTheDocument()
-  })
-
-  it('무료배송: 기준에 못 미쳐도 총지출 차이를 보여준다', async () => {
-    const user = userEvent.setup()
-    render(<CompareScreen />)
-    await user.click(screen.getByRole('tab', { name: '무료배송 채우기' }))
-    const f = within(screen.getByRole('group', { name: '주문 정보' }))
-    await user.type(f.getByLabelText('현재 상품 금액'), '27000')
-    await user.type(f.getByLabelText('배송비'), '3000')
-    await user.type(f.getByLabelText('무료배송 기준 금액'), '30000')
-    await user.type(f.getByLabelText('추가할 상품 금액'), '2000')
-    const result = within(screen.getByRole('region', { name: '무료배송 채우기 결과' }))
-    expect(result.getByText('총지출 차이')).toBeInTheDocument()
-    expect(result.getByText('+2,000원')).toBeInTheDocument()
   })
 })
 
