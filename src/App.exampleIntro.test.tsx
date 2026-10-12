@@ -27,8 +27,10 @@ describe('가격 비교는 예시가 채워진 채로 열린다', () => {
   it('묶음상품 비교도 예시 결과가 바로 보인다', async () => {
     const user = await openCompare()
     await user.click(screen.getByRole('tab', { name: '묶음상품 비교' }))
-    expect(within(panel('묶음상품 비교').getByRole('region', { name: '이럴 때 써요' })).getByText('100mL당 가격은 상품 A가 낮지만, 총지출은 상품 B가 600원 적어요')).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: '묶음상품 비교 결과' })).getByText('단가는 상품 A가 낮지만, 총지출은 상품 B가 600원 적어요')).toBeInTheDocument()
+    expect(within(panel('묶음상품 비교').getByRole('region', { name: '이럴 때 써요' })).getByText('100mL당 가격은 상품 A가 낮지만, 총지출은 상품 B가 9,000원 적어요')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: '묶음상품 비교 결과' })).getByText('단가는 상품 A가 낮지만, 총지출은 상품 B가 9,000원 적어요')).toBeInTheDocument()
+    // 예시가 어떤 물건인지 상자 위에 밝힌다 (GPT 32번)
+    expect(within(panel('묶음상품 비교').getByRole('region', { name: '이럴 때 써요' })).getByText('예: 세탁 세제')).toBeInTheDocument()
   })
 
   it('초기화하면 비우고 결과를 감추며, 예시 넣기로 다시 채운다', async () => {

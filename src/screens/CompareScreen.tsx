@@ -297,12 +297,13 @@ function DiscountSideSummary({ name, side }: { name: string; side: DiscountSide 
 // ---------- 묶음상품 비교 (PRD F05) ----------
 
 const EMPTY_BUNDLE: BundleRawInput = { price: '', unit: 'mL', size: '', count: '' }
-// AC10 예시: 900mL × 2개 6,000원 / 1.5L × 1개 5,400원
-const EXAMPLE_BUNDLE_A: BundleRawInput = { price: '6000', unit: 'mL', size: '900', count: '2' }
-const EXAMPLE_BUNDLE_B: BundleRawInput = { price: '5400', unit: 'L', size: '1.5', count: '1' }
-// 한 달에 쓰는 양 (P3): 예시는 한 달 500mL → 상품 A 약 3.6개월, 상품 B 약 3개월
+// 예시는 세탁 세제(2026-10-13 제작자 요청, 우유는 한 달 사용량으로 몇 달 분량을 말하기 어색함):
+// 3L × 2개 18,900원(100mL당 315원) / 2.5L × 1개 9,900원(396원) → 단가는 A, 총지출은 B가 9,000원 적음.
+// 한 달 600mL → 상품 A 약 10개월, 상품 B 약 4.2개월. (AC10의 우유 값은 로직 테스트에 그대로 남아 있다)
+const EXAMPLE_BUNDLE_A: BundleRawInput = { price: '18900', unit: 'L', size: '3', count: '2' }
+const EXAMPLE_BUNDLE_B: BundleRawInput = { price: '9900', unit: 'L', size: '2.5', count: '1' }
 const EMPTY_USE: MonthlyUseRaw = { amount: '', unit: 'mL' }
-const EXAMPLE_USE: MonthlyUseRaw = { amount: '500', unit: 'mL' }
+const EXAMPLE_USE: MonthlyUseRaw = { amount: '600', unit: 'mL' }
 
 const KIND_LABEL = { weight: '무게', volume: '부피', count: '개수' } as const
 
@@ -324,10 +325,11 @@ function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft)
       <h3 className="section-title">묶음상품 비교</h3>
       <ExampleIntro
         sides={[
-          ['상품 A', ['900mL × 2개', '6,000원', '100mL당 약 333원']],
-          ['상품 B', ['1.5L × 1개', '5,400원', '100mL당 약 360원']],
+          ['상품 A', ['3L × 2개', '18,900원', '100mL당 315원']],
+          ['상품 B', ['2.5L × 1개', '9,900원', '100mL당 396원']],
         ]}
-        conclusion="100mL당 가격은 상품 A가 낮지만, 총지출은 상품 B가 600원 적어요"
+        subject="예: 세탁 세제"
+        conclusion="100mL당 가격은 상품 A가 낮지만, 총지출은 상품 B가 9,000원 적어요"
         onExample={() => {
           setA(filled(EXAMPLE_BUNDLE_A))
           setB(filled(EXAMPLE_BUNDLE_B))
@@ -531,11 +533,14 @@ function BundleResultCard({
 // 예시 넣기·초기화도 입력칸 위에 둔다(입력칸 10여 개 아래에 있어 찾기 어렵던 문제)
 function ExampleIntro({
   sides,
+  subject,
   conclusion,
   onExample,
   onReset,
 }: {
   sides: [[string, string[]], [string, string[]]]
+  /** 예시가 어떤 물건인지 (예: "예: 세탁 세제", GPT 32번) */
+  subject?: string
   conclusion: string
   onExample: () => void
   onReset: () => void
@@ -543,6 +548,7 @@ function ExampleIntro({
   return (
     <section className="card stack example-intro" aria-label="이럴 때 써요">
       <p className="field-label">이럴 때 써요</p>
+      {subject ? <p className="note">{subject}</p> : null}
       <div className="intro-sides">
         <IntroSide title={sides[0][0]} lines={sides[0][1]} />
         <span className="intro-vs" aria-hidden="true">
