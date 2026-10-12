@@ -91,16 +91,62 @@ describe('사기 전에 한 번 더 (F15, AC29)', () => {
       '한 달 뒤에도 쓸까요?',
       '놓을 곳과 쓸 시간이 있나요?',
     ])
-    expect(check.getByText('그 밖에 1개')).toBeInTheDocument()
+    expect(check.getByRole('button', { name: '그 밖에 1개 보기' })).toBeInTheDocument()
     expect(check.getByText('그래도 필요하다면 사도 괜찮아요.')).toBeInTheDocument()
   })
 
-  it('메모 입력에 포커스가 가면 점검 내용을 함께 읽어 준다', async () => {
+  it('구매함을 누르면 메모 입력이 아니라 확인 폼으로 포커스가 가고(폰 키보드가 점검을 가리지 않게) 점검 내용을 함께 읽어 준다', async () => {
     const user = setup([headphone, bought])
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
+    const form = card('무선 헤드폰').getByRole('form', { name: '구매함 확인' })
+    expect(form).toHaveFocus()
+    expect(form).toHaveAccessibleDescription(/걸리는 점 4개/)
     const memo = card('무선 헤드폰').getByLabelText('결정 메모 (선택)')
-    expect(memo).toHaveFocus()
-    expect(memo).toHaveAccessibleDescription(/걸리는 점 4개/)
+    expect(memo).not.toHaveFocus()
+    // 점검은 폼에서 한 번 읽히므로 메모 입력에서 다시 읽지 않는다 (GPT 22번)
+    expect(memo).not.toHaveAccessibleDescription(/걸리는 점/)
+  })
+
+  it('생각해 볼 질문이 3개보다 많으면 "그 밖에 n개 보기"로 나머지를 펼친다', async () => {
+    const user = setup([headphone, bought])
+    await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
+    const check = within(card('무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
+    await user.click(check.getByRole('button', { name: '그 밖에 1개 보기' }))
+    const items = within(check.getByRole('list', { name: '한 번 생각해 볼 질문' })).getAllByRole('listitem')
+    expect(items.map((li) => li.textContent)).toEqual([
+      '없으면 어떤 문제가 있나요?',
+      '한 달 뒤에도 쓸까요?',
+      '놓을 곳과 쓸 시간이 있나요?',
+      '빌리거나 중고로 대신할 수 있나요?',
+    ])
+    expect(check.queryByRole('button', { name: /그 밖에/ })).not.toBeInTheDocument()
+    expect(items[3]).toHaveFocus()
+    // 취소했다가 다시 열면 처음처럼 3개와 버튼으로 돌아온다
+    await user.click(card('무선 헤드폰').getByRole('button', { name: '취소' }))
+    await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
+    const reopened = within(card('무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
+    expect(within(reopened.getByRole('list', { name: '한 번 생각해 볼 질문' })).getAllByRole('listitem')).toHaveLength(3)
+    expect(reopened.getByRole('button', { name: '그 밖에 1개 보기' })).toBeInTheDocument()
+  })
+
+  it('답하지 않은 질문이 6개면 키보드로 "그 밖에 3개 보기"를 눌러 순서대로 펼치고 네 번째 질문으로 포커스가 간다', async () => {
+    const user = setup([{ ...headphone, reason: '그냥', answers: undefined }])
+    await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
+    const check = within(card('무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
+    check.getByRole('button', { name: '그 밖에 3개 보기' }).focus()
+    await user.keyboard('{Enter}')
+    const items = within(check.getByRole('list', { name: '한 번 생각해 볼 질문' })).getAllByRole('listitem')
+    expect(items).toHaveLength(6)
+    expect(items[3]).toHaveFocus()
+    expect(items.slice(3).map((li) => li.textContent)).toEqual(['할인·한정 때문인가요?', '놓을 곳과 쓸 시간이 있나요?', '빌리거나 중고로 대신할 수 있나요?'])
+  })
+
+  it('생각해 볼 질문이 3개 이하면 펼치기 버튼이 없다', async () => {
+    const user = setup([calm])
+    await user.click(card('전기 포트').getByRole('button', { name: '구매함' }))
+    const check = within(card('전기 포트').getByRole('region', { name: '사기 전 점검' }))
+    expect(within(check.getByRole('list', { name: '한 번 생각해 볼 질문' })).getAllByRole('listitem')).toHaveLength(3)
+    expect(check.queryByRole('button', { name: /그 밖에/ })).not.toBeInTheDocument()
   })
 
   it('시급을 넣어 두었으면 금액을 시간으로 함께 보여준다', async () => {

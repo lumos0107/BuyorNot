@@ -671,6 +671,11 @@ function DecisionForm({
   const [error, setError] = useState<string | undefined>()
   const label = decision === 'purchased' ? '구매함' : '구매 포기'
   const checkId = useId()
+  const formRef = useRef<HTMLFormElement>(null)
+  // 메모 입력이 아니라 폼으로 포커스를 옮긴다. 폰 키보드가 올라와 사기 전 점검을 가리지 않게 한다
+  useEffect(() => {
+    formRef.current?.focus()
+  }, [])
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -683,12 +688,18 @@ function DecisionForm({
   }
 
   return (
-    <form className="stack" aria-label={`${label} 확인`} onSubmit={submit} noValidate>
+    <form
+      className="stack"
+      aria-label={`${label} 확인`}
+      aria-describedby={check ? checkId : undefined}
+      tabIndex={-1}
+      ref={formRef}
+      onSubmit={submit}
+      noValidate
+    >
       {check ? <ImpulseCheck id={checkId} {...check} /> : null}
       <TextAreaField
         label="결정 메모 (선택)"
-        autoFocus
-        aria-describedby={check ? checkId : undefined}
         placeholder={decision === 'purchased' ? '왜 사기로 했나요?' : '왜 안 사기로 했나요?'}
         value={note}
         error={error}
@@ -712,6 +723,13 @@ function DecisionForm({
 const QUESTIONS_SHOWN = 3
 
 function ImpulseCheck({ id, signals, questions, hours, desire, others }: ImpulseCheckData & { id: string }) {
+  // "그 밖에 n개 보기"를 누르면 나머지 질문을 펼치고, 버튼이 사라지므로 새로 보인 첫 질문으로 포커스를 옮긴다
+  const [showAll, setShowAll] = useState(false)
+  const firstHiddenRef = useRef<HTMLLIElement>(null)
+  useEffect(() => {
+    if (showAll) firstHiddenRef.current?.focus()
+  }, [showAll])
+  const shown = showAll ? questions : questions.slice(0, QUESTIONS_SHOWN)
   return (
     <section className="impulse-check stack" aria-label="사기 전 점검" id={id}>
       <p className="field-label">사기 전에 한 번 더 · {signals.length > 0 ? `걸리는 점 ${signals.length}개` : '걸리는 점이 없어요'}</p>
@@ -738,11 +756,23 @@ function ImpulseCheck({ id, signals, questions, hours, desire, others }: Impulse
         <>
           <p className="note">한 번 생각해 볼 질문</p>
           <ul className="impulse-list" aria-label="한 번 생각해 볼 질문">
-            {questions.slice(0, QUESTIONS_SHOWN).map((question) => (
-              <li key={question}>{question}</li>
-            ))}
+            {shown.map((question, index) =>
+              index === QUESTIONS_SHOWN ? (
+                <li key={question} tabIndex={-1} ref={firstHiddenRef}>
+                  {question}
+                </li>
+              ) : (
+                <li key={question}>{question}</li>
+              ),
+            )}
           </ul>
-          {questions.length > QUESTIONS_SHOWN ? <p className="note">{`그 밖에 ${questions.length - QUESTIONS_SHOWN}개`}</p> : null}
+          {!showAll && questions.length > QUESTIONS_SHOWN ? (
+            <div>
+              <button type="button" className="link-btn" onClick={() => setShowAll(true)}>
+                {`그 밖에 ${questions.length - QUESTIONS_SHOWN}개 보기`}
+              </button>
+            </div>
+          ) : null}
         </>
       ) : null}
       {signals.length > 0 ? <p className="note">그래도 필요하다면 사도 괜찮아요.</p> : null}

@@ -113,11 +113,12 @@ describe('키보드 포커스 (F06, GPT 2차 PRD 검토)', () => {
     expect(card('무선 헤드폰').getByRole('button', { name: '더 고민하기' })).toHaveFocus()
   })
 
-  it('결정 메모를 열면 메모 입력으로, 취소하면 누른 버튼으로 포커스가 돌아간다', async () => {
+  it('결정 확인을 열면 확인 폼으로(메모 입력은 자동으로 열지 않음), 취소하면 누른 버튼으로 포커스가 돌아간다', async () => {
     const { user } = setup()
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
-    expect(card('무선 헤드폰').getByLabelText('결정 메모 (선택)')).toHaveFocus()
+    expect(card('무선 헤드폰').getByRole('form', { name: '구매 포기 확인' })).toHaveFocus()
+    expect(card('무선 헤드폰').getByLabelText('결정 메모 (선택)')).not.toHaveFocus()
     await user.click(card('무선 헤드폰').getByRole('button', { name: '취소' }))
     expect(card('무선 헤드폰').getByRole('button', { name: '구매 포기' })).toHaveFocus()
   })

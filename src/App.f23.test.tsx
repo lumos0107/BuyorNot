@@ -47,7 +47,7 @@ describe('가격 비교 문장은 할인 근거가 아니다 (F23, AC41)', () =>
       '한 달 뒤에도 쓸까요?',
       '지금 쓰는 게 있나요?',
     ])
-    expect(check.getByText('그 밖에 3개')).toBeInTheDocument()
+    expect(check.getByRole('button', { name: '그 밖에 3개 보기' })).toBeInTheDocument()
   })
 })
 
