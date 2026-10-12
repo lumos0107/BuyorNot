@@ -120,7 +120,7 @@ function SummaryCard({
       <p className="note">구매 포기 금액은 담을 때 적은 가격의 합이에요. 실제로 아낀 돈과는 다를 수 있어요.</p>
       {/* 고민 효과 (F22): 결정한 기록 중 고민하는 동안 갖고 싶은 정도가 줄어든 것이 있을 때만 */}
       {s.desireDropped > 0 ? (
-        <p>{`고민하는 동안 갖고 싶은 정도가 줄어든 물건 ${s.desireDropped}개 중 ${s.desireDroppedSkipped}개를 안 샀어요`}</p>
+        <p>{`갖고 싶은 정도가 줄어든 물건 ${s.desireDropped}개 · 그중 안 산 물건 ${s.desireDroppedSkipped}개`}</p>
       ) : null}
       <TextField
         label="시급 (선택)"
@@ -331,7 +331,7 @@ function RetroForm({
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const checked = validateNote(note)
-    const next = { choice: satisfaction ? undefined : '잘 샀는지 하나를 골라 주세요', note: checked.error }
+    const next = { choice: satisfaction ? undefined : '구매 후 느낌을 하나 골라 주세요', note: checked.error }
     setErrors(next)
     if (!satisfaction || checked.error) {
       focusFirstError()

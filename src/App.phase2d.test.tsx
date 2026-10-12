@@ -131,7 +131,7 @@ describe('구매 후 회고 (AC25)', () => {
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await passTime(7 * DAY)
     await user.click(card('무선 청소기').getByRole('button', { name: '회고 저장' }))
-    expect(card('무선 청소기').getByText('잘 샀는지 하나를 골라 주세요')).toBeInTheDocument()
+    expect(card('무선 청소기').getByText('구매 후 느낌을 하나 골라 주세요')).toBeInTheDocument()
   })
 
   it('예시 데이터에는 회고를 물을 수 있는 구매 기록이 있다', async () => {

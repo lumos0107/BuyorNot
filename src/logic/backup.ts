@@ -48,8 +48,8 @@ export function backupFileName(now: Date): string {
   return `buyornot-backup-${toDayIso(now)}.json`
 }
 
-/** 불러오기 확인 문구에 넣을 요약: "물건 1개, 구독 1개, 시급 12,000원" */
+/** 불러오기 확인 문구에 넣을 요약: "물건 기록 1건, 구독 1개, 시급 12,000원" */
 export function describeBackup(data: BackupData): string {
   const wage = data.hourlyWage === null ? '시급 없음' : `시급 ${formatWon(data.hourlyWage)}`
-  return `물건 ${data.items.length}개, 구독 ${data.subscriptions.length}개, ${wage}`
+  return `물건 기록 ${data.items.length}건, 구독 ${data.subscriptions.length}개, ${wage}`
 }

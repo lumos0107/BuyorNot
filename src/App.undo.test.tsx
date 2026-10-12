@@ -117,7 +117,7 @@ describe('결정 기록에서 다시 고민하기 (F18)', () => {
     expect(stored()).toMatchObject({ status: 'considering', decidedAt: null })
     expect(stored().satisfaction).toBeUndefined()
     await user.click(screen.getByRole('tab', { name: '고민 중인 물건' }))
-    expect(card('전기 포트').getByText('재검토 가능')).toBeInTheDocument()
+    expect(card('전기 포트').getByText('고민 기간 끝')).toBeInTheDocument()
   })
 
   it('취소하면 그대로 두고 다시 고민하기 버튼으로 돌아간다', async () => {

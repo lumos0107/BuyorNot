@@ -94,8 +94,8 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           <p className="card-title">요약</p>
           <ul className="result-list">
             <li>
-              <span>매달 나가는 돈</span>
-              <span className="price">월 {formatWon(s.monthlyTotal)}</span>
+              <span>월평균 구독료</span>
+              <span className="price">{formatWon(s.monthlyTotal)}</span>
             </li>
             <li>
               <span>1년이면</span>
@@ -104,16 +104,20 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           </ul>
           {s.candidateCount > 0 ? (
             <p className="field-label">
-              해지 후보 {s.candidateCount}개 · 월 {formatWon(s.candidateMonthly)}
+              해지 후보 {s.candidateCount}개 · 월평균 {formatWon(s.candidateMonthly)}
             </p>
           ) : null}
           {/* 사용 기록이 없으면 안 쓰는지 알 수 없어 해지 후보로 세지 않는다 (F23) */}
           {s.unknownCount > 0 ? (
             <p className="note">{`사용 기록이 없는 구독 ${s.unknownCount}개는 마지막으로 쓴 날을 적거나 '오늘 썼어요'를 누르면 해지 후보인지 알려 줘요.`}</p>
           ) : null}
-          <p className="note">연 구독은 12로 나눈 값을 월에 더해 보여줘요. 연 합계는 실제 요금으로 계산해요.</p>
+          <p className="note">연 요금은 12로 나눠 월평균 합계에 더해요. 연간 합계에는 연 요금을 그대로 더해요.</p>
+          {/* 금액(…꼴)이 실제로 보이는 사용량이 있을 때만 설명한다. '사용 기록 없음'·'사용 없음'만 있으면 숨긴다 (GPT 29번) */}
+          {items.some((sub) => usageInfo(sub, today)?.text.includes('꼴')) ? (
+            <p className="note">사용량 옆 금액은 각 구독의 월평균 구독료를 해당 사용량으로 나눈 값이에요.</p>
+          ) : null}
           {items.some((sub) => usageInfo(sub, today)?.source === 'example') ? (
-            <p className="note">(예시)는 시연용 숫자예요. '오늘 썼어요'를 누르면 직접 기록한 횟수로 바뀌어요. 자동 연동은 휴대폰 앱으로 만들 때 할 계획이에요.</p>
+            <p className="note">사용량에 표시된 ‘예시’는 시연용 수치예요. ‘오늘 썼어요’를 누르면 직접 기록한 사용 일수로 바뀌어요.</p>
           ) : null}
         </section>
       ) : null}
@@ -121,7 +125,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       {items.length === 0 ? (
         <div className="empty card stack">
           <p>아직 등록한 구독이 없어요.</p>
-          <p className="note">OTT·음악·배달·쇼핑 멤버십처럼 매달 나가는 구독을 적어 두면 다음 결제일과 안 쓰는 구독을 보여줘요.</p>
+          <p className="note">OTT·음악·배달·쇼핑 멤버십처럼 매월·매년 결제하는 구독을 적어 두면 다음 결제일과 마지막 사용 기록을 확인할 수 있어요.</p>
           <Button onClick={onAddDemo}>예시 구독 넣기</Button>
         </div>
       ) : (
@@ -271,7 +275,7 @@ function SubscriptionForm({
         />
       ) : (
         <TextField
-          label="다음 갱신일"
+          label="다음 결제일"
           type="date"
           min={toDayIso(today)}
           value={raw.renewalDate}
@@ -283,7 +287,7 @@ function SubscriptionForm({
         label="마지막 사용일 (선택)"
         type="date"
         max={toDayIso(today)}
-        hint="31일 이상 안 쓰면 해지 후보로 표시해요. 비워 두고 '오늘 썼어요' 기록도 없으면 '확인 필요'로 보여요"
+        hint="기록된 마지막 사용일로부터 31일이 지나면 해지 후보로 표시해요. 마지막 사용일과 '오늘 썼어요' 기록이 모두 없으면 '확인 필요'로 표시해요"
         value={raw.lastUsedDate}
         error={shown.lastUsedDate}
         onChange={(e) => set('lastUsedDate', e.target.value)}
@@ -360,7 +364,7 @@ function SubscriptionCard({
   const lastUsed = lastUsedOf(sub)
   const usedToday = sub.useDates?.includes(toDayIso(today)) ?? false
   const priceText =
-    sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월 ${formatWon(monthlyEquivalent(sub))}`
+    sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월평균 ${formatWon(monthlyEquivalent(sub))}`
 
   if (mode === 'edit') {
     const base = editBase ?? { sub, renewal: next }
@@ -450,7 +454,7 @@ function SubscriptionCard({
             삭제
           </button>
           <button type="button" className="link-btn" ref={importRef} aria-expanded={importOpen} onClick={() => setImportOpen(true)}>
-            이용 기록 가져오기
+            넷플릭스 시청 기록 가져오기
           </button>
         </div>
       )}
@@ -604,7 +608,7 @@ function UsageImport({ sub, onImport, onCancel }: { sub: Subscription; onImport:
   const days = parsed && parsed.ok ? [...new Set(parsed.rows.map((row) => row.day))].sort() : []
 
   return (
-    <section className="stack import-panel" aria-label="이용 기록 가져오기">
+    <section className="stack import-panel" aria-label="넷플릭스 시청 기록 가져오기">
       <p className="note">
         지금은 넷플릭스 시청 기록 파일(CSV)만 가져올 수 있어요. PC 브라우저에서 넷플릭스 계정 → 프로필 → 시청 기록 → 모두 다운로드로 받은 파일이에요. 파일은 이 기기 안에서만 읽고, 제목은 저장하지 않아요.
       </p>

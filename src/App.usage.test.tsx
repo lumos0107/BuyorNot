@@ -28,16 +28,17 @@ describe('구독 사용량 (예시, F16)', () => {
     const user = await openSubs()
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))
     expect(screen.getAllByRole('article')).toHaveLength(5)
-    expect(card('(예시) 넷플릭스').getByText('사용량(예시): 최근 30일 18시간 · 1시간에 약 750원')).toBeInTheDocument()
+    expect(card('(예시) 넷플릭스').getByText('사용량(예시): 최근 30일 18시간 · 1시간에 약 750원꼴')).toBeInTheDocument()
     expect(card('(예시) 음악 스트리밍').getByText('사용량(예시): 최근 30일 사용 없음')).toBeInTheDocument()
-    expect(card('(예시) 배달의민족 배민클럽').getByText('사용량(예시): 최근 30일 6번 사용 · 1번에 약 670원')).toBeInTheDocument()
-    expect(card('(예시) 쿠팡 와우 멤버십').getByText('사용량(예시): 최근 30일 1번 사용 · 1번에 약 7,890원')).toBeInTheDocument()
+    expect(card('(예시) 배달의민족 배민클럽').getByText('사용량(예시): 최근 30일 6번 사용 · 1번에 약 670원꼴')).toBeInTheDocument()
+    expect(card('(예시) 쿠팡 와우 멤버십').getByText('사용량(예시): 최근 30일 1번 사용 · 1번에 약 7,890원꼴')).toBeInTheDocument()
     // '사용량 적기' 버튼(F25)이 아니라 사용량 표시 줄이 없는지 본다
     expect(card('(예시) 클라우드 저장공간').queryByText(/^사용량\(/)).not.toBeInTheDocument()
     const summary = within(screen.getByRole('region', { name: '구독 요약' }))
-    expect(summary.getByText('월 46,280원')).toBeInTheDocument()
+    expect(summary.getByText('46,280원')).toBeInTheDocument()
     expect(summary.getByText('연 555,360원')).toBeInTheDocument()
-    expect(summary.getByText("(예시)는 시연용 숫자예요. '오늘 썼어요'를 누르면 직접 기록한 횟수로 바뀌어요. 자동 연동은 휴대폰 앱으로 만들 때 할 계획이에요.")).toBeInTheDocument()
+    expect(summary.getByText('사용량에 표시된 ‘예시’는 시연용 수치예요. ‘오늘 썼어요’를 누르면 직접 기록한 사용 일수로 바뀌어요.')).toBeInTheDocument()
+    expect(summary.getByText('사용량 옆 금액은 각 구독의 월평균 구독료를 해당 사용량으로 나눈 값이에요.')).toBeInTheDocument()
   })
 
   it('직접 넣은 구독에는 사용량을 보여주지 않는다', async () => {

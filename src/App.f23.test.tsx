@@ -41,7 +41,7 @@ describe('가격 비교 문장은 할인 근거가 아니다 (F23, AC41)', () =>
     render(<App />)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
     const check = within(card('무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
-    expect(check.getByText('사기 전에 한 번 더 · 걸리는 점이 없어요')).toBeInTheDocument()
+    expect(check.getByText('사기 전에 한 번 더 · 내 기록에서 걸리는 점을 찾지 못했어요')).toBeInTheDocument()
     expect(within(check.getByRole('list', { name: '한 번 생각해 볼 질문' })).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
       '없으면 어떤 문제가 있나요?',
       '한 달 뒤에도 쓸까요?',
@@ -64,7 +64,7 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
   it('마지막 사용을 비워 두면 해지 후보가 아니라 확인 필요이고, 오늘 썼어요를 누르면 사라졌다가 다시 누르면 돌아온다', async () => {
     const user = await openSubs()
     const form = within(screen.getByRole('form', { name: '구독 담기' }))
-    expect(form.getByLabelText('마지막 사용일 (선택)')).toHaveAccessibleDescription("31일 이상 안 쓰면 해지 후보로 표시해요. 비워 두고 '오늘 썼어요' 기록도 없으면 '확인 필요'로 보여요")
+    expect(form.getByLabelText('마지막 사용일 (선택)')).toHaveAccessibleDescription("기록된 마지막 사용일로부터 31일이 지나면 해지 후보로 표시해요. 마지막 사용일과 '오늘 썼어요' 기록이 모두 없으면 '확인 필요'로 표시해요")
     await user.type(form.getByLabelText('구독 이름'), '티빙')
     await user.type(form.getByLabelText('요금'), '9500')
     await user.type(form.getByLabelText('결제일 (매월)'), '10')
@@ -86,7 +86,7 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
     localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub] }))
     const user = await openSubs()
     expect(card('왓챠').getByText('해지 후보')).toBeInTheDocument()
-    expect(summary().getByText('해지 후보 1개 · 월 7,900원')).toBeInTheDocument()
+    expect(summary().getByText('해지 후보 1개 · 월평균 7,900원')).toBeInTheDocument()
     await user.click(card('왓챠').getByRole('button', { name: '오늘 썼어요' }))
     expect(card('왓챠').queryByText('해지 후보')).not.toBeInTheDocument()
     expect(card('왓챠').getByText('마지막 사용 2026-10-11')).toBeInTheDocument()
@@ -94,7 +94,7 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
     await user.click(card('왓챠').getByRole('button', { name: '오늘 썼어요' }))
     expect(card('왓챠').getByText('해지 후보')).toBeInTheDocument()
     expect(card('왓챠').getByText('마지막 사용 2026-09-01')).toBeInTheDocument()
-    expect(summary().getByText('해지 후보 1개 · 월 7,900원')).toBeInTheDocument()
+    expect(summary().getByText('해지 후보 1개 · 월평균 7,900원')).toBeInTheDocument()
   })
 
   it('기록상 31일 이상 안 쓴 구독은 해지 후보다', async () => {
@@ -105,10 +105,10 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
     expect(card('왓챠').queryByText('확인 필요')).not.toBeInTheDocument()
   })
 
-  it('예시 구독은 해지 후보 1개 · 월 10,900원이고 확인 필요는 없다', async () => {
+  it('예시 구독은 해지 후보 1개 · 월평균 10,900원이고 확인 필요는 없다', async () => {
     const user = await openSubs()
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))
-    expect(summary().getByText('해지 후보 1개 · 월 10,900원')).toBeInTheDocument()
+    expect(summary().getByText('해지 후보 1개 · 월평균 10,900원')).toBeInTheDocument()
     expect(card('(예시) 음악 스트리밍').getByText('해지 후보')).toBeInTheDocument()
     expect(card('(예시) 음악 스트리밍').getByText('마지막 사용 2026-09-01')).toBeInTheDocument()
     expect(screen.queryByText('확인 필요')).not.toBeInTheDocument()

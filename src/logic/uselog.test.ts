@@ -42,13 +42,13 @@ describe('오늘 썼어요 기록 (F19)', () => {
 describe('사용량: 직접 기록이 예시보다 먼저 (F19)', () => {
   it('최근 30일 안의 기록만 세고 1번에 드는 돈을 보여준다', () => {
     const recorded = sub({ useDates: ['2026-09-01', '2026-10-01', '2026-10-05', '2026-10-11'] })
-    expect(usageInfo(recorded, TODAY)).toEqual({ source: 'manual', text: '최근 30일 중 3일 사용 · 쓴 날 하루에 약 4,500원' })
+    expect(usageInfo(recorded, TODAY)).toEqual({ source: 'manual', text: '최근 30일 중 3일 사용 · 쓴 날 하루에 약 4,500원꼴' })
   })
 
   it('최근 30일 경계: 오늘 포함 30일 안(9월 12일)은 세고, 그 전날(9월 11일)은 세지 않는다', () => {
     expect(usageInfo(sub({ useDates: ['2026-09-11', '2026-09-12'] }), TODAY)).toEqual({
       source: 'manual',
-      text: '최근 30일 중 1일 사용 · 쓴 날 하루에 약 13,500원',
+      text: '최근 30일 중 1일 사용 · 쓴 날 하루에 약 13,500원꼴',
     })
   })
 
@@ -58,15 +58,15 @@ describe('사용량: 직접 기록이 예시보다 먼저 (F19)', () => {
     expect(lastUsedOf(sub({ lastUsedDate: '2026-10-01', useDates: [] }))).toBe('2026-10-01')
   })
 
-  it('기록은 있지만 최근 30일 안에 없으면 사용 없음', () => {
-    expect(usageInfo(sub({ useDates: ['2026-09-01'] }), TODAY)).toEqual({ source: 'manual', text: '최근 30일 사용 없음' })
+  it('기록은 있지만 최근 30일 안에 없으면 사용 기록 없음 (기록 없음 ≠ 미사용, 문구 점검 C6)', () => {
+    expect(usageInfo(sub({ useDates: ['2026-09-01'] }), TODAY)).toEqual({ source: 'manual', text: '최근 30일 사용 기록 없음' })
   })
 
   it('직접 기록이 없으면 예시, 둘 다 없으면 null', () => {
-    expect(usageInfo(sub({ exampleUsageMinutes: 1080 }), TODAY)).toEqual({ source: 'example', text: '최근 30일 18시간 · 1시간에 약 750원' })
+    expect(usageInfo(sub({ exampleUsageMinutes: 1080 }), TODAY)).toEqual({ source: 'example', text: '최근 30일 18시간 · 1시간에 약 750원꼴' })
     expect(usageInfo(sub({ exampleUsageMinutes: 1080, useDates: ['2026-10-11'] }), TODAY)).toEqual({
       source: 'manual',
-      text: '최근 30일 중 1일 사용 · 쓴 날 하루에 약 13,500원',
+      text: '최근 30일 중 1일 사용 · 쓴 날 하루에 약 13,500원꼴',
     })
     expect(usageInfo(sub(), TODAY)).toBeNull()
   })

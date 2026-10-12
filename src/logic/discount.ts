@@ -72,8 +72,8 @@ export function calculateDiscount(input: DiscountInput): DiscountSide {
     result.discount = Math.min(input.value, input.price)
     steps.push(
       result.discount < input.value
-        ? `정액 할인 ${formatWon(input.value)} → 상품 금액을 넘지 않도록 할인 ${formatWon(result.discount)}`
-        : `정액 할인 ${formatWon(input.value)}`,
+        ? `금액 할인 ${formatWon(input.value)} → 상품 금액을 넘지 않도록 할인 ${formatWon(result.discount)}`
+        : `금액 할인 ${formatWon(input.value)}`,
     )
   }
 

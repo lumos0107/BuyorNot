@@ -20,19 +20,19 @@ const monthly = (over: Partial<Subscription> = {}): Subscription => ({
 
 describe('사용량 문장 (F16)', () => {
   it('사용 시간: 최근 30일 시간과 1시간에 드는 돈(10원 단위 반올림)', () => {
-    expect(usageText(monthly({ exampleUsageMinutes: 1080 }))).toBe('최근 30일 18시간 · 1시간에 약 750원')
-    expect(usageText(monthly({ exampleUsageMinutes: 130 }))).toBe('최근 30일 2시간 10분 · 1시간에 약 6,230원')
-    expect(usageText(monthly({ exampleUsageMinutes: 45 }))).toBe('최근 30일 45분 · 1시간에 약 18,000원')
+    expect(usageText(monthly({ exampleUsageMinutes: 1080 }))).toBe('최근 30일 18시간 · 1시간에 약 750원꼴')
+    expect(usageText(monthly({ exampleUsageMinutes: 130 }))).toBe('최근 30일 2시간 10분 · 1시간에 약 6,230원꼴')
+    expect(usageText(monthly({ exampleUsageMinutes: 45 }))).toBe('최근 30일 45분 · 1시간에 약 18,000원꼴')
   })
 
   it('사용 횟수: 최근 30일 횟수와 1번에 드는 돈', () => {
-    expect(usageText(monthly({ priceKrw: 3990, exampleUseCount: 6 }))).toBe('최근 30일 6번 사용 · 1번에 약 670원')
-    expect(usageText(monthly({ priceKrw: 7890, exampleUseCount: 1 }))).toBe('최근 30일 1번 사용 · 1번에 약 7,890원')
+    expect(usageText(monthly({ priceKrw: 3990, exampleUseCount: 6 }))).toBe('최근 30일 6번 사용 · 1번에 약 670원꼴')
+    expect(usageText(monthly({ priceKrw: 7890, exampleUseCount: 1 }))).toBe('최근 30일 1번 사용 · 1번에 약 7,890원꼴')
   })
 
   it('연 구독은 월 환산 요금으로 계산한다', () => {
     const yearly = monthly({ priceKrw: 120000, cycle: 'yearly', billingDay: undefined, renewalDate: '2027-01-01', exampleUsageMinutes: 600 })
-    expect(usageText(yearly)).toBe('최근 30일 10시간 · 1시간에 약 1,000원')
+    expect(usageText(yearly)).toBe('최근 30일 10시간 · 1시간에 약 1,000원꼴')
   })
 
   it('0이면 사용 없음, 정보가 없으면 null', () => {
@@ -73,7 +73,7 @@ describe('예시 구독과 예시 사용량 (F14·F16)', () => {
   it('예시 구독을 고쳐도 예시 사용량은 남는다', () => {
     const edited = updateSubscription(monthly({ exampleUsageMinutes: 1080 }), { name: '(예시) 넷플릭스', priceKrw: 17000, cycle: 'monthly', billingDay: 15, lastUsedDate: null }, NOW)
     expect(edited.exampleUsageMinutes).toBe(1080)
-    expect(usageText(edited)).toBe('최근 30일 18시간 · 1시간에 약 940원')
+    expect(usageText(edited)).toBe('최근 30일 18시간 · 1시간에 약 940원꼴')
     const delivery = updateSubscription(monthly({ priceKrw: 3990, exampleUseCount: 6 }), { name: '(예시) 배달의민족 배민클럽', priceKrw: 3990, cycle: 'monthly', billingDay: 20, lastUsedDate: null }, NOW)
     expect(delivery.exampleUseCount).toBe(6)
   })

@@ -41,8 +41,8 @@ describe('백업 만들기와 읽기 (F20)', () => {
   })
 
   it('확인 문구에 넣을 요약', () => {
-    expect(describeBackup(data)).toBe('물건 1개, 구독 1개, 시급 12,000원')
-    expect(describeBackup({ items: [], hourlyWage: null, subscriptions: [] })).toBe('물건 0개, 구독 0개, 시급 없음')
+    expect(describeBackup(data)).toBe('물건 기록 1건, 구독 1개, 시급 12,000원')
+    expect(describeBackup({ items: [], hourlyWage: null, subscriptions: [] })).toBe('물건 기록 0건, 구독 0개, 시급 없음')
   })
 
   it('살까말까 백업이 아니거나 한 부분이라도 복원 검증을 통과하지 못하면 읽지 않는다', () => {

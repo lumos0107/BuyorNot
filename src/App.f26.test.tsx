@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { SUBS_KEY } from './logic/subscriptions'
 
-// PRD F26 13-3: 구독 카드의 이용 기록 가져오기 (넷플릭스 시청 기록 CSV, 가짜 예시 데이터) — AC45
+// PRD F26 13-3: 구독 카드의 넷플릭스 시청 기록 가져오기 (넷플릭스 시청 기록 CSV, 가짜 예시 데이터) — AC45
 beforeEach(() => {
   localStorage.clear()
   vi.useFakeTimers({ toFake: ['Date'] })
@@ -36,13 +36,13 @@ async function open() {
   return user
 }
 const card = () => within(screen.getByRole('article', { name: '넷플릭스' }))
-const panel = () => within(card().getByRole('region', { name: '이용 기록 가져오기' }))
+const panel = () => within(card().getByRole('region', { name: '넷플릭스 시청 기록 가져오기' }))
 const saved = () => JSON.parse(localStorage.getItem(SUBS_KEY) ?? '{}').items[0]
 
-describe('이용 기록 가져오기 (F26, AC45)', () => {
+describe('넷플릭스 시청 기록 가져오기 (F26, AC45)', () => {
   it('파일을 고르면 미리보기를 보여주고, 가져오기를 누르면 저장해 카드에 출처·기간·가져온 날과 함께 보인다', async () => {
     const user = await open()
-    await user.click(card().getByRole('button', { name: '이용 기록 가져오기' }))
+    await user.click(card().getByRole('button', { name: '넷플릭스 시청 기록 가져오기' }))
     expect(panel().getByText(/지금은 넷플릭스 시청 기록 파일\(CSV\)만/)).toBeInTheDocument()
     await user.upload(panel().getByLabelText('시청 기록 파일 (CSV)'), file(CSV))
     const preview = within(await panel().findByRole('group', { name: '가져오기 미리보기' }))
@@ -52,7 +52,7 @@ describe('이용 기록 가져오기 (F26, AC45)', () => {
     expect(preview.getByText('이 구독에 이 기록을 저장할까요?')).toBeInTheDocument()
     await user.click(preview.getByRole('button', { name: '가져오기' }))
 
-    expect(card().getByText('넷플릭스 시청 기록: 최근 30일 2일 · 기록 3개 · 최근 30일 중 28일분만 있어요 (파일 2026-08-20~2026-10-09 · 10/11 가져옴)')).toBeInTheDocument()
+    expect(card().getByText('넷플릭스 시청 기록: 최근 30일 중 2일 이용 · 기록 3건 · 최근 30일 중 28일분만 있어요 (파일 2026-08-20~2026-10-09 · 10/11 가져옴)')).toBeInTheDocument()
     const record = saved().usageRecords[0]
     expect(record).toEqual({
       source: 'netflix-csv',
@@ -66,37 +66,37 @@ describe('이용 기록 가져오기 (F26, AC45)', () => {
       ],
     })
     expect(JSON.stringify(saved())).not.toContain('예시 A')
-    expect(card().getByRole('button', { name: '이용 기록 가져오기' })).toHaveFocus()
+    expect(card().getByRole('button', { name: '넷플릭스 시청 기록 가져오기' })).toHaveFocus()
     expect(card().queryByText('확인 필요')).not.toBeInTheDocument()
   })
 
   it('같은 파일을 다시 가져오면 바꿀지 묻고, 바꿔도 두 번 세지 않는다', async () => {
     const user = await open()
     for (let i = 0; i < 2; i += 1) {
-      await user.click(card().getByRole('button', { name: '이용 기록 가져오기' }))
+      await user.click(card().getByRole('button', { name: '넷플릭스 시청 기록 가져오기' }))
       await user.upload(panel().getByLabelText('시청 기록 파일 (CSV)'), file(CSV))
       const preview = within(await panel().findByRole('group', { name: '가져오기 미리보기' }))
       if (i === 1) expect(preview.getByText('이 구독의 넷플릭스 시청 기록을 이 파일로 바꿀까요?')).toBeInTheDocument()
       await user.click(preview.getByRole('button', { name: '가져오기' }))
     }
     expect(saved().usageRecords).toHaveLength(1)
-    expect(card().getByText(/최근 30일 2일 · 기록 3개/)).toBeInTheDocument()
+    expect(card().getByText(/최근 30일 중 2일 이용 · 기록 3건/)).toBeInTheDocument()
   })
 
   it('취소하면 아무것도 저장하지 않고 버튼으로 돌아간다', async () => {
     const user = await open()
-    await user.click(card().getByRole('button', { name: '이용 기록 가져오기' }))
+    await user.click(card().getByRole('button', { name: '넷플릭스 시청 기록 가져오기' }))
     await user.upload(panel().getByLabelText('시청 기록 파일 (CSV)'), file(CSV))
     await panel().findByRole('group', { name: '가져오기 미리보기' })
     await user.click(panel().getByRole('button', { name: '취소' }))
     expect(saved()).not.toHaveProperty('usageRecords')
-    expect(card().queryByRole('region', { name: '이용 기록 가져오기' })).not.toBeInTheDocument()
-    expect(card().getByRole('button', { name: '이용 기록 가져오기' })).toHaveFocus()
+    expect(card().queryByRole('region', { name: '넷플릭스 시청 기록 가져오기' })).not.toBeInTheDocument()
+    expect(card().getByRole('button', { name: '넷플릭스 시청 기록 가져오기' })).toHaveFocus()
   })
 
   it('형식이 다르거나 기록이 없는 파일은 이유를 입력에 연결해 알리고 미리보기를 보여주지 않는다', async () => {
     const user = await open()
-    await user.click(card().getByRole('button', { name: '이용 기록 가져오기' }))
+    await user.click(card().getByRole('button', { name: '넷플릭스 시청 기록 가져오기' }))
     const input = panel().getByLabelText('시청 기록 파일 (CSV)')
     await user.upload(input, file('Name,Amount\n"a",3'))
     expect(await panel().findByText('넷플릭스 시청 기록 파일이 아니에요. 첫 줄이 Title,Date(또는 제목,날짜)인 CSV인지 확인해 주세요.')).toBeInTheDocument()
@@ -108,7 +108,7 @@ describe('이용 기록 가져오기 (F26, AC45)', () => {
 
   it('날짜 순서가 파일만으로 정해지지 않으면 월/일로 읽었다고 알리고 일/월로 다시 읽을 수 있다', async () => {
     const user = await open()
-    await user.click(card().getByRole('button', { name: '이용 기록 가져오기' }))
+    await user.click(card().getByRole('button', { name: '넷플릭스 시청 기록 가져오기' }))
     await user.upload(panel().getByLabelText('시청 기록 파일 (CSV)'), file('Title,Date\n"예시 A",10/3/26\n"예시 B",10/9/26'))
     const preview = within(await panel().findByRole('group', { name: '가져오기 미리보기' }))
     expect(preview.getByText('날짜를 월/일 순서로 읽었어요.')).toBeInTheDocument()

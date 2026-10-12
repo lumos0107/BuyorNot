@@ -56,11 +56,11 @@ describe('더 고민하기 (F07)', () => {
     expect(card('무선 헤드폰').getByText(/1번 연장/)).toBeInTheDocument()
   })
 
-  it('재검토 가능 상태에서 연장하면 고민 중으로 돌아간다', async () => {
+  it('고민 기간 끝 상태에서 연장하면 고민 중으로 돌아간다', async () => {
     const { user } = setup()
     await addItem(user, { days: '1' })
     await passTime(48 * HOUR)
-    expect(card('무선 헤드폰').getByText('재검토 가능')).toBeInTheDocument()
+    expect(card('무선 헤드폰').getByText('고민 기간 끝')).toBeInTheDocument()
     await user.click(card('무선 헤드폰').getByRole('button', { name: '더 고민하기' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '1일 더' }))
     expect(card('무선 헤드폰').getByText('고민 중 · 1일 남음')).toBeInTheDocument()

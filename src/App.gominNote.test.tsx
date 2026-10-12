@@ -86,10 +86,10 @@ describe('갖고 싶은 정도 (F22, AC36)', () => {
   it('카드에서 오늘 정도를 고르면 저장되고 문장이 바뀐다. 같은 날 다시 고르면 그날 값을 바꾼다', async () => {
     const user = setup(thing({ desireStart: 4 }))
     await user.click(within(scale('무선 헤드폰')).getByRole('radio', { name: '3 보통' }))
-    expect(note('무선 헤드폰').getByText('담을 때 4 → 3 (1 줄었어요)')).toBeInTheDocument()
-    expect(scale('무선 헤드폰')).toHaveAccessibleDescription('담을 때 4 → 3 (1 줄었어요)')
+    expect(note('무선 헤드폰').getByText('담을 때 4 → 3 (1단계 줄었어요)')).toBeInTheDocument()
+    expect(scale('무선 헤드폰')).toHaveAccessibleDescription('담을 때 4 → 3 (1단계 줄었어요)')
     await user.click(within(scale('무선 헤드폰')).getByRole('radio', { name: '2 조금' }))
-    expect(note('무선 헤드폰').getByText('담을 때 4 → 2 (2 줄었어요)')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('담을 때 4 → 2 (2단계 줄었어요)')).toBeInTheDocument()
     expect(within(scale('무선 헤드폰')).getByRole('radio', { name: '2 조금' })).toBeChecked()
     expect(saved()[0].desireChecks).toEqual([{ day: TODAY, level: 2 }])
   })
@@ -108,7 +108,7 @@ describe('갖고 싶은 정도 (F22, AC36)', () => {
       window.dispatchEvent(new Event('focus'))
     })
     expect(within(scale('무선 헤드폰')).getByRole('radio', { name: '3 보통' })).not.toBeChecked()
-    expect(note('무선 헤드폰').getByText('담을 때 4 → 3 (1 줄었어요)')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('담을 때 4 → 3 (1단계 줄었어요)')).toBeInTheDocument()
   })
 })
 
@@ -167,7 +167,7 @@ describe('생각해 볼 질문 (F22, AC37)', () => {
     await user.click(note('무선 헤드폰').getByRole('button', { name: '아니요' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
     const check = within(card('무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
-    expect(check.getByText('사기 전에 한 번 더 · 걸리는 점이 없어요')).toBeInTheDocument()
+    expect(check.getByText('사기 전에 한 번 더 · 내 기록에서 걸리는 점을 찾지 못했어요')).toBeInTheDocument()
   })
 
   it('모두 답하면 질문 칸이 사라지고 오늘의 고민 제목으로 포커스를 옮긴다', async () => {
@@ -263,7 +263,7 @@ describe('저장과 여러 탭 (F22, AC37-2)', () => {
       throw new DOMException('full', 'QuotaExceededError')
     })
     await user.click(within(scale('무선 헤드폰')).getByRole('radio', { name: '3 보통' }))
-    expect(note('무선 헤드폰').getByText('담을 때 4 → 3 (1 줄었어요)')).toBeInTheDocument()
+    expect(note('무선 헤드폰').getByText('담을 때 4 → 3 (1단계 줄었어요)')).toBeInTheDocument()
     expect(screen.getByRole('status', { name: '저장 상태' })).toHaveTextContent('저장하지 못했어요')
   })
 
@@ -298,7 +298,7 @@ describe('사기 전 점검 (F22, AC38)', () => {
     )
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
     const check = within(card('무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
-    expect(check.getByText('갖고 싶은 정도: 담을 때 4 → 2 (2 줄었어요)')).toBeInTheDocument()
+    expect(check.getByText('갖고 싶은 정도: 담을 때 4 → 2 (2단계 줄었어요)')).toBeInTheDocument()
     expect(check.getByText('사기 전에 한 번 더 · 걸리는 점 1개')).toBeInTheDocument()
     expect(within(check.getByRole('list', { name: '걸리는 점' })).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
       "'할인·한정 때문'이라고 답했어요. 할인이 없어도 살까요?",
@@ -328,7 +328,7 @@ describe('결정 버튼과 목록 먼저 (F22, AC39)', () => {
     expect(buy.className).toBe(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }).className)
   })
 
-  it('재검토 가능이면 "아직 필요한가요?"이고 두 버튼은 같은 모양이다', () => {
+  it('고민 기간 끝이면 "아직 필요한가요?"이고 두 버튼은 같은 모양이다', () => {
     setup(thing({ reviewAt: at(-0.5) }))
     expect(card('무선 헤드폰').getByText('아직 필요한가요?')).toBeInTheDocument()
     const buy = card('무선 헤드폰').getByRole('button', { name: '구매함' })
@@ -387,8 +387,8 @@ describe('결정 기록의 고민 효과 (F22, AC40)', () => {
     )
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     const summary = within(screen.getByRole('region', { name: '결정 기록 요약' }))
-    expect(summary.getByText('고민하는 동안 갖고 싶은 정도가 줄어든 물건 2개 중 2개를 안 샀어요')).toBeInTheDocument()
-    expect(card('헤드폰').getByText('갖고 싶은 정도: 담을 때 4 → 2 (2 줄었어요)')).toBeInTheDocument()
+    expect(summary.getByText('갖고 싶은 정도가 줄어든 물건 2개 · 그중 안 산 물건 2개')).toBeInTheDocument()
+    expect(card('헤드폰').getByText('갖고 싶은 정도: 담을 때 4 → 2 (2단계 줄었어요)')).toBeInTheDocument()
     expect(card('포트').queryByText(/갖고 싶은 정도/)).not.toBeInTheDocument()
   })
 
@@ -401,8 +401,8 @@ describe('결정 기록의 고민 효과 (F22, AC40)', () => {
   it('예시 물건을 넣으면 헤드폰 카드와 결정 기록 요약에 고민 효과가 보인다', async () => {
     const user = setup()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
-    expect(note('(예시) 무선 헤드폰').getByText('담을 때 4 → 3 → 2 (2 줄었어요)')).toBeInTheDocument()
+    expect(note('(예시) 무선 헤드폰').getByText('담을 때 4 → 3 → 2 (2단계 줄었어요)')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
-    expect(screen.getByText('고민하는 동안 갖고 싶은 정도가 줄어든 물건 1개 중 1개를 안 샀어요')).toBeInTheDocument()
+    expect(screen.getByText('갖고 싶은 정도가 줄어든 물건 1개 · 그중 안 산 물건 1개')).toBeInTheDocument()
   })
 })

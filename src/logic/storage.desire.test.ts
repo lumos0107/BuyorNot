@@ -102,10 +102,10 @@ describe('예시 데이터의 정도 기록 (F22, AC40)', () => {
   const byName = (name: string) => demo.find((target) => target.name === `(예시) ${name}`)!
 
   it('헤드폰은 줄고, 건조대는 그대로(F27: 헤드폰과 같은 단계), 키보드는 줄어 포기, 청소기는 늘어 구매', () => {
-    expect(desireTrend(byName('무선 헤드폰'))).toBe('담을 때 4 → 3 → 2 (2 줄었어요)')
+    expect(desireTrend(byName('무선 헤드폰'))).toBe('담을 때 4 → 3 → 2 (2단계 줄었어요)')
     expect(desireTrend(byName('접이식 건조대'))).toBe('담을 때 3 → 3 (그대로예요)')
-    expect(desireTrend(byName('게이밍 키보드'))).toBe('담을 때 5 → 4 → 2 (3 줄었어요)')
-    expect(desireTrend(byName('무선 청소기'))).toBe('담을 때 3 → 4 → 4 (1 늘었어요)')
+    expect(desireTrend(byName('게이밍 키보드'))).toBe('담을 때 5 → 4 → 2 (3단계 줄었어요)')
+    expect(desireTrend(byName('무선 청소기'))).toBe('담을 때 3 → 4 → 4 (1단계 늘었어요)')
     expect(desireEffect(demo)).toEqual({ dropped: 1, droppedSkipped: 1 })
   })
 

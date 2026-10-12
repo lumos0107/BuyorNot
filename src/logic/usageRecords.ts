@@ -124,5 +124,5 @@ export function describeRecord(record: UsageRecord, today: Date): string {
   const s = analyzeRecord(record, recentPeriod(today))
   if (s.coverage === 'none') return `${label}: 최근 30일은 파일 기간 밖이에요 ${meta}`
   const part = s.coverage === 'partial' ? ` · 최근 30일 중 ${s.coveredDays}일분만 있어요` : ''
-  return `${label}: 최근 30일 ${s.days}일 · 기록 ${s.plays}개${part} ${meta}`
+  return `${label}: 최근 30일 중 ${s.days}일 이용 · 기록 ${s.plays}건${part} ${meta}`
 }

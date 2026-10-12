@@ -65,16 +65,16 @@ describe('고민 목록', () => {
     expect(card('무선 헤드폰').getByText('고민 중 · 2일 23시간 남음')).toBeInTheDocument()
   })
 
-  it('AC02·AC03: 고민 기간이 끝나면 재검토 가능이 되고, 결정하기 전까지 고민 중에 남는다', async () => {
+  it('AC02·AC03: 고민 기간이 끝나면 고민 기간 끝이 되고, 결정하기 전까지 고민 중에 남는다', async () => {
     const { user } = setup()
     await addItem(user, { days: '1' })
     await passTime(24 * HOUR - 60 * 1000)
     expect(card('무선 헤드폰').getByText('고민 중 · 1분 남음')).toBeInTheDocument()
     await passTime(60 * 1000)
-    expect(card('무선 헤드폰').getByText('재검토 가능')).toBeInTheDocument()
+    expect(card('무선 헤드폰').getByText('고민 기간 끝')).toBeInTheDocument()
     expect(card('무선 헤드폰').getByText('아직 필요한가요?')).toBeInTheDocument()
     await passTime(100 * HOUR)
-    expect(card('무선 헤드폰').getByText('재검토 가능')).toBeInTheDocument()
+    expect(card('무선 헤드폰').getByText('고민 기간 끝')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(screen.getByText('아직 결정한 물건이 없어요.')).toBeInTheDocument()
   })

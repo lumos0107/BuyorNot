@@ -101,7 +101,7 @@ function DiscountCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraf
           ['A안', ['80,000원', '15% 쿠폰 (최대 10,000원)', '배송비 3,000원']],
           ['B안', ['80,000원', '8,000원 쿠폰', '배송비 0원']],
         ]}
-        conclusion="할인율은 A안이 커 보여도, 결제액은 B안이 1,000원 적어요"
+        conclusion="A안의 할인율이 더 높아도, 배송비까지 더하면 B안이 1,000원 저렴해요"
         onExample={() => {
           setA(filled(EXAMPLE_DISCOUNT_A))
           setB(filled(EXAMPLE_DISCOUNT_B))
@@ -151,8 +151,8 @@ function DiscountCard({ name, state, errors, onChange }: DiscountCardProps) {
       />
       <SelectField label="쿠폰 종류" value={coupon} onChange={(e) => set('coupon', e.target.value as CouponKind)}>
         <option value="none">없음</option>
-        <option value="rate">정률 (%)</option>
-        <option value="amount">정액 (원)</option>
+        <option value="rate">비율 할인 (%)</option>
+        <option value="amount">금액 할인 (원)</option>
       </SelectField>
       {coupon === 'rate' ? (
         <TextField
@@ -194,7 +194,7 @@ function DiscountCard({ name, state, errors, onChange }: DiscountCardProps) {
           label="최대 할인액"
           inputMode="numeric"
           placeholder="없음"
-          hint="비워 두면 상한이 없어요"
+          hint="비워 두면 할인 한도가 없어요"
           value={form.maxDiscount}
           error={shown('maxDiscount')}
           onChange={(e) => set('maxDiscount', e.target.value)}
@@ -315,10 +315,10 @@ function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft)
       <h3 className="section-title">묶음상품 비교</h3>
       <ExampleIntro
         sides={[
-          ['A안', ['900mL × 2개', '6,000원', '100mL당 333원']],
-          ['B안', ['1.5L × 1개', '5,400원', '100mL당 360원']],
+          ['상품 A', ['900mL × 2개', '6,000원', '100mL당 약 333원']],
+          ['상품 B', ['1.5L × 1개', '5,400원', '100mL당 약 360원']],
         ]}
-        conclusion="100mL당은 A안이 싸지만, 오늘 내는 돈은 B안이 600원 적어요"
+        conclusion="100mL당 가격은 상품 A가 낮지만, 총지출은 상품 B가 600원 적어요"
         onExample={() => {
           setA(filled(EXAMPLE_BUNDLE_A))
           setB(filled(EXAMPLE_BUNDLE_B))
@@ -369,7 +369,7 @@ function BundleCard({ name, state, errors, onChange, unitErrorId }: BundleCardPr
         label="가격"
         inputMode="numeric"
         placeholder="원"
-        hint="묶음 전체 가격 · 배송비까지 비교하려면 포함한 금액"
+        hint="묶음 전체 가격을 적어 주세요. 배송비도 비교하려면 더해 주세요"
         value={form.price}
         error={shown('price')}
         onChange={(e) => set('price', e.target.value)}
@@ -390,7 +390,7 @@ function BundleCard({ name, state, errors, onChange, unitErrorId }: BundleCardPr
       </SelectField>
       {isCount ? null : (
         <TextField
-          label="개당 용량"
+          label="개당 무게·용량"
           inputMode="decimal"
           placeholder="예: 900"
           value={form.size}
@@ -425,8 +425,8 @@ function BundleResultCard({
     verdict.cheaper === 'tie'
       ? '두 상품의 단가가 같아요'
       : percentLabel === '0.0'
-        ? `상품 ${verdict.cheaper}가 단가 아주 조금 낮아요`
-        : `상품 ${verdict.cheaper}가 단가 ${percentLabel}% 낮아요`
+        ? `상품 ${verdict.cheaper}의 단가가 아주 조금 더 낮아요`
+        : `상품 ${verdict.cheaper}의 단가가 ${percentLabel}% 더 낮아요`
 
   return (
     <section className="card stack" aria-label="묶음상품 비교 결과">
@@ -505,7 +505,7 @@ function ShippingCompare({ startWithExample }: { startWithExample: boolean }) {
           ['지금', ['장바구니 27,000원', '배송비 3,000원', '총 30,000원']],
           ['더 담으면', ['8,000원어치 추가', '30,000원부터 무료배송', '총 35,000원']],
         ]}
-        conclusion="배송비 3,000원을 아끼려다 총지출이 5,000원 늘어요"
+        conclusion="상품을 더 담으면 배송비는 3,000원 줄고, 총지출은 5,000원 늘어요"
         onExample={() => setState(filled(EXAMPLE_SHIPPING))}
         onReset={() => setState(fresh(EMPTY_SHIPPING))}
       />
@@ -528,11 +528,11 @@ function shippingVerdict(r: ShippingResult): string {
     case 'already-free':
       return '이미 무료배송이에요'
     case 'still-short':
-      return `기준까지 ${formatWon(r.shortfall ?? 0)} 더 필요해요`
+      return `무료배송 기준 금액에 ${formatWon(r.shortfall ?? 0)}이 부족해요`
     case 'reaches-free': {
-      const saved = `배송비 ${formatWon(r.shippingSaved ?? 0)} 줄고`
+      const saved = `배송비는 ${formatWon(r.shippingSaved ?? 0)} 줄고,`
       if (r.diff === 0) return `${saved} 총지출은 같아요`
-      return r.diff > 0 ? `${saved} 총지출 ${formatWon(r.diff)} 늘어요` : `${saved} 총지출 ${formatWon(-r.diff)} 줄어요`
+      return r.diff > 0 ? `${saved} 총지출은 ${formatWon(r.diff)} 늘어요` : `${saved} 총지출은 ${formatWon(-r.diff)} 줄어요`
     }
   }
 }
@@ -589,7 +589,7 @@ function ExampleIntro({
         <IntroSide title={sides[1][0]} lines={sides[1][1]} />
       </div>
       <p className="intro-conclusion">{conclusion}</p>
-      <p className="note">예시 넣기로 아래 칸을 이 값으로 채울 수 있어요. 내 값으로 바꾸거나 초기화로 비워 보세요.</p>
+      <p className="note">‘예시 넣기’를 누르면 아래 칸이 채워져요. 비교할 금액과 조건으로 바꿔 보세요. ‘초기화’를 누르면 입력칸을 비워요.</p>
       <div className="btn-row">
         <Button onClick={onExample}>예시 넣기</Button>
         <Button onClick={onReset}>초기화</Button>

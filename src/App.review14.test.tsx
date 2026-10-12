@@ -102,10 +102,10 @@ describe('0원 결과는 담을 수 없음 (낮음)', () => {
     const a = within(panel.getByRole('group', { name: '상품 A' }))
     const b = within(panel.getByRole('group', { name: '상품 B' }))
     await user.type(a.getByLabelText('가격'), '0')
-    await user.type(a.getByLabelText('개당 용량'), '500')
+    await user.type(a.getByLabelText('개당 무게·용량'), '500')
     await user.type(a.getByLabelText('묶음 개수'), '1')
     await user.type(b.getByLabelText('가격'), '3000')
-    await user.type(b.getByLabelText('개당 용량'), '500')
+    await user.type(b.getByLabelText('개당 무게·용량'), '500')
     await user.type(b.getByLabelText('묶음 개수'), '1')
     const result = within(screen.getByRole('region', { name: '묶음상품 비교 결과' }))
     expect(result.queryByRole('button', { name: '상품 A로 담기' })).not.toBeInTheDocument()
@@ -121,7 +121,7 @@ describe('백업 불러오기 보완 (중간·낮음)', () => {
     await openBackup(user)
     await user.upload(screen.getByLabelText('백업 파일 불러오기'), new File([backupOf([sub({})])], 'b.json'))
     const confirm = within(await screen.findByRole('group', { name: '백업 불러오기 확인' }))
-    expect(confirm.getByText('파일 내용: 물건 0개, 구독 1개, 시급 없음. 지금 기록을 이 파일의 기록으로 바꿀까요?')).toBeInTheDocument()
+    expect(confirm.getByText('파일 내용: 물건 기록 0건, 구독 1개, 시급 없음. 지금 기록을 이 파일의 기록으로 바꿀까요?')).toBeInTheDocument()
   })
 
   it('새 파일을 고르면 이전 확인을 바로 닫는다', async () => {

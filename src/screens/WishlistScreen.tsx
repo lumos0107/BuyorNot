@@ -170,7 +170,7 @@ export function WishlistScreen({
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
-          <p className="note">사고 싶은 물건을 담아 두면 고민 기간이 지난 뒤 다시 물어봐요.</p>
+          <p className="note">사고 싶은 물건을 담아 두면 날마다 다시 생각해 보고, 처음 적은 이유와 지금 마음을 비교할 수 있어요.</p>
         </div>
       ) : (
         <section className="stack" aria-label="고민 중인 물건 목록">
@@ -224,7 +224,7 @@ function CoolingGuide() {
       <summary className="card-title">며칠 고민하면 뭐가 좋을까요?</summary>
       <div className="stack">
         <p>사고 싶은 마음은 시간이 지나면 처음보다 약해지기도 해요.</p>
-        <p>살까말까는 담을 때 적은 이유와 답을 기간이 지난 뒤 다시 보여줘서, 그때의 마음과 지금의 생각을 나란히 볼 수 있게 해요.</p>
+        <p>담아 둔 물건은 날마다 ‘오늘의 고민’에서 다시 생각하고, 고민 기간이 지나면 처음 적은 이유와 지금 마음을 나란히 볼 수 있어요.</p>
         <p>사기로 했다면 가격 비교에서 더 싼 조건을 고르고, 결정 기록에서 내가 어떤 물건을 사고 포기했는지 돌아볼 수 있어요.</p>
         <p>모든 사람에게 같은 효과가 있다고 말할 수는 없어요. 기록이 쌓이면 나에게 맞는 고민 기간을 찾는 데 도움이 될 수 있어요.</p>
       </div>
@@ -353,7 +353,7 @@ function AddForm({
       ) : null}
       {fromExample ? (
         <p className="note" role="status">
-          예시 값을 채웠어요. 담아 두기를 누르면 체크리스트 답까지 카드에 들어가요.
+          예시를 입력했어요. ‘담아 두기’를 누르면 체크리스트 답도 물건 카드에 표시돼요.
         </p>
       ) : null}
       <TextField
@@ -551,7 +551,7 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
       <div className="card-row">
         <p className="card-title">{item.name}</p>
         {state.phase === 'ready' ? (
-          <span className="status">재검토 가능</span>
+          <span className="status">고민 기간 끝</span>
         ) : (
           <span className="status status-muted">고민 중 · {formatRemaining(state.remainingMs)}</span>
         )}
@@ -634,7 +634,7 @@ function CompareLinks({ name }: { name: string }) {
   return (
     <div className="compare-links">
       <span className="card-meta">비교해 볼 곳</span>
-      <span className="note">상품명 검색 결과예요. 추천이 아니에요. 새 창으로 열려요.</span>
+      <span className="note">상품명 검색 결과(추천 아님, 새 창)</span>
       <ul className="link-list" aria-label="비교해 볼 곳">
         {compareLinks(name).map((link) => (
           <li key={link.label}>
@@ -754,7 +754,7 @@ function ImpulseCheck({ id, signals, questions, hours, desire, others }: Impulse
   const shown = showAll ? questions : questions.slice(0, QUESTIONS_SHOWN)
   return (
     <section className="impulse-check stack" aria-label="사기 전 점검" id={id}>
-      <p className="field-label">사기 전에 한 번 더 · {signals.length > 0 ? `걸리는 점 ${signals.length}개` : '걸리는 점이 없어요'}</p>
+      <p className="field-label">사기 전에 한 번 더 · {signals.length > 0 ? `걸리는 점 ${signals.length}개` : '내 기록에서 걸리는 점을 찾지 못했어요'}</p>
       {desire ? <p>{`갖고 싶은 정도: ${desire}`}</p> : null}
       {signals.length > 0 ? (
         <ul className="impulse-list" aria-label="걸리는 점">
@@ -797,7 +797,7 @@ function ImpulseCheck({ id, signals, questions, hours, desire, others }: Impulse
           ) : null}
         </>
       ) : null}
-      {signals.length > 0 ? <p className="note">그래도 필요하다면 사도 괜찮아요.</p> : null}
+      {signals.length > 0 ? <p className="note">이유와 답을 돌아보고, 살지 정해 보세요.</p> : null}
     </section>
   )
 }

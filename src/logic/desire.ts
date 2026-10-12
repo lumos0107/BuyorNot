@@ -79,12 +79,12 @@ export function desireChange(item: WishItem): DesireChange | null {
 }
 
 function deltaText({ from, to }: DesireChange): string {
-  if (to < from) return `${from - to} 줄었어요`
-  if (to > from) return `${to - from} 늘었어요`
+  if (to < from) return `${from - to}단계 줄었어요`
+  if (to > from) return `${to - from}단계 늘었어요`
   return '그대로예요'
 }
 
-/** "담을 때 4 → 3 → 2 (2 줄었어요)". 값이 6개 이상이면 첫 값·"…"·마지막 3개만 쓴다 */
+/** "담을 때 4 → 3 → 2 (2단계 줄었어요)". 값이 6개 이상이면 첫 값·"…"·마지막 3개만 쓴다 */
 export function desireTrend(item: WishItem): string | null {
   const s = series(item)
   if (!s) return null

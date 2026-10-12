@@ -205,9 +205,9 @@ export function validateSubscriptionInput(
     const ny = today.getFullYear() + 1
     const lastDay = Math.min(today.getDate(), daysInMonth(ny, today.getMonth() + 1))
     const yearLater = calendarDaysBetween(today, new Date(ny, today.getMonth(), lastDay, 12))
-    if (!renewal) errors.renewalDate = '다음 갱신일을 골라 주세요'
+    if (!renewal) errors.renewalDate = '다음 결제일을 골라 주세요'
     else if (raw.renewalDate.trim() !== unchangedRenewal && (until < 0 || until > yearLater)) {
-      errors.renewalDate = '다음 갱신일은 오늘부터 1년 안이어야 해요'
+      errors.renewalDate = '다음 결제일은 오늘부터 1년 안이어야 해요'
     }
     else value.renewalDate = raw.renewalDate.trim()
   }

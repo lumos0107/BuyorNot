@@ -58,7 +58,7 @@ describe('담기 폼의 체크리스트 (F28, AC47)', () => {
     render(<App />)
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
 
-    expect(form().getByText('예시 값을 채웠어요. 담아 두기를 누르면 체크리스트 답까지 카드에 들어가요.')).toBeInTheDocument()
+    expect(form().getByText('예시를 입력했어요. ‘담아 두기’를 누르면 체크리스트 답도 물건 카드에 표시돼요.')).toBeInTheDocument()
     expect(form().getByLabelText('상품명')).toHaveValue('(예시) 전기 포트')
     expect(form().getByLabelText('상품명')).toHaveFocus()
     expect(form().getByLabelText('가격')).toHaveValue('32000')

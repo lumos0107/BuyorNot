@@ -342,7 +342,7 @@ export function demoItems(now: Date, nextId: () => string): WishItem[] {
     make('무선 헤드폰', 129000, '유선 이어폰 선이 자꾸 끊겨서', 4, 7, undefined, { problem: '출퇴근길에 음악을 못 들어요', useInMonth: 'unsure', haveOne: 'yes', saleDriven: 'no', spaceTime: 'yes', alternative: 'no' }, { start: 4, checks: [[3, 3], [2, 2]] }),
     make('접이식 건조대', 38000, '빨래를 널 곳이 없어서', 2, 7, undefined, { problem: '빨래를 방바닥에 널고 있어요', useInMonth: 'yes', haveOne: 'no', saleDriven: 'no', spaceTime: 'yes', alternative: 'yes' }, { start: 3, checks: [[1, 3]] }),
     // 고민하는 동안 정도가 줄어 포기한 기록과, 줄지 않아 산 기록 (결정 기록의 고민 효과)
-    make('게이밍 키보드', 149000, '세일이라 담았는데 지금 키보드도 멀쩡해서', 7, 3, { status: 'skipped', daysAgo: 3 }, undefined, { start: 5, checks: [[6, 4], [4, 2]] }),
+    make('게이밍 키보드', 149000, '쓰던 키보드는 멀쩡하지만 세일 중이라 사고 싶었어요', 7, 3, { status: 'skipped', daysAgo: 3 }, undefined, { start: 5, checks: [[6, 4], [4, 2]] }),
     // 구매 후 7일이 지나 회고를 물을 수 있는 기록 (F12)
     make('무선 청소기', 189000, '바닥 청소할 시간이 없어서', 14, 3, { status: 'purchased', daysAgo: 9 }, undefined, { start: 3, checks: [[12, 4], [10, 4]] }),
   ]

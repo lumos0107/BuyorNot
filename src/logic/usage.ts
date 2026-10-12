@@ -16,15 +16,15 @@ function formatMinutes(total: number): string {
 
 function minutesText(sub: Subscription, minutes: number): string {
   if (minutes === 0) return '최근 30일 사용 없음'
-  return `최근 30일 ${formatMinutes(minutes)} · 1시간에 약 ${formatWon(round10(monthlyEquivalent(sub) / (minutes / 60)))}`
+  return `최근 30일 ${formatMinutes(minutes)} · 1시간에 약 ${formatWon(round10(monthlyEquivalent(sub) / (minutes / 60)))}꼴`
 }
 
 function countText(sub: Subscription, count: number): string {
   if (count === 0) return '최근 30일 사용 없음'
-  return `최근 30일 ${count}번 사용 · 1번에 약 ${formatWon(round10(monthlyEquivalent(sub) / count))}`
+  return `최근 30일 ${count}번 사용 · 1번에 약 ${formatWon(round10(monthlyEquivalent(sub) / count))}꼴`
 }
 
-/** "최근 30일 18시간 · 1시간에 약 750원" / "최근 30일 6번 사용 · 1번에 약 670원". 사용량 정보가 없으면 null */
+/** "최근 30일 18시간 · 1시간에 약 750원꼴" / "최근 30일 6번 사용 · 1번에 약 670원꼴". 사용량 정보가 없으면 null */
 export function usageText(sub: Subscription): string | null {
   if (sub.exampleUsageMinutes !== undefined) return minutesText(sub, sub.exampleUsageMinutes)
   if (sub.exampleUseCount !== undefined) return countText(sub, sub.exampleUseCount)
@@ -70,9 +70,9 @@ export function usageInfo(sub: Subscription, today: Date): UsageInfo | null {
       const ago = calendarDaysBetween(day, today)
       return ago >= 0 && ago < 30
     }).length
-    if (count === 0) return { source: 'manual', text: '최근 30일 사용 없음' }
+    if (count === 0) return { source: 'manual', text: '최근 30일 사용 기록 없음' }
     // 오늘 썼어요는 하루에 한 번 기록하므로 횟수가 아니라 쓴 날 수로 말한다
-    return { source: 'manual', text: `최근 30일 중 ${count}일 사용 · 쓴 날 하루에 약 ${formatWon(round10(monthlyEquivalent(sub) / count))}` }
+    return { source: 'manual', text: `최근 30일 중 ${count}일 사용 · 쓴 날 하루에 약 ${formatWon(round10(monthlyEquivalent(sub) / count))}꼴` }
   }
   const text = usageText(sub)
   return text ? { source: 'example', text } : null

@@ -92,7 +92,7 @@ describe('사기 전에 한 번 더 (F15, AC29)', () => {
       '놓을 곳과 쓸 시간이 있나요?',
     ])
     expect(check.getByRole('button', { name: '그 밖에 1개 보기' })).toBeInTheDocument()
-    expect(check.getByText('그래도 필요하다면 사도 괜찮아요.')).toBeInTheDocument()
+    expect(check.getByText('이유와 답을 돌아보고, 살지 정해 보세요.')).toBeInTheDocument()
   })
 
   it('구매함을 누르면 메모 입력이 아니라 확인 폼으로 포커스가 가고(폰 키보드가 점검을 가리지 않게) 점검 내용을 함께 읽어 준다', async () => {
@@ -174,8 +174,8 @@ describe('사기 전에 한 번 더 (F15, AC29)', () => {
     const user = setup([calm])
     await user.click(card('전기 포트').getByRole('button', { name: '구매함' }))
     const check = within(card('전기 포트').getByRole('region', { name: '사기 전 점검' }))
-    expect(check.getByText('사기 전에 한 번 더 · 걸리는 점이 없어요')).toBeInTheDocument()
-    expect(check.queryByText('그래도 필요하다면 사도 괜찮아요.')).not.toBeInTheDocument()
+    expect(check.getByText('사기 전에 한 번 더 · 내 기록에서 걸리는 점을 찾지 못했어요')).toBeInTheDocument()
+    expect(check.queryByText('이유와 답을 돌아보고, 살지 정해 보세요.')).not.toBeInTheDocument()
     await user.click(card('전기 포트').getByRole('button', { name: '구매함 확인' }))
     expect(screen.queryByRole('article', { name: '전기 포트' })).not.toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0].status).toBe('purchased')

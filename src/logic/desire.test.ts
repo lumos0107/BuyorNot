@@ -82,11 +82,11 @@ describe('변화 문장 (F22)', () => {
   })
 
   it('처음 값보다 뒤 날짜의 기록과 비교해 줄었는지·늘었는지·그대로인지 붙인다 (AC36)', () => {
-    expect(desireTrend(item({ desireStart: 4, desireChecks: checks(['2026-10-09', 3]) }))).toBe('담을 때 4 → 3 (1 줄었어요)')
-    expect(desireTrend(item({ desireStart: 3, desireChecks: checks(['2026-10-09', 5]) }))).toBe('담을 때 3 → 5 (2 늘었어요)')
+    expect(desireTrend(item({ desireStart: 4, desireChecks: checks(['2026-10-09', 3]) }))).toBe('담을 때 4 → 3 (1단계 줄었어요)')
+    expect(desireTrend(item({ desireStart: 3, desireChecks: checks(['2026-10-09', 5]) }))).toBe('담을 때 3 → 5 (2단계 늘었어요)')
     expect(desireTrend(item({ desireStart: 4, desireChecks: checks(['2026-10-09', 4]) }))).toBe('담을 때 4 → 4 (그대로예요)')
     expect(desireTrend(item({ desireStart: 4, desireChecks: checks(['2026-10-09', 3], ['2026-10-10', 2]) }))).toBe(
-      '담을 때 4 → 3 → 2 (2 줄었어요)',
+      '담을 때 4 → 3 → 2 (2단계 줄었어요)',
     )
   })
 
@@ -110,15 +110,15 @@ describe('변화 문장 (F22)', () => {
 
   it('담을 때 정도가 없으면 가장 이른 날의 기록을 "처음"이라 쓴다', () => {
     expect(desireTrend(item({ desireChecks: checks(['2026-10-09', 3]) }))).toBe('처음 3')
-    expect(desireTrend(item({ desireChecks: checks(['2026-10-10', 2], ['2026-10-09', 3]) }))).toBe('처음 3 → 2 (1 줄었어요)')
+    expect(desireTrend(item({ desireChecks: checks(['2026-10-10', 2], ['2026-10-09', 3]) }))).toBe('처음 3 → 2 (1단계 줄었어요)')
     expect(desireChange(item({ desireChecks: checks(['2026-10-09', 3], ['2026-10-10', 2]) }))).toEqual({ label: '처음', from: 3, to: 2 })
   })
 
   it('값이 5개까지는 모두, 6개 이상이면 첫 값·"…"·마지막 3개만 쓴다 (AC36)', () => {
     const five = checks(['2026-10-09', 4], ['2026-10-10', 4], ['2026-10-11', 3], ['2026-10-12', 2])
-    expect(desireTrend(item({ desireStart: 5, desireChecks: five }))).toBe('담을 때 5 → 4 → 4 → 3 → 2 (3 줄었어요)')
+    expect(desireTrend(item({ desireStart: 5, desireChecks: five }))).toBe('담을 때 5 → 4 → 4 → 3 → 2 (3단계 줄었어요)')
     expect(desireTrend(item({ desireStart: 5, desireChecks: [...five, { day: '2026-10-13', level: 2 }] }))).toBe(
-      '담을 때 5 → … → 3 → 2 → 2 (3 줄었어요)',
+      '담을 때 5 → … → 3 → 2 → 2 (3단계 줄었어요)',
     )
   })
 

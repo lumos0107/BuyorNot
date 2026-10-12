@@ -50,8 +50,8 @@ describe('적은 사용량 저장과 표시 (F25)', () => {
   it('사용 시간·횟수로 한 번에 드는 돈을 보여주고, 0이면 사용 없음', () => {
     const entered = (kind: 'minutes' | 'count', value: number, over: Partial<Subscription> = {}) =>
       usageInfo(sub({ usageEntry: { kind, value, day: '2026-10-11' }, ...over }), TODAY)
-    expect(entered('minutes', 1080)).toEqual({ source: 'entered', text: '최근 30일 18시간 · 1시간에 약 530원', day: '2026-10-11', stale: false })
-    expect(entered('count', 6, { priceKrw: 3990 })?.text).toBe('최근 30일 6번 사용 · 1번에 약 670원')
+    expect(entered('minutes', 1080)).toEqual({ source: 'entered', text: '최근 30일 18시간 · 1시간에 약 530원꼴', day: '2026-10-11', stale: false })
+    expect(entered('count', 6, { priceKrw: 3990 })?.text).toBe('최근 30일 6번 사용 · 1번에 약 670원꼴')
     expect(entered('minutes', 0)?.text).toBe('최근 30일 사용 없음')
   })
 

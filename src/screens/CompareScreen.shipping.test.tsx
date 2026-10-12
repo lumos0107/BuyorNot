@@ -21,7 +21,7 @@ describe('무료배송 채우기 화면', () => {
     expect(form().getByLabelText('현재 상품 금액')).toHaveValue('27000')
     expect(result().getByText('30,000원')).toBeInTheDocument()
     expect(result().getByText('35,000원')).toBeInTheDocument()
-    expect(result().getByText('배송비 3,000원 줄고 총지출 5,000원 늘어요')).toBeInTheDocument()
+    expect(result().getByText('배송비는 3,000원 줄고, 총지출은 5,000원 늘어요')).toBeInTheDocument()
     expect(result().getByText(/추가하는 물건이 정말 필요한지/)).toBeInTheDocument()
   })
 
@@ -31,7 +31,7 @@ describe('무료배송 채우기 화면', () => {
     await user.type(form().getByLabelText('배송비'), '3000')
     await user.type(form().getByLabelText('무료배송 기준 금액'), '30000')
     await user.type(form().getByLabelText('추가할 상품 금액'), '2000')
-    expect(result().getByText('기준까지 1,000원 더 필요해요')).toBeInTheDocument()
+    expect(result().getByText('무료배송 기준 금액에 1,000원이 부족해요')).toBeInTheDocument()
   })
 
   it('이미 기준 이상이면 이미 무료배송이라고 알려준다', async () => {

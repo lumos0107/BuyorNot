@@ -35,7 +35,7 @@ async function addSub(user: ReturnType<typeof userEvent.setup>, f: Fill) {
   await user.type(form().getByLabelText('요금'), f.price)
   await user.click(form().getByRole('radio', { name: f.cycle ?? '매월' }))
   if ((f.cycle ?? '매월') === '매월') await user.type(form().getByLabelText('결제일 (매월)'), f.billingDay ?? '15')
-  else fireEvent.change(form().getByLabelText('다음 갱신일'), { target: { value: f.renewal ?? '' } })
+  else fireEvent.change(form().getByLabelText('다음 결제일'), { target: { value: f.renewal ?? '' } })
   if (f.lastUsed) fireEvent.change(form().getByLabelText('마지막 사용일 (선택)'), { target: { value: f.lastUsed } })
   await user.click(form().getByRole('button', { name: '구독 추가' }))
 }
@@ -53,17 +53,17 @@ describe('구독 정리함 (F14)', () => {
     expect(card('넷플릭스').getByText('월 13,500원')).toBeInTheDocument()
     expect(card('넷플릭스').getByText('다음 결제 2026-10-15 · D-4')).toBeInTheDocument()
     expect(card('넷플릭스').queryByText('해지 후보')).not.toBeInTheDocument()
-    expect(summary().getByText('월 13,500원')).toBeInTheDocument()
+    expect(summary().getByText('13,500원')).toBeInTheDocument()
     expect(summary().getByText('연 162,000원')).toBeInTheDocument()
   })
 
   it('AC27: 연 구독은 월 환산을 함께 보여주고, 기록상 31일 이상 안 썼으면 해지 후보다 (F23)', async () => {
     const { user } = await openSubs()
     await addSub(user, { name: '클라우드', price: '120005', cycle: '매년', renewal: '2027-01-01', lastUsed: '2026-09-01' })
-    expect(card('클라우드').getByText('연 120,005원 · 월 10,000원')).toBeInTheDocument()
+    expect(card('클라우드').getByText('연 120,005원 · 월평균 10,000원')).toBeInTheDocument()
     expect(card('클라우드').getByText('다음 결제 2027-01-01 · D-82')).toBeInTheDocument()
     expect(card('클라우드').getByText('해지 후보')).toBeInTheDocument()
-    expect(summary().getByText('해지 후보 1개 · 월 10,000원')).toBeInTheDocument()
+    expect(summary().getByText('해지 후보 1개 · 월평균 10,000원')).toBeInTheDocument()
   })
 
   it('잘못된 입력은 오류를 보여주고 추가하지 않는다', async () => {

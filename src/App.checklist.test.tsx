@@ -60,7 +60,7 @@ describe('담을 때 질문 6개', () => {
     expect(check.getByText("'빌리거나 중고로 대신할 수 있어요'라고 답했어요")).toBeInTheDocument()
   })
 
-  it('재검토 가능 카드에 새 답도 함께 보여준다', async () => {
+  it('고민 기간 끝 카드에 새 답도 함께 보여준다', async () => {
     const item = {
       id: 'c1',
       name: '캠핑 의자',

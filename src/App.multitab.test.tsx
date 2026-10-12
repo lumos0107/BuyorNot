@@ -146,7 +146,7 @@ describe('구독: 여러 탭', () => {
       window.dispatchEvent(new Event('focus'))
     })
     const editor = within(screen.getByRole('form', { name: '구독 수정' }))
-    expect(editor.getByLabelText('다음 갱신일')).toHaveValue('2026-10-11')
+    expect(editor.getByLabelText('다음 결제일')).toHaveValue('2026-10-11')
     await user.type(editor.getByLabelText('메모 (선택)'), '가족 공유')
     await user.click(editor.getByRole('button', { name: '저장' }))
     expect(screen.queryByRole('form', { name: '구독 수정' })).not.toBeInTheDocument()

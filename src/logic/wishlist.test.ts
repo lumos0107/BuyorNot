@@ -41,7 +41,7 @@ describe('고민 기간 종료 시각과 상태 (F02)', () => {
     expect(reviewAtFrom(T0, 1)).toBe(at(T0, hours(24)).toISOString())
   })
 
-  it('종료 직전은 고민 중, AC02: 정각은 재검토 가능, 직후도 재검토 가능이다', () => {
+  it('종료 직전은 고민 중, AC02: 정각은 고민 기간 끝, 직후도 고민 기간 끝이다', () => {
     const reviewAt = reviewAtFrom(T0, 3)
     expect(reviewState(reviewAt, at(T0, hours(72) - 1))).toEqual({ phase: 'cooling', remainingMs: 1 })
     expect(reviewState(reviewAt, at(T0, hours(72)))).toEqual({ phase: 'ready' })
@@ -115,7 +115,7 @@ describe('상품 등록·수정·결정 (F01, F02, F03)', () => {
     expect(afterDelete).toEqual([])
   })
 
-  it('고민 중 목록은 재검토 가능한 것이 먼저, 그다음 종료가 가까운 순이다', () => {
+  it('고민 중 목록은 고민 기간 끝한 것이 먼저, 그다음 종료가 가까운 순이다', () => {
     const now = at(T0, hours(50))
     const ready = item({ id: 'ready', reviewAt: reviewAtFrom(T0, 1) })
     const soon = item({ id: 'soon', reviewAt: reviewAtFrom(T0, 3) })

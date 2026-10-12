@@ -34,7 +34,7 @@ describe('고민 기간 연장 (F07)', () => {
     expect(extended.updatedAt).toBe(now.toISOString())
   })
 
-  it('AC18: 재검토 가능(지난 지 1일)에서 3일을 연장하면 지금부터 3일 남고 고민 중으로 돌아간다', () => {
+  it('AC18: 고민 기간 끝(지난 지 1일)에서 3일을 연장하면 지금부터 3일 남고 고민 중으로 돌아간다', () => {
     const now = at(T0, hours(24 * 4))
     const extended = extendItem(item(), 3, now)
     expect(extended.reviewAt).toBe(reviewAtFrom(now, 3))

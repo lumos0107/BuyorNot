@@ -95,14 +95,14 @@ describe('GPT 10~11단계 검토 반영', () => {
   })
 
   describe('지난 연 갱신일 수정', () => {
-    it('갱신일이 지난 연 구독은 수정 폼에 다음 갱신일이 채워지고, 메모만 고쳐도 저장되며 원래 기준일은 유지된다', async () => {
+    it('갱신일이 지난 연 구독은 수정 폼에 다음 결제일이 채워지고, 메모만 고쳐도 저장되며 원래 기준일은 유지된다', async () => {
       localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub({})] }))
       const user = userEvent.setup()
       await openSubs(user)
       expect(card('클라우드').getByText('다음 결제 2027-03-01 · D-141')).toBeInTheDocument()
       await user.click(card('클라우드').getByRole('button', { name: '수정' }))
       const editor = within(screen.getByRole('form', { name: '구독 수정' }))
-      expect(editor.getByLabelText('다음 갱신일')).toHaveValue('2027-03-01')
+      expect(editor.getByLabelText('다음 결제일')).toHaveValue('2027-03-01')
       await user.type(editor.getByLabelText('메모 (선택)'), '가족 공유')
       await user.click(editor.getByRole('button', { name: '저장' }))
       expect(screen.queryByRole('form', { name: '구독 수정' })).not.toBeInTheDocument()
@@ -111,13 +111,13 @@ describe('GPT 10~11단계 검토 반영', () => {
       expect(saved.memo).toBe('가족 공유')
     })
 
-    it('수정에서 다음 갱신일을 바꾸면 그 날짜로 저장한다', async () => {
+    it('수정에서 다음 결제일을 바꾸면 그 날짜로 저장한다', async () => {
       localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub({})] }))
       const user = userEvent.setup()
       await openSubs(user)
       await user.click(card('클라우드').getByRole('button', { name: '수정' }))
       const editor = within(screen.getByRole('form', { name: '구독 수정' }))
-      fireEvent.change(editor.getByLabelText('다음 갱신일'), { target: { value: '2027-01-15' } })
+      fireEvent.change(editor.getByLabelText('다음 결제일'), { target: { value: '2027-01-15' } })
       await user.click(editor.getByRole('button', { name: '저장' }))
       expect(JSON.parse(localStorage.getItem(SUBS_KEY) ?? '{}').items[0].renewalDate).toBe('2027-01-15')
     })
@@ -174,7 +174,7 @@ describe('GPT 10~11단계 검토 반영', () => {
       await user.click(card('전기 포트').getByRole('button', { name: '회고 저장' }))
       const first = card('전기 포트').getByRole('radio', { name: '잘 샀어요' })
       expect(first).toHaveFocus()
-      expect(first).toHaveAccessibleDescription('잘 샀는지 하나를 골라 주세요')
+      expect(first).toHaveAccessibleDescription('구매 후 느낌을 하나 골라 주세요')
     })
 
     it('저장하면 "회고 고치기"로, 고치기를 열면 고른 답으로, 취소하면 다시 "회고 고치기"로 포커스가 간다', async () => {

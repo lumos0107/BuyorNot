@@ -81,7 +81,7 @@ describe('화면 보완', () => {
     const user = userEvent.setup()
     render(<App />)
     await addItem(user)
-    expect(card('무선 헤드폰').getByText(/추천이 아니에요/)).toBeVisible()
+    expect(card('무선 헤드폰').getByText(/추천 아님/)).toBeVisible()
     expect(card('무선 헤드폰').getByText(/새 창/)).toBeVisible()
   })
 
@@ -144,7 +144,7 @@ describe('열린 화면의 종료 타이머 재예약', () => {
     })
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [make('a', '첫째', 10), make('b', '둘째', 20)] }))
     render(<App />)
-    const status = (name: string) => within(screen.getByRole('article', { name })).queryByText('재검토 가능')
+    const status = (name: string) => within(screen.getByRole('article', { name })).queryByText('고민 기간 끝')
     expect(status('첫째')).toBeNull()
     await act(async () => {
       vi.advanceTimersByTime(10_100)

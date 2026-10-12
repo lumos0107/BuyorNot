@@ -44,7 +44,7 @@ describe('담을 때 질문 (F09)', () => {
   // F24: 질문은 담기 폼 대신 카드의 오늘의 고민에서 하나씩 답한다
   const note = (name: string) => within(card(name).getByRole('region', { name: '오늘의 고민' }))
 
-  it('AC20: 세 질문에 카드에서 답하면, 새로고침 뒤 재검토 가능 카드에 답이 보인다', async () => {
+  it('AC20: 세 질문에 카드에서 답하면, 새로고침 뒤 고민 기간 끝 카드에 답이 보인다', async () => {
     const { user, unmount } = setup()
     await fillBasics(user)
     await user.click(form().getByRole('button', { name: '담아 두기' }))

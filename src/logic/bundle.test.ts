@@ -34,7 +34,7 @@ describe('묶음상품 단가 비교', () => {
   })
 
   it('AC17: 12개 묶음 4,800원과 6개 묶음 2,500원은 1개당 400원과 416.67원이고 A가 4.0% 저렴하다', () => {
-    // 개수 단위는 개당 용량을 쓰지 않고 묶음 개수만 쓴다
+    // 개수 단위는 개당 무게·용량을 쓰지 않고 묶음 개수만 쓴다
     const result = compareBundles(bundle(4800, 'ea', 1, 12), bundle(2500, 'ea', 1, 6))
     if (!result.ok) throw new Error(result.reason)
     expect(result.a.referenceLabel).toBe('1개')
@@ -101,7 +101,7 @@ describe('묶음상품 입력 검증 (AC12)', () => {
     expect(Object.keys(empty.errors).sort()).toEqual(['count', 'price', 'size'])
   })
 
-  it('개수 단위에서는 개당 용량이 비어 있어도 된다', () => {
+  it('개수 단위에서는 개당 무게·용량이 비어 있어도 된다', () => {
     const { value, errors } = validateBundleInput({ price: '4800', unit: 'ea', size: '', count: '12' })
     expect(errors).toEqual({})
     expect(value?.count).toBe(12)
@@ -124,7 +124,7 @@ describe('묶음상품 입력 경계값', () => {
     expect(validateBundleInput({ ...raw, count: '-2' }).errors.count).toBeTruthy()
   })
 
-  it('개당 용량은 소수 셋째 자리까지, 1,000만 이하여야 한다', () => {
+  it('개당 무게·용량은 소수 셋째 자리까지, 1,000만 이하여야 한다', () => {
     expect(validateBundleInput({ ...raw, size: '1.001' }).errors.size).toBeUndefined()
     expect(validateBundleInput({ ...raw, size: '1.0004' }).errors.size).toBeTruthy()
     expect(validateBundleInput({ ...raw, size: '0.0004' }).errors.size).toBeTruthy()
