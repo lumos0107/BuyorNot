@@ -38,7 +38,8 @@ def check_worker(path: str, text: str) -> None:
 
 
 def check_app(path: str, text: str) -> None:
-    sends_photo = re.search(r"PhotoPicker|/api/read-(tag|size)", text)
+    # 사진을 받는 서버 주소는 모두 /api/read-…로 짓는다(adding-ai-endpoint). 새 주소가 생겨도 고칠 필요 없다
+    sends_photo = re.search(r"PhotoPicker|/api/read-[a-z-]+", text)
     sends_voice = re.search(r"useRecorder|/api/voice-fill", text)
     if sends_photo and "PHOTO_NOTICE" not in text and "PhotoPicker.tsx" not in path:
         hit("error", path, "사진을 보내는 화면에 PHOTO_NOTICE(구글 Gemini로 보내진다는 안내)가 없다")
@@ -61,8 +62,9 @@ def check_cases(path: str, text: str) -> None:
         if missing:
             hit("error", f"{path} {cid}", "평가 자료에 출처·이용 조건·편집 내역이 없다: " + ", ".join(missing))
         f = str(c.get("file", ""))
-        if f and not f.startswith(("사진/", "녹음/", "다나와/", "치수/")):
-            hit("check", f"{path} {cid}", "자료 경로가 _개인기록/평가/ 아래 정해진 폴더가 아니다")
+        # 경로는 _개인기록/평가/ 아래의 상대 경로('종류/조정용|평가용/파일')여야 한다
+        if f and (f.startswith(("/", "\\")) or ":" in f or ".." in f or not re.match(r"[^/]+/(조정용|평가용|원본)/", f)):
+            hit("check", f"{path} {cid}", "자료 경로가 _개인기록/평가/ 아래 '종류/조정용|평가용/파일' 꼴이 아니다")
 
 
 def classify(path: str, text: str) -> str | None:

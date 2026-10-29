@@ -1,6 +1,6 @@
 ---
 name: tuning-prompts
-description: Use when changing a Gemini prompt, response schema, model or generation setting in 살까말까 (READ_TAG_PROMPT, PICK_PROMPT, VOICE_PROMPT, READ_SIZE_PROMPT, temperature), when an AI feature reads something wrong, or when asked to raise an evaluation score before a deadline or presentation — 프롬프트 수정, 정확도 개선, 점수 올리기, 평가용 자료.
+description: Use when changing a Gemini prompt, response schema, model or generation setting in 살까말까 (any *_PROMPT or *_SCHEMA in worker/src, temperature), when an AI feature reads something wrong, or when asked to raise an evaluation score before a deadline or presentation — 프롬프트 수정, 정확도 개선, 점수 올리기, 평가용 자료.
 ---
 
 # 프롬프트 고치기
