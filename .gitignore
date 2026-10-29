@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Private notes, API key file and evaluation data (never commit)
+/_개인기록/
+/PRD_1주안.md
