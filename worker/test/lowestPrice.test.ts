@@ -149,6 +149,12 @@ describe('검색어와 찾는 상품 설명', () => {
     expect(describeWanted({ name: '우유', size: 1.5, unit: 'L', count: null })).toContain('규격: 1.5L')
     expect(describeWanted({ name: '우유', size: null, unit: null, count: 2 })).toContain('규격: 2개')
   })
+
+  it('상품명·브랜드·규격 글의 줄바꿈·탭 같은 공백은 한 칸으로 바꿔 세 줄을 지켜요', () => {
+    const wanted = describeWanted({ name: '오징어짬뽕\n소컵', brand: '농\r\n심', sizeText: '67g\t×\n\n6' })
+    expect(wanted).toBe('브랜드: 농 심\n상품명: 오징어짬뽕 소컵\n규격: 67g × 6')
+    expect(wanted.split('\n')).toHaveLength(3)
+  })
 })
 
 describe('줄 번호 고르기', () => {

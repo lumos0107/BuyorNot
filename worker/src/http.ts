@@ -42,10 +42,59 @@ function forbidden(): Response {
   })
 }
 
+// 환경 변수가 빠져 있어도 오류 없이 모든 출처를 막는다
 function allowedOrigins(env: Env): string[] {
-  return env.ALLOWED_ORIGINS.split(',')
+  return (env.ALLOWED_ORIGINS ?? '')
+    .split(',')
     .map((o) => o.trim())
     .filter((o) => o !== '')
+}
+
+// IPv6 주소를 16비트 8칸(앞 0을 뗀 소문자)으로 편다. '::' 줄임을 풀고, 모양이 맞지 않으면 null
+function ipv6Groups(address: string): string[] | null {
+  const halves = address.split('::')
+  if (halves.length > 2) return null
+  const head = halves[0] === '' ? [] : halves[0].split(':')
+  const tail = halves.length === 2 && halves[1] !== '' ? halves[1].split(':') : []
+  const missing = 8 - head.length - tail.length
+  if (halves.length === 2 ? missing < 1 : missing !== 0) return null
+  const groups = [...head, ...Array.from({ length: halves.length === 2 ? missing : 0 }, () => '0'), ...tail]
+  if (!groups.every((g) => /^[0-9a-f]{1,4}$/i.test(g))) return null
+  return groups.map((g) => parseInt(g, 16).toString(16))
+}
+
+// IP 제한 키. IPv6는 한 가입자가 /64를 통째로 받는 일이 많아 앞 64비트로 묶는다.
+// IPv4·'unknown'과, 점 표기가 섞였거나 모양이 맞지 않는 주소는 그대로 둔다
+export function rateLimitKey(ip: string): string {
+  if (!ip.includes(':') || ip.includes('.')) return ip
+  const groups = ipv6Groups(ip.split('%')[0])
+  return groups === null ? ip : `${groups.slice(0, 4).join(':')}::/64`
+}
+
+// 본문을 상한까지만 읽는다. 글자 수 상한은 UTF-16 단위로 세고 한 단위는 UTF-8로 최대 3바이트라, 바이트 상한은 그 3배다.
+// 길이 헤더가 그보다 크면 읽지 않고, 헤더가 없거나 맞지 않아도 그 바이트를 넘는 순간 읽기를 멈춘다.
+// 읽기가 실패하면 그대로 던진다(handle이 400으로 바꾼다).
+async function readLimitedText(request: Request, limit: number): Promise<string | 'too_large'> {
+  const maxBytes = limit * 3
+  const declared = request.headers.get('Content-Length')
+  if (declared !== null && Number(declared) > maxBytes) return 'too_large'
+  if (request.body === null) return ''
+
+  const reader = request.body.getReader()
+  const decoder = new TextDecoder()
+  let bytes = 0
+  let text = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    bytes += value.byteLength
+    if (bytes > maxBytes) {
+      await reader.cancel().catch(() => undefined)
+      return 'too_large'
+    }
+    text += decoder.decode(value, { stream: true })
+  }
+  return text + decoder.decode()
 }
 
 export async function handle(
@@ -83,9 +132,17 @@ export async function handle(
   if (env.AI_ENABLED !== 'true') return fail(503, 'disabled', ctx)
 
   const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
-  if (!deps.limiter.take(ip, startedAt)) return fail(429, 'rate_limited', ctx)
+  if (!deps.limiter.take(rateLimitKey(ip), startedAt)) return fail(429, 'rate_limited', ctx)
 
-  const text = await request.text()
+  let text: string
+  try {
+    const read = await readLimitedText(request, route.limit)
+    if (read === 'too_large') return fail(413, 'too_large', ctx)
+    text = read
+  } catch {
+    return fail(400, 'bad_request', ctx)
+  }
+  // 글자 수 상한은 그대로 JSON을 풀기 전에 검사한다 (PRD 10장 AI 공통)
   if (text.length > route.limit) return fail(413, 'too_large', ctx)
 
   let body: unknown

@@ -68,6 +68,11 @@ export function intIn(v: unknown, min: number, max: number): number | null {
   return typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : null
 }
 
+// 단가 가격표의 기준 단위. 화면 문장이 '{기준}당 …'이라 끝의 '당'은 뗀다("100g당" → "100g")
+function basisOf(v: unknown): string | null {
+  return cleanText(typeof v === 'string' ? v.trim().replace(/\s*당$/, '') : v, 20)
+}
+
 function sizeOf(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= MAX_SIZE ? v : null
 }
@@ -118,7 +123,7 @@ function normalizeItem(raw: unknown): TagItem | null {
     price: intIn(raw.price, 1, MAX_PRICE),
     priceCondition: cleanText(raw.priceCondition, 20),
     regularPrice: intIn(raw.regularPrice, 1, MAX_PRICE),
-    priceBasis: cleanText(raw.priceBasis, 20),
+    priceBasis: basisOf(raw.priceBasis),
     sizeText: spec.sizeText,
     size: spec.size,
     unit: spec.unit,

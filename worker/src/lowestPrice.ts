@@ -74,8 +74,13 @@ function sizeLine(req: LowestPriceRequest): string {
   return parts.length > 0 ? parts.join(' × ') : '용량·개수 모름'
 }
 
+// 줄바꿈·탭 같은 공백을 한 칸으로 바꿔 '찾는 상품' 칸에 가짜 줄이 생기지 않게 한다
+function oneLine(text: string): string {
+  return text.replace(/\s+/g, ' ')
+}
+
 export function describeWanted(req: LowestPriceRequest): string {
-  return [`브랜드: ${req.brand ?? '모름'}`, `상품명: ${req.name}`, `규격: ${sizeLine(req)}`].join('\n')
+  return [`브랜드: ${oneLine(req.brand ?? '모름')}`, `상품명: ${oneLine(req.name)}`, `규격: ${oneLine(sizeLine(req))}`].join('\n')
 }
 
 function describeTable(rows: DanawaRow[]): string {

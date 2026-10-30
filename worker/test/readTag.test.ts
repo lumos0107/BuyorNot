@@ -134,6 +134,14 @@ describe('가격표 읽기 결과 정규화', () => {
     expect(result.note).toBe('n'.repeat(200))
   })
 
+  // 화면 문장이 '{기준}당 …'이라 서버가 '당'을 남기면 "100g당당"이 된다 (PRD F31·F32 단가 가격표 문장)
+  it('단가 기준 끝의 "당"은 떼요("100g당" → "100g")', () => {
+    expect(one({ priceBasis: '100g당' }).priceBasis).toBe('100g')
+    expect(one({ priceBasis: ' 100mL 당 ' }).priceBasis).toBe('100mL')
+    expect(one({ priceBasis: '100g' }).priceBasis).toBe('100g')
+    expect(one({ priceBasis: '당' }).priceBasis).toBeNull()
+  })
+
   it('tagReadable이 불리언이 아니면 false로 바꿔요', () => {
     const read = (v: unknown) => one({ tagReadable: v }).tagReadable
     expect(read(true)).toBe(true)
