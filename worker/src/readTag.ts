@@ -64,7 +64,7 @@ export function cleanText(v: unknown, max: number): string | null {
   return Array.from(trimmed).slice(0, max).join('')
 }
 
-function intIn(v: unknown, min: number, max: number): number | null {
+export function intIn(v: unknown, min: number, max: number): number | null {
   return typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : null
 }
 

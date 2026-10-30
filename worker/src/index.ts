@@ -3,6 +3,7 @@ import { handle, type Route } from './http.ts'
 import { lowestPrice } from './lowestPrice.ts'
 import { createRateLimiter } from './rateLimit.ts'
 import { readTag } from './readTag.ts'
+import { voiceFill } from './voiceFill.ts'
 
 // 인스턴스 하나가 살아 있는 동안 IP별 횟수를 센다 (대략적 제한)
 const deps: Deps = {
@@ -15,6 +16,7 @@ const deps: Deps = {
 const routes: Record<string, Route> = {
   '/api/read-tag': { limit: 4_100_000, run: readTag },
   '/api/lowest-price': { limit: 10_000, run: lowestPrice },
+  '/api/voice-fill': { limit: 2_100_000, run: voiceFill },
 }
 
 export default {

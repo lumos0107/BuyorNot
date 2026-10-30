@@ -47,3 +47,13 @@ export type LowestPriceResponse = {
   matches: DanawaRow[]
   candidates: DanawaRow[]
 }
+
+// 말로 담기: 받아쓴 글과 담기 폼 칸. 말하지 않았거나 규칙에 맞지 않는 칸은 null이다.
+export type VoiceFillResponse = {
+  transcript: string
+  name: string | null
+  price: number | null
+  reason: string | null
+  desire: 1 | 2 | 3 | 4 | 5 | null
+  periodDays: number | null
+}
