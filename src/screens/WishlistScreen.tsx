@@ -4,7 +4,7 @@ import type { VoiceFillResponse } from '../ai/types'
 import { buildIcs, googleCalendarUrl, icsFileName } from '../logic/calendar'
 import { formatDate } from '../logic/dates'
 import { DESIRE_LEVELS, DESIRE_TEXT, desireDueToday, desireTrend } from '../logic/desire'
-import { mergePhotoDraft, photoDraftNotice, type DraftMerge, type FormDraft } from '../logic/draft'
+import { PHOTO_LINK_CLEARED, isStaleLink, mergePhotoDraft, photoDraftNotice, type DraftMerge, type FormDraft, type PhotoLink } from '../logic/draft'
 import type { Fit } from '../logic/fit'
 import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
@@ -357,6 +357,10 @@ function AddForm({
   const [draftFocus, setDraftFocus] = useState<DraftFocus>('name')
   // 가격표 사진 결과가 빈 링크 칸을 채웠는가. 채웠으면 그린 뒤 접힌 링크 영역을 펼쳐 채운 값이 보이게 한다
   const [draftFilledLink, setDraftFilledLink] = useState(false)
+  // 사진 결과가 빈 링크 칸을 채운 직후의 상품명과 링크 (F31, AC69). 링크 칸이 이 주소 그대로인데 상품명을 바꾸면 그 링크를 지운다.
+  // 링크를 채우지 않은 사진 결과와 가격 비교 결과는 건드리지 않고, 링크 칸을 손으로 고치거나 담거나 예시를 넣으면 null.
+  // 화면 상태일 뿐 저장하지 않는다
+  const [photoLink, setPhotoLink] = useState<PhotoLink | null>(null)
   const [appliedDraft, setAppliedDraft] = useState<FormDraft | null>(null)
   if (draft && draft !== appliedDraft) {
     setAppliedDraft(draft)
@@ -370,7 +374,9 @@ function AddForm({
       setRaw((r) => ({ ...r, name: merged.name, price: merged.price, url: merged.url }))
       setDraftNotice(photoDraftNotice(merged.kept))
       setDraftFocus(firstEmptyField(merged))
-      setDraftFilledLink(merged.url !== '' && merged.url !== raw.url)
+      const filledLink = merged.url !== '' && merged.url !== raw.url
+      setDraftFilledLink(filledLink)
+      if (filledLink) setPhotoLink({ name: merged.name, url: merged.url })
     }
     setAttempted(false)
   }
@@ -391,6 +397,7 @@ function AddForm({
     setAttempted(false)
     setAdded(null)
     setDraftNotice(null)
+    setPhotoLink(null)
     setVoiceMessage(null)
     setFromExample(true)
   }
@@ -436,6 +443,22 @@ function AddForm({
     setRaw((r) => ({ ...r, [key]: v }))
     setAdded(null)
   }
+  // 상품명을 바꿔 사진이 채운 링크가 낡았으면 링크 칸을 비우고, 사진 결과 안내가 있던 칸의 글을 알림으로 바꾼다 (F31, AC69).
+  // 한 번 지우면 기준도 없애, 상품명을 되돌려도 다시 넣지 않는다
+  const changeName = (name: string) => {
+    if (isStaleLink(photoLink, { name, url: raw.url })) {
+      setRaw((r) => ({ ...r, name, url: '' }))
+      setAdded(null)
+      setDraftNotice(PHOTO_LINK_CLEARED)
+      setPhotoLink(null)
+    } else {
+      set('name', name)
+    }
+  }
+  const changeUrl = (url: string) => {
+    set('url', url)
+    setPhotoLink(null)
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -463,6 +486,7 @@ function AddForm({
     if (checklistRef.current) checklistRef.current.open = false
     setAttempted(false)
     setDraftNotice(null)
+    setPhotoLink(null)
     setVoiceMessage(null)
     setVoiceCancel((n) => n + 1)
     setFromExample(false)
@@ -511,7 +535,7 @@ function AddForm({
         maxLength={80}
         value={raw.name}
         error={shown.name}
-        onChange={(e) => set('name', e.target.value)}
+        onChange={(e) => changeName(e.target.value)}
       />
       {/* 내 기록 기반 알림 (F10): 비슷한 이름을 전에 담거나 결정했으면 알려준다 */}
       <div role="status" aria-label="비슷한 기록" className={similar.length > 0 ? 'similar-notice' : 'similar-empty'}>
@@ -624,7 +648,7 @@ function AddForm({
           placeholder="https://"
           value={raw.url}
           error={shown.url}
-          onChange={(e) => set('url', e.target.value)}
+          onChange={(e) => changeUrl(e.target.value)}
         />
       </details>
       <Button variant="primary" block type="submit">

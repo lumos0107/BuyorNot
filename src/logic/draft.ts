@@ -48,6 +48,18 @@ export function photoDraftNotice(kept: DraftMerge['kept']): string {
   return kept.length > 0 ? `${base} 이미 적은 칸은 그대로 뒀어요: ${kept.join('·')}` : base
 }
 
+/** 사진 결과가 빈 링크 칸을 채운 직후의 상품명과 링크: 그 링크는 이 상품명으로 찾은 주소다 (F31, AC69) */
+export type PhotoLink = { name: string; url: string }
+
+/** 상품명을 바꿔 사진 초안의 링크를 지웠다는 안내. 사진 결과 안내가 있던 칸의 글을 이것으로 바꾼다 (F31, AC69) */
+export const PHOTO_LINK_CLEARED =
+  '상품명을 바꿔서 가격표 사진에서 가져온 다나와 검색 링크를 지웠어요. 바꾼 상품명의 검색 링크는 담은 뒤 카드의 ‘비교해 볼 곳’에 있어요.'
+
+/** 사진이 채운 링크가 그대로인데 앞뒤 공백을 뺀 상품명이 채운 직후와 달라졌는가 (F31, AC69) */
+export function isStaleLink(link: PhotoLink | null, form: { name: string; url: string }): boolean {
+  return link !== null && form.url === link.url && form.name.trim() !== link.name.trim()
+}
+
 // 담기 폼에 채운 비교 문장. 위 두 함수가 만드는 형식만 찾는다("가격 비교:"로 시작해도 형식이 다르면 사용자가 쓴 것, PRD F23):
 // 할인 "가격 비교: B안 결제액 72,000원 (할인 8,000원 · 배송비 포함)"·"(쿠폰 적용 불가)", 묶음 "가격 비교: 상품 A 100mL당 333.33원 (총 1,800mL · 6,000원)"(P3: 괄호 끝에 "· 한 달 500mL면 약 3.6개월 분량"이 붙을 수 있다)
 const COMPARE_NOTE =

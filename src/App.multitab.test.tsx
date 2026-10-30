@@ -234,6 +234,12 @@ describe('물건 기록: 여러 탭', () => {
     const user = userEvent.setup()
     render(<App />)
     otherTabWrites(STORAGE_KEY, store(wish({}), wish({ id: 'w2', name: '전기 포트' })), false)
+    // 갖고 싶은 정도·체크리스트 답·고민 기간도 골라 둔다: 반영되지 않았을 때 이 선택까지 비워지면 안 된다 (판정 R30)
+    // 가정: 고민 기간은 기본값(3일)과 다른 7일을 고른다. 기본값을 고르면 입력을 비워 기본값으로 돌아가도 알아챌 수 없다
+    await user.click(within(wishForm().getByRole('group', { name: '지금 얼마나 갖고 싶나요? (선택)' })).getByRole('radio', { name: '4 많이' }))
+    await user.click(wishForm().getByText(/^체크리스트 \(선택\)/))
+    await user.click(within(wishForm().getByRole('group', { name: '지금 쓰는 게 있나요?' })).getByRole('radio', { name: '없어요' }))
+    await user.click(wishForm().getByRole('radio', { name: '7일' }))
     await addWish(user, '무선 헤드폰')
     // 다른 탭 기록을 불러와 알리기만 하고 담지 않았다
     expect(within(screen.getByRole('status', { name: '저장 상태' })).getByText(/다른 탭에서 저장한 기록을 불러왔어요/)).toBeInTheDocument()
@@ -244,6 +250,9 @@ describe('물건 기록: 여러 탭', () => {
     expect(wishForm().getByLabelText('상품명')).toHaveValue('무선 헤드폰')
     expect(wishForm().getByLabelText('가격')).toHaveValue('30000')
     expect(wishForm().getByLabelText('사고 싶은 이유')).toHaveValue('이유')
+    expect(within(wishForm().getByRole('group', { name: '지금 얼마나 갖고 싶나요? (선택)' })).getByRole('radio', { name: '4 많이' })).toBeChecked()
+    expect(within(wishForm().getByRole('group', { name: '지금 쓰는 게 있나요?' })).getByRole('radio', { name: '없어요' })).toBeChecked()
+    expect(wishForm().getByRole('radio', { name: '7일' })).toBeChecked()
   })
 
   it("AC70: 반영되지 않은 뒤 '담아 두기'를 다시 누르면 담기고 그 카드 이름으로 포커스가 간다", async () => {

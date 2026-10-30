@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bundleDraft, discountDraft, mergePhotoDraft, photoDraftNotice, userWrittenReason } from './draft'
+import { bundleDraft, discountDraft, isStaleLink, mergePhotoDraft, photoDraftNotice, userWrittenReason } from './draft'
 
 // PRD F21 비교 결과를 고민 목록에 담기: 고른 쪽의 가격과 비교 내용을 담기 폼에 채운다
 describe('담기 폼에 채울 내용 (F21)', () => {
@@ -105,5 +105,22 @@ describe('사진 결과를 담기 폼에 합치기 (F31)', () => {
       '가격표 사진에서 상품명과 가격을 가져왔어요. 사고 싶은 이유를 적고 담아 두세요. 이미 적은 칸은 그대로 뒀어요: 상품명·가격',
     )
     expect(photoDraftNotice(['가격'])).toMatch(/ 이미 적은 칸은 그대로 뒀어요: 가격$/)
+  })
+})
+
+// PRD F31 사진 초안의 링크 (판정 R29-P2): 링크 칸이 사진이 채운 주소 그대로이고 상품명이 달라졌을 때만 낡은 링크다
+describe('사진 초안의 낡은 링크 가리기 (F31, AC69)', () => {
+  const link = { name: '농심 오징어짬뽕 소컵 6입', url: 'https://search.danawa.com/?query=x' }
+
+  it('AC69: isStaleLink는 링크가 그대로이고 앞뒤 공백을 뺀 상품명이 다를 때만 참이에요', () => {
+    // 기준이 없으면(사진이 링크를 채우지 않았거나 이미 지웠거나 손으로 고쳤다) 거짓
+    expect(isStaleLink(null, { name: '짬뽕 컵라면', url: link.url })).toBe(false)
+    // 앞뒤 공백만 더하면 거짓
+    expect(isStaleLink(link, { name: `${link.name} `, url: link.url })).toBe(false)
+    expect(isStaleLink(link, { name: `  ${link.name}`, url: link.url })).toBe(false)
+    // 링크를 고쳤으면 거짓
+    expect(isStaleLink(link, { name: '짬뽕 컵라면', url: 'https://example.com/a' })).toBe(false)
+    // 링크는 그대로인데 상품명을 고쳤으면 참
+    expect(isStaleLink(link, { name: '짬뽕 컵라면', url: link.url })).toBe(true)
   })
 })
