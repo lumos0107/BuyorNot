@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { aiServerUrl } from '../ai/config'
 import {
   bundleSummary,
   compareBundles,
@@ -27,18 +28,22 @@ import { bundleDraft, discountDraft, type PhotoDraft, type WishDraft } from '../
 import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
 import { TabPanel, Tabs, type TabItem } from '../ui/Tabs'
+import { TagPhotoCheck } from './ai/TagPhotoCheck'
 
 // 무료배송 채우기(F13)는 2026-10-13 제작자 결정으로 화면에서 뺐다. 계산 로직(logic/shipping.ts)은 남겨 두었다
-type CompareKind = 'discount' | 'bundle'
+type CompareKind = 'discount' | 'bundle' | 'photo'
 
 const KINDS: readonly TabItem<CompareKind>[] = [
   { id: 'discount', label: '할인 비교' },
   { id: 'bundle', label: '묶음상품 비교' },
 ]
+// 가격표 사진(F31)은 AI 서버 주소가 있는 빌드에서만 세 번째 탭으로 둔다 (PRD 10장 앱 공통)
+const KINDS_WITH_AI: readonly TabItem<CompareKind>[] = [...KINDS, { id: 'photo', label: '가격표 사진' }]
 
 export function CompareScreen({
   onGoToWishlist,
   onAddToWishlist,
+  onAddPhotoDraft,
   startWithExample = false,
 }: {
   onGoToWishlist?: () => void
@@ -46,20 +51,26 @@ export function CompareScreen({
   startWithExample?: boolean
   /** 비교 결과를 고민 목록에 담기 (F21) */
   onAddToWishlist?: (draft: WishDraft) => void
-  /** 가격표 사진 결과를 고민 목록의 담기 폼에 빈 칸만 채워 담기 (F31). 가격표 사진 탭(Task 10)이 생기면 구조 분해해서 쓴다 */
+  /** 가격표 사진 결과를 고민 목록의 담기 폼에 빈 칸만 채워 담기 (F31) */
   onAddPhotoDraft?: (draft: PhotoDraft) => void
 }) {
   const [kind, setKind] = useState<CompareKind>('discount')
+  const withAi = aiServerUrl() !== null
   return (
     <div className="stack">
       <h2 className="screen-title">가격 비교</h2>
-      <Tabs label="가격 비교 종류" tabs={KINDS} value={kind} onChange={setKind} sub />
+      <Tabs label="가격 비교 종류" tabs={withAi ? KINDS_WITH_AI : KINDS} value={kind} onChange={setKind} sub />
       <TabPanel id="discount" hidden={kind !== 'discount'}>
         <DiscountCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />
       </TabPanel>
       <TabPanel id="bundle" hidden={kind !== 'bundle'}>
         <BundleCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />
       </TabPanel>
+      {withAi ? (
+        <TabPanel id="photo" hidden={kind !== 'photo'}>
+          <TagPhotoCheck onAdd={onAddPhotoDraft} />
+        </TabPanel>
+      ) : null}
       {onGoToWishlist ? (
         // 비교해 봐도 필요한 소비인지 확실하지 않으면 먼저 담아 둔다 (PRD #4). 입력값은 넘기지 않는다
         <div className="card stack">

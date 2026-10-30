@@ -38,6 +38,7 @@ body {
 h1,
 h2,
 h3,
+h4,
 p {
   margin: 0;
 }
@@ -588,6 +589,58 @@ details > summary {
 
 /* 백업 파일 고르기: 기본 파일 입력에 44px 높이와 여백만 맞춘다 */
 .file-input {
+  padding: 8px 12px;
+}
+
+/* 누를 수 없는 버튼(예: 매장 가격이 비었을 때 '온라인 가격 확인')은 흐리게 보인다 */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 가격표 사진 찍기 (F31): 버튼 모양 레이블을 파일 입력이 덮어 누르면 바로 사진 고르기가 열린다.
+   입력은 보이지 않으므로 키보드 포커스는 레이블 테두리로 보인다 */
+.photo-pick {
+  position: relative;
+  align-self: flex-start;
+}
+
+.photo-pick input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.photo-pick:focus-within {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.photo-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+/* 읽은 상품이 여러 개일 때 상품마다 고르는 라디오 */
+.product-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-weight: 700;
+}
+
+/* 다나와 줄 버튼: 글이 길어 왼쪽 정렬로 줄을 바꾼다 */
+.row-choice {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
   padding: 8px 12px;
 }
 
