@@ -1,7 +1,15 @@
 """PRD.md의 번호 참조가 서로 맞는지 검사한다.
 
-쓰는 법: python .claude/skills/updating-prd/scripts/check_prd_refs.py [PRD.md 경로]
+쓰는 법: python .claude/skills/updating-prd/scripts/check_prd_refs.py [PRD.md 경로] [--list]
 문제가 없으면 'OK'와 요약을 찍고 0으로, 있으면 문제 목록을 찍고 1로 끝난다.
+--list를 붙이면 '제작자 확인 전' 표시가 있는 곳을 모두 찍는다(9장에 맞는 줄이 있는지와 함께).
+
+'제작자 확인 전' 대조(2026-10-31, 평가 1회차 P5): 'Claude 결정, 제작자 확인 전'('Claude 결정·제작자 확인 전'도)이
+9장 밖에 있으면 9장 '남은 결정'에 그 결정의 줄이 있어야 한다. 9장의 줄은 '- '로 시작하는 목록 줄 하나, 또는 문단의 한 문장이다.
+- 본문 표시: 그 줄에 판정 번호(R10, R14·R15, R25~R27, R29-P2)가 있으면 번호마다 그 번호와 절 이름이 함께 있는 9장 줄,
+  없으면 표시 앞의 날짜와 절 이름이 함께 있는 9장 줄. 절 이름은 '### Fnn'이면 Fnn, 다른 '###' 절이면 괄호 앞 제목이다.
+- 버전 줄의 판(0.NN: …) 표시: 본문 표시를 다시 적은 것이라 번호마다 그 번호가 있는 9장 줄, 번호가 없으면
+  그 판의 날짜와 판에 적힌 Fnn이 함께 있는 9장 줄이면 된다.
 """
 import re
 import subprocess
@@ -9,6 +17,88 @@ import sys
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
+
+UNCONFIRMED = re.compile(r"Claude 결정\s*[,·]\s*제작자 확인 전")
+# R10 · R14·R15(둘) · R25~R27(셋) · R29-P2(판정 R29의 평가 항목 P2)
+RULING = re.compile(r"\bR(\d+)(?:-([A-Z]\d+))?(?:~R(\d+))?(?![\w-])")
+DATE = re.compile(r"\b20\d\d-\d\d-\d\d\b")
+
+
+def rulings(text: str) -> list[str]:
+    """'판정 R25~R27, R29-P2' 같은 표기에서 판정 번호를 꺼낸다(범위는 펼친다)."""
+    out: list[str] = []
+    for m in RULING.finditer(text):
+        lo, sub, hi = m.group(1), m.group(2), m.group(3)
+        if hi:
+            out += [f"R{n}" for n in range(int(lo), int(hi) + 1)]
+        else:
+            out.append(f"R{lo}-{sub}" if sub else f"R{lo}")
+    return list(dict.fromkeys(out))
+
+
+def has_label(entry: str, label: str | None) -> bool:
+    if label is None:
+        return True
+    if re.fullmatch(r"F\d+", label):
+        return re.search(rf"\b{label}\b", entry) is not None
+    return label in entry
+
+
+def unconfirmed(lines: list[str]) -> tuple[list[tuple[str, str, bool]], list[str]]:
+    """'제작자 확인 전' 표시가 있는 곳마다 (위치, 맞출 열쇠, 9장에 있음)과 문제 목록을 돌려준다."""
+    entries: list[str] = []
+    places: list[tuple[str, str, str | None, str]] = []  # (종류, 위치, 절 이름, 글)
+    chapter9 = False
+    label: str | None = None
+    for i, l in enumerate(lines):
+        if l.startswith("## "):
+            chapter9 = l.startswith("## 9.")
+            label = None
+            continue
+        if l.startswith("### "):
+            m = re.match(r"### (F\d+) ", l)
+            label = m.group(1) if m else re.sub(r"\s*\(.*$", "", l[4:]).strip()
+            continue
+        if chapter9:
+            if l.lstrip().startswith("- "):
+                entries.append(l)
+            else:
+                entries += [s for s in re.split(r"(?<=[.?!])\s+", l) if s.strip()]
+            continue
+        if l.startswith("버전: "):
+            for part in re.split(r"(?:^버전: | · )(?=0\.\d+)", l):
+                if UNCONFIRMED.search(part):
+                    places.append(("version", "버전 " + part.split(":")[0].split(" ")[0], None, part))
+        elif UNCONFIRMED.search(l):
+            places.append(("body", f"{i + 1}줄", label, l))
+
+    listed: list[tuple[str, str, bool]] = []
+    problems: list[str] = []
+    for kind, where, lab, text in places:
+        where_l = f"{where}({lab})" if lab else where
+        nums = rulings(text)
+        if nums:
+            need = lab if kind == "body" else None
+            missing = [r for r in nums if not any(r in rulings(e) and has_label(e, need) for e in entries)]
+            listed.append((where_l, "판정 " + "·".join(nums), not missing))
+            if missing:
+                together = f"번호와 절 이름({need})이" if need else "번호가"
+                problems.append(f"{where_l}의 '제작자 확인 전' 결정({', '.join(missing)})이 9장 남은 결정에 없다({together} 9장 한 줄에 있어야 함)")
+            continue
+        mark = UNCONFIRMED.search(text)
+        before = DATE.findall(text[: mark.start()]) if mark else []
+        date = before[-1] if before else (DATE.findall(text) or [None])[0]
+        if date is None:
+            listed.append((where_l, "열쇠 없음", False))
+            problems.append(f"{where_l}의 '제작자 확인 전' 결정에 판정 번호도 날짜도 없어 9장과 맞출 수 없다")
+            continue
+        feats = [lab] if kind == "body" and lab else ([] if kind == "body" else re.findall(r"\bF\d+\b", text))
+        found = any(date in e and all(has_label(e, f) for f in feats) for e in entries)
+        key = " · ".join([date, *feats])
+        listed.append((where_l, key, found))
+        if not found:
+            problems.append(f"{where_l}의 '제작자 확인 전' 결정({key})이 9장 남은 결정에 없다(날짜와 절 이름이 9장 한 줄에 있어야 함)")
+    return listed, problems
 
 
 def ac_refs(text: str) -> set[int]:
@@ -35,7 +125,8 @@ def head_version(path: Path, text: str) -> float | None:
 
 
 def main() -> int:
-    path = Path(sys.argv[1] if len(sys.argv) > 1 else "PRD.md")
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    path = Path(args[0] if args else "PRD.md")
     raw = path.read_bytes()
     text = raw.decode("utf-8")
     lines = text.split("\n")
@@ -129,6 +220,14 @@ def main() -> int:
         if not any("완료 기준" in lines[j] for j in range(s, e)):
             problems.append(f"{s + 1}줄 F{n} 절에 '완료 기준' 줄이 없다")
 
+    # Claude가 정하고 제작자가 아직 확인하지 않은 결정은 9장 '남은 결정'에 한 줄씩 있어야 한다(updating-prd 출처 표기)
+    listed, missing_decisions = unconfirmed(lines)
+    problems += missing_decisions
+    if "--list" in sys.argv:
+        print(f"'제작자 확인 전' {len(listed)}곳")
+        for where, key, ok in listed:
+            print(f"- {where} · {key} · {'9장 있음' if ok else '9장 없음'}")
+
     if warnings:
         print("확인할 것 " + str(len(warnings)) + "개(한 입력에 결과가 여럿이면 그대로 둔다)")
         for w in warnings:
@@ -139,7 +238,7 @@ def main() -> int:
             print("- " + p)
         return 1
     short = version.split(" · ")[0] if version else "버전 없음"
-    print(f"OK · {short} · 기능 F{max_f}까지 · 검증 사례 AC{max_ac}까지({len(ids)}행)")
+    print(f"OK · {short} · 기능 F{max_f}까지 · 검증 사례 AC{max_ac}까지({len(ids)}행) · 제작자 확인 전 {len(listed)}곳 모두 9장에 있음")
     return 0
 
 
