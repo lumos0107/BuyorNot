@@ -227,6 +227,40 @@ describe('물건 기록: 여러 탭', () => {
     expect(retro.getByRole('alert')).toHaveTextContent('다른 탭에서 이 기록이 바뀌었어요')
     expect(saved(STORAGE_KEY).items[0].satisfaction).toBe('regret')
   })
+
+  // 담은 직후 새 카드로 포커스(F24, AC70)의 넷째 경우: 다른 탭이 먼저 저장해 담기가 반영되지 않았을 때(판정 R30)
+  it('AC70: 다른 탭이 먼저 저장해 담기가 반영되지 않으면 포커스를 옮기지 않고 담은 직후 안내 없이 입력을 그대로 둔다', async () => {
+    localStorage.setItem(STORAGE_KEY, store(wish({})))
+    const user = userEvent.setup()
+    render(<App />)
+    otherTabWrites(STORAGE_KEY, store(wish({}), wish({ id: 'w2', name: '전기 포트' })), false)
+    await addWish(user, '무선 헤드폰')
+    // 다른 탭 기록을 불러와 알리기만 하고 담지 않았다
+    expect(within(screen.getByRole('status', { name: '저장 상태' })).getByText(/다른 탭에서 저장한 기록을 불러왔어요/)).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: '무선 헤드폰' })).not.toBeInTheDocument()
+    expect(wishForm().getByRole('button', { name: '담아 두기' })).toHaveFocus()
+    expect(screen.queryByText('방금 담았어요.')).not.toBeInTheDocument()
+    expect(wishForm().queryByRole('status', { name: '담은 물건' })).not.toBeInTheDocument()
+    expect(wishForm().getByLabelText('상품명')).toHaveValue('무선 헤드폰')
+    expect(wishForm().getByLabelText('가격')).toHaveValue('30000')
+    expect(wishForm().getByLabelText('사고 싶은 이유')).toHaveValue('이유')
+  })
+
+  it("AC70: 반영되지 않은 뒤 '담아 두기'를 다시 누르면 담기고 그 카드 이름으로 포커스가 간다", async () => {
+    localStorage.setItem(STORAGE_KEY, store(wish({})))
+    const user = userEvent.setup()
+    render(<App />)
+    otherTabWrites(STORAGE_KEY, store(wish({}), wish({ id: 'w2', name: '전기 포트' })), false)
+    await addWish(user, '무선 헤드폰')
+    expect(names(STORAGE_KEY)).not.toContain('무선 헤드폰')
+    await user.click(within(screen.getByRole('status', { name: '저장 상태' })).getByRole('button', { name: '확인' }))
+    await user.click(wishForm().getByRole('button', { name: '담아 두기' }))
+    expect(names(STORAGE_KEY)).toContain('무선 헤드폰')
+    const focused = document.activeElement as HTMLElement
+    expect(focused.closest('article')).toHaveAccessibleName('무선 헤드폰')
+    expect(focused).toHaveAccessibleDescription('방금 담았어요.')
+    expect(screen.getAllByText('방금 담았어요.')).toHaveLength(1)
+  })
 })
 
 it('수정 폼 저장 경고는 취소하면 사라지고, 다시 열면 바뀐 내용으로 고칠 수 있다', async () => {

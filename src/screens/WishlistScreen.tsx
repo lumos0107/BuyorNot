@@ -48,7 +48,9 @@ type Decision = 'purchased' | 'skipped'
 type Props = {
   items: WishItem[]
   now: Date
-  onAdd: (input: NewWishInput) => void
+  /** 담은 물건의 id를 돌려주면 그 카드로 포커스를 옮긴다. null이면 다른 탭 기록 때문에 담기가 반영되지 않은 것(F24).
+   *  id를 돌려주지 않는 호출부(void)는 담은 것으로 보되 포커스는 옮기지 않는다 */
+  onAdd: (input: NewWishInput) => string | null | void
   onEdit: (id: string, patch: WishPatch) => void
   /** 결정한 기록을 돌려주면 되돌리기 알림을 지금 기록과 맞춰 볼 수 있다 */
   onDecide: (id: string, decision: Decision, note?: string) => WishItem | undefined | void
@@ -133,6 +135,11 @@ export function WishlistScreen({
   const setFit = (id: string, fit: Fit | null) => watch(onSetFit(id, fit))
   // 예시 물건 넣기는 예시 카드와 함께 담기 폼을 체크리스트까지 채운다 (F28). 늘어날 때마다 폼이 한 번 채운다
   const [exampleFill, setExampleFill] = useState(0)
+  // 담은 직후 그 카드의 이름으로 포커스를 옮기고 그 아래에 "방금 담았어요."를 보인다 (F24). 담은 직후 안내가 지워지면 함께 지워진다
+  const [justAdded, setJustAdded] = useState<string | null>(null)
+  useEffect(() => {
+    if (justAdded) document.getElementById(cardNameId(justAdded))?.focus()
+  }, [justAdded])
   return (
     <div className="stack">
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
@@ -182,7 +189,16 @@ export function WishlistScreen({
       ) : null}
       <TodayNudge items={considering} now={now} />
       {/* 담기 폼은 짧아서 고민 중인 물건이 있어도 맨 위에 둔다 (F24) */}
-      <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} exampleFill={exampleFill} active={active} />
+      <AddForm
+        onAdd={onAdd}
+        onJustAdded={setJustAdded}
+        items={items}
+        now={now}
+        draft={draft}
+        onDraftUsed={onDraftUsed}
+        exampleFill={exampleFill}
+        active={active}
+      />
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
@@ -197,6 +213,7 @@ export function WishlistScreen({
               items={items}
               now={now}
               hourlyWage={hourlyWage}
+              justAdded={item.id === justAdded}
               onEdit={onEdit}
               onDecide={decide}
               onExtend={onExtend}
@@ -233,6 +250,11 @@ function TodayNudge({ items, now }: { items: WishItem[]; now: Date }) {
 }
 
 const gominTitleId = (itemId: string) => `gomin-title-${itemId}`
+
+// 담은 직후 새 카드 (F24): 카드 이름(포커스를 받는 곳)과 그 아래 "방금 담았어요." 줄
+const JUST_ADDED = '방금 담았어요.'
+const cardNameId = (itemId: string) => `card-name-${itemId}`
+const justAddedId = (itemId: string) => `just-added-${itemId}`
 
 // 안내문 (F11): 효과를 단정하지 않고 이 앱이 하는 일만 적는다
 function CoolingGuide() {
@@ -288,6 +310,7 @@ function focusVoiceField(form: HTMLFormElement, field: VoiceField) {
 
 function AddForm({
   onAdd,
+  onJustAdded,
   items,
   now,
   draft,
@@ -295,7 +318,9 @@ function AddForm({
   exampleFill = 0,
   active,
 }: {
-  onAdd: (input: NewWishInput) => void
+  onAdd: (input: NewWishInput) => string | null | void
+  /** 담은 직후 안내가 있는 동안 그 물건의 id(없으면 null)를 알린다. 부모는 그 카드로 포커스를 옮기고 줄을 보인다 (F24) */
+  onJustAdded: (id: string | null) => void
   items: WishItem[]
   now: Date
   draft: FormDraft | null
@@ -314,8 +339,14 @@ function AddForm({
   const [attempted, setAttempted] = useState(false)
   // 링크는 접어 두고, 잘못돼 담지 못하면 펼친다 (F24)
   const linkRef = useRef<HTMLDetailsElement>(null)
-  // 담은 직후, 적은 값이 언제 어디에 쓰이는지 알려 준다. 폼에 다시 입력하면 지운다 (F24)
-  const [added, setAdded] = useState<string | null>(null)
+  // 담은 직후, 적은 값이 언제 어디에 쓰이는지 알려 준다. 폼에 다시 입력하면 지운다 (F24).
+  // id는 담은 물건의 id(돌려받지 못했으면 null): 안내가 있는 동안 부모가 그 카드에 "방금 담았어요."를 보인다.
+  // 그리는 중에 부모 상태를 바꾸지 않도록 그린 뒤에 알린다
+  const [added, setAdded] = useState<{ id: string | null; text: string } | null>(null)
+  const addedId = added?.id ?? null
+  useEffect(() => {
+    onJustAdded(addedId)
+  }, [addedId, onJustAdded])
   // 말로 담기의 결과 안내(status)·실패 문구(alert) (F33). 담거나 예시를 넣으면 지운다
   const [voiceMessage, setVoiceMessage] = useState<VoiceMessage | null>(null)
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
@@ -416,12 +447,16 @@ function AddForm({
       return
     }
     // 질문은 접힌 체크리스트에서 답해도 되고(F28), 담은 뒤 카드의 체크리스트에서 답해도 된다 (F24, F27)
-    onAdd({ ...value, desire, answers })
-    setAdded(
-      `‘${value.name}’${josa(value.name, '을/를')} 담았어요. ${value.days}일 뒤에 처음 적은 이유와 갖고 싶은 정도의 변화를 다시 보여 드릴게요. ${
+    const id = onAdd({ ...value, desire, answers })
+    // 다른 탭이 먼저 저장해 반영되지 않았으면(null) 담은 것으로 보지 않는다: 안내도 포커스 이동도 없이,
+    // 입력·정도·체크리스트 답·말로 담기 상태를 하나도 비우지 않는다. 안내를 본 뒤 다시 누르면 담긴다 (판정 R30)
+    if (id === null) return
+    setAdded({
+      id: typeof id === 'string' ? id : null,
+      text: `‘${value.name}’${josa(value.name, '을/를')} 담았어요. ${value.days}일 뒤에 처음 적은 이유와 갖고 싶은 정도의 변화를 다시 보여 드릴게요. ${
         answeredCount === QUESTION_ORDER.length ? '체크리스트 답은 카드에서 다시 고칠 수 있어요.' : '그동안 카드의 오늘의 고민에서 질문에 하나씩 답해 보세요.'
       }`,
-    )
+    })
     setRaw(EMPTY_ADD)
     setDesire(undefined)
     setAnswers({})
@@ -438,7 +473,7 @@ function AddForm({
       <p className="card-title">물건 담기</p>
       {added ? (
         <p className="note" role="status" aria-label="담은 물건">
-          {added}
+          {added.text}
         </p>
       ) : null}
       {draftNotice ? (
@@ -607,6 +642,8 @@ type CardProps = {
   items: WishItem[]
   now: Date
   hourlyWage: number | null
+  /** 방금 담은 물건인가: 이름 아래에 "방금 담았어요."를 보이고 이름의 설명으로 잇는다 (F24) */
+  justAdded: boolean
   onEdit: (id: string, patch: WishPatch) => void
   onDecide: (id: string, decision: Decision, note?: string) => void
   onExtend: (id: string, days: number) => void
@@ -620,7 +657,7 @@ type CardMode = 'view' | 'edit' | 'confirm-delete' | 'extend' | 'decide-purchase
 
 type Trigger = 'purchased' | 'skipped' | 'extend' | 'edit' | 'delete'
 
-function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, onRemove, onCheckDesire, onAnswer, onSetFit }: CardProps) {
+function WishCard({ item, items, now, hourlyWage, justAdded, onEdit, onDecide, onExtend, onRemove, onCheckDesire, onAnswer, onSetFit }: CardProps) {
   const [mode, setMode] = useState<CardMode>('view')
   const withAi = aiServerUrl() !== null
   // 답하거나 다시 답하기가 반영되면 오늘의 고민에서 지금 보이는 질문(없으면 제목)으로 포커스를 옮긴다 (F22)
@@ -665,13 +702,21 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
   return (
     <article className="card stack" aria-label={item.name}>
       <div className="card-row">
-        <p className="card-title">{item.name}</p>
+        {/* 담은 직후 포커스가 오는 곳. 이름 아래 줄이 이름의 설명이라 포커스가 갈 때 함께 읽힌다 (F24) */}
+        <p className="card-title" id={cardNameId(item.id)} tabIndex={-1} aria-describedby={justAdded ? justAddedId(item.id) : undefined}>
+          {item.name}
+        </p>
         {state.phase === 'ready' ? (
           <span className="status">고민 기간 끝</span>
         ) : (
           <span className="status status-muted">고민 중 · {formatRemaining(state.remainingMs)}</span>
         )}
       </div>
+      {justAdded ? (
+        <p id={justAddedId(item.id)} className="just-added">
+          {JUST_ADDED}
+        </p>
+      ) : null}
       <p className="price">{formatWon(item.priceKrw)}</p>
       <p className="card-meta">
         담은 날 {formatDate(item.createdAt)} · {coolingDays(item)}일 고민

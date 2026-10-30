@@ -180,6 +180,12 @@ fieldset.card > legend {
   align-items: baseline;
 }
 
+/* 담은 직후 새 카드 이름 아래의 한 줄 (F24, AC70) */
+.just-added {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .price {
   font-variant-numeric: tabular-nums;
   font-weight: 700;

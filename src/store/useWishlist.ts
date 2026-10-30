@@ -152,7 +152,12 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     items,
     now,
     status,
-    add: (input: NewWishInput) => commit([createItem(input, new Date(), newId()), ...items]),
+    /** 담는다. 화면에 반영됐으면(저장 실패·손상으로 화면에만 반영된 경우 포함) 새 물건 id를,
+     *  다른 탭 기록을 불러와 반영하지 않았으면 null을 돌려준다 (F24 담은 직후 새 카드로 포커스) */
+    add: (input: NewWishInput): string | null => {
+      const id = newId()
+      return commit([createItem(input, new Date(), id), ...items]) ? id : null
+    },
     edit: (id: string, patch: WishPatch) =>
       commit(items.map((item) => (item.id === id ? updateItem(item, patch, new Date()) : item))),
     /** 결정한 기록을 돌려준다 (되돌리기 알림이 지금 기록과 맞는지 확인하는 데 쓴다) */
