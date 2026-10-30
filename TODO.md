@@ -402,7 +402,7 @@
 - [x] **14-3** `/api/read-tag` 가격표 읽기와 파일 머리 검사 (PRD F31 · AC51) (계획 ai-stage1 T3) — `9110cb6`
 - [x] **14-4** 다나와 검색 페이지 가져오기·줄 뽑기 (PRD F31) (계획 ai-stage1 T4) — `b84b009`
 - [x] **14-5** `/api/lowest-price` 같은 상품 줄 고르기 (PRD F31 · AC52·AC53) (계획 ai-stage1 T5) — `bc13b3b`
-- [ ] **14-6** `/api/voice-fill` 녹음으로 칸 채우기 (PRD F33 · AC57) (계획 ai-stage1 T6)
+- [x] **14-6** `/api/voice-fill` 녹음으로 칸 채우기 (PRD F33 · AC57) (계획 ai-stage1 T6) — `920aa92`
 - [ ] **14-7** 앱 AI 기반: 서버 주소·CSP·요청 함수·사진 줄이기·문구·테스트 모의 (PRD 10장 AI 공통 · AC61) (계획 ai-stage1 T7)
 - [ ] **14-8** 담기 폼 채우기 계약: 사진 결과를 빈 칸에만 (PRD F31 · AC54) (계획 ai-stage1 T8)
 - [ ] **14-9** F31 규격 확인·비교 문장 로직 (PRD F31 · AC52) (계획 ai-stage1 T9)
