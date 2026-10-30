@@ -451,14 +451,21 @@ describe('useRecorder 취소와 정리', () => {
     const s = setup()
     await startRecording(s)
     advance(5000)
-    vi.spyOn(s.mic.recorders[0], 'stop').mockImplementation(() => {})
+    const recorder = s.mic.recorders[0]
+    // 가짜 녹음기의 stop()은 소리(비어 있지 않은 Blob)와 stop 이벤트를 바로 보낸다. 멈춘 뒤 기다리는 동안만 만들려고 잠시 막아 두고, 화면이 숨겨진 다음에 진짜 stop()을 불러 소리가 늦게 도착하게 한다.
+    // 숨김을 interrupted로 바꾸는 줄이 없으면 이 소리가 ok: true로 알려진다. 소리가 아예 없어서 우연히 interrupted가 되는 일을 막는다
+    const realStop = recorder.stop.bind(recorder)
+    vi.spyOn(recorder, 'stop').mockImplementation(() => {})
 
     act(() => s.result.current.stop())
     hideDocument()
+    expect(s.onStopped).not.toHaveBeenCalled()
+    act(() => realStop())
     advance(3000)
 
     expect(s.onStopped).toHaveBeenCalledTimes(1)
     expect(s.onStopped).toHaveBeenCalledWith({ ok: false, reason: 'interrupted' })
+    expect(s.onStopped).not.toHaveBeenCalledWith(expect.objectContaining({ ok: true }))
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1])
     expectNothingSent(s)
   })
