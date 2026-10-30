@@ -256,6 +256,16 @@ describe('온라인 가격 확인 요청', () => {
     expect(sent.generationConfig.temperature).toBe(0)
   })
 
+  it('Gemini에 출력 토큰 상한 4096을 실어 보내요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    route(fetchMock, html200(), geminiOk({ rows: [1], reason: '' }))
+    await run(REQUEST, deps)
+    const geminiCall = fetchMock.mock.calls.find(([input]) => input === GEMINI_URL)
+    expect(geminiCall).toBeDefined()
+    const sent = JSON.parse(geminiCall?.[1]?.body as string) as { generationConfig: Record<string, unknown> }
+    expect(sent.generationConfig.maxOutputTokens).toBe(4096)
+  })
+
   // plan: not_confirmed returns the first 3 rows when Gemini picks none
   it('Gemini가 고른 줄이 없으면 앞쪽 3줄을 후보로 돌려줘요', async () => {
     for (const picked of [{ rows: [], reason: '같은 상품이 없다' }, { rows: [0, 99], reason: '' }, { reason: '' }]) {

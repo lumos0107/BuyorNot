@@ -233,6 +233,16 @@ describe('녹음 읽기 요청', () => {
   })
 
   // plan: voiceFill strips ;codecs=opus before calling Gemini
+  it('출력 토큰 상한 4096을 실어 보내요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    fetchMock.mockResolvedValueOnce(geminiOk(rawVoice()))
+    await voiceFill({ audio: WEBM, mimeType: 'audio/webm' }, env, deps, ctx)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [, init] = fetchMock.mock.calls[0]
+    const sent = JSON.parse(init?.body as string) as { generationConfig: Record<string, unknown> }
+    expect(sent.generationConfig.maxOutputTokens).toBe(4096)
+  })
+
   it('Gemini에는 ;codecs=opus를 뗀 형식과 프롬프트만 보내요', async () => {
     for (const mimeType of ['audio/webm;codecs=opus', 'audio/webm; codecs=opus', ' audio/webm ;x=1']) {
       const { deps, fetchMock } = makeDeps()

@@ -48,6 +48,8 @@ export const READ_TAG_SCHEMA = {
 }
 
 const MAX_ITEMS = 20
+// 출력 토큰 상한. 상품 20개·긴 이름이면 약 3,300토큰(비관적으로 5,700)이라 공통 기본값 4096보다 크게 둔다.
+const MAX_OUTPUT_TOKENS = 6144
 const MAX_PRICE = 1_000_000_000
 const MAX_COUNT = 9999
 const MAX_SIZE = 10_000_000
@@ -177,6 +179,7 @@ export async function readTag(
     schema: READ_TAG_SCHEMA,
     deps,
     ctx,
+    maxOutputTokens: MAX_OUTPUT_TOKENS,
   })
   if (!result.ok) return json(502, { error: 'upstream' }, ctx)
   return json(200, normalizeTagResult(result.value), ctx)

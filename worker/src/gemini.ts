@@ -7,10 +7,10 @@ const MODEL_URL =
 const DEFAULT_TIMEOUT_MS = 40_000
 const DEFAULT_BUDGET_MS = 55_000
 const RETRY_MIN_REMAINING_MS = 15_000
-// 출력 토큰 상한(생각 토큰 포함). 상한 없이 보낸 치수 읽기가 40초·90초 안에 답하지 않았고 같은 요청에 이 상한을
-// 더하자 4.4초에 답했다(2026-10-31). 길어진 생성(스키마 JSON 숫자 칸의 반복 등)은 상한이 없으면 모델 기본값
-// 65,536토큰까지 갈 수 있다. 정상 응답은 가장 큰 가격표 20개도 약 3,300토큰으로 추정한다.
-const MAX_OUTPUT_TOKENS = 4096
+// 출력 토큰 상한(생각 토큰 포함)의 기본값. 치수 읽기 실제 호출에서 모델이 숫자 칸을 "22.0000…"처럼 끝없이
+// 이어 쓰는 일이 있었고(2026-10-31), 상한이 없으면 40초에 1만 5천 토큰을 넘겨도 끝나지 않았다. 상한은 이런 응답을
+// 약 11초에 잘라 502로 빨리 끝낼 뿐 반복 자체를 막지는 않는다. 더 긴 정상 응답이 필요한 기능은 옵션으로 늘린다.
+const DEFAULT_MAX_OUTPUT_TOKENS = 4096
 
 type Attempt = { kind: 'ok'; envelope: unknown } | { kind: 'busy' } | { kind: 'fail' }
 
@@ -74,6 +74,7 @@ export async function callGemini(opts: {
   ctx: RequestContext
   timeoutMs?: number
   budgetMs?: number
+  maxOutputTokens?: number
 }): Promise<{ ok: true; value: unknown } | { ok: false }> {
   const { key, parts, schema, deps, ctx } = opts
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
@@ -90,7 +91,7 @@ export async function callGemini(opts: {
         responseMimeType: 'application/json',
         responseSchema: schema,
         temperature: 0,
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        maxOutputTokens: opts.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
       },
     }),
   }

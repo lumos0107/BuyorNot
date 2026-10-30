@@ -39,7 +39,7 @@ function setup(startedAt = 0) {
   const fetchMock = vi.fn<typeof fetch>()
   const deps = { fetch: fetchMock as unknown as typeof fetch, now: () => clock.t }
   const ctx: RequestContext = { origin: 'https://lumos0107.github.io', startedAt }
-  const call = (extra: { timeoutMs?: number; budgetMs?: number } = {}) =>
+  const call = (extra: { timeoutMs?: number; budgetMs?: number; maxOutputTokens?: number } = {}) =>
     callGemini({ key: KEY, parts: PARTS, schema: SCHEMA, deps, ctx, ...extra })
   return { clock, fetchMock, call }
 }
@@ -87,8 +87,8 @@ describe('Gemini 호출', () => {
     })
   })
 
-  // 실제 치수 읽기에서 상한 없이 보낸 요청이 40초·90초 안에 답하지 않았고, 같은 요청에 상한 4096을 실으니
-  // 4.4초에 STOP으로 답했다(2026-10-31). 상한이 없으면 길어진 생성이 모델 기본값(65,536토큰)까지 갈 수 있다.
+  // 치수 읽기 실제 호출에서 모델이 숫자 칸을 "22.0000…"처럼 끝없이 이어 썼고, 상한이 없으면 40초 안에 끝나지
+  // 않았다(2026-10-31). 상한은 이런 응답을 빨리 끊는다. 이 테스트는 상한이 빠지면 실패한다.
   it('출력 토큰 상한 4096을 함께 보내요', async () => {
     const { fetchMock, call } = setup()
     fetchMock.mockResolvedValueOnce(ok('{}'))
@@ -97,6 +97,16 @@ describe('Gemini 호출', () => {
       generationConfig: Record<string, unknown>
     }
     expect(sent.generationConfig.maxOutputTokens).toBe(4096)
+  })
+
+  it('maxOutputTokens를 주면 그 상한을 보내요', async () => {
+    const { fetchMock, call } = setup()
+    fetchMock.mockResolvedValueOnce(ok('{}'))
+    await call({ maxOutputTokens: 6144 })
+    const sent = JSON.parse(fetchMock.mock.calls[0][1]?.body as string) as {
+      generationConfig: Record<string, unknown>
+    }
+    expect(sent.generationConfig.maxOutputTokens).toBe(6144)
   })
 
   it('키를 주소에 싣지 않아요', async () => {

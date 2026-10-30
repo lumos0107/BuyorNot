@@ -218,6 +218,17 @@ describe('가격표 읽기 요청', () => {
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN)
   })
 
+  // 상품이 많은 선반 사진(20개, 긴 이름)도 잘리지 않게 공통 상한(4096)보다 크게 둔다(2026-10-31 판정 R25)
+  it('출력 토큰 상한 6144를 실어 보내요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    fetchMock.mockResolvedValueOnce(geminiOk({ items: [], note: null }))
+    await readTag({ image: JPEG, mimeType: 'image/jpeg' }, env, deps, ctx)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [, init] = fetchMock.mock.calls[0]
+    const sent = JSON.parse(init?.body as string) as { generationConfig: Record<string, unknown> }
+    expect(sent.generationConfig.maxOutputTokens).toBe(6144)
+  })
+
   // plan: readTag sends the image and the prompt and returns normalized items with CORS for ctx.origin
   it('사진과 프롬프트를 보내고 정규화한 상품을 CORS와 함께 돌려줘요', async () => {
     const { deps, fetchMock } = makeDeps()
