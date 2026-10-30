@@ -7,10 +7,13 @@ import {
   scoreDanawa,
   scoreDanawaCase,
   scoreField,
+  scoreSizeCase,
   scoreTagCase,
   scoreVoiceCase,
   tally,
   type EvalCase,
+  type SizeExpected,
+  type SizeReadItem,
   type TagExpected,
   type TagReadItem,
 } from './score.ts'
@@ -21,6 +24,14 @@ const PRICES = [5200, 4900, 4700, 5500, 4900]
 
 function item(name: string, over: Partial<TagReadItem> = {}): TagReadItem {
   return { name, price: null, priceCondition: null, size: null, unit: null, count: null, ...over }
+}
+
+function sizeItem(text: string, over: Partial<SizeReadItem> = {}): SizeReadItem {
+  return { text, kind: 'unknown', w: null, d: null, h: null, unit: null, ...over }
+}
+
+function sizeExpected(textKeywords: string, over: Partial<SizeExpected> = {}): SizeExpected {
+  return { textKeywords, kind: 'unknown', w: null, d: null, h: null, unit: null, ...over }
 }
 
 function tagExpected(nameKeywords: string, over: Partial<TagExpected> = {}): TagExpected {
@@ -287,6 +298,169 @@ describe('scoreDanawaCase', () => {
     expect(
       scoreDanawaCase('dn99', { wanted, accepted: [] }, { httpStatus: 502, ms: 40000, picked: null, prices: PRICES }).fields,
     ).toEqual([{ field: '고른 줄', expected: null, got: null, outcome: 'unscored' }])
+  })
+})
+
+describe('scoreSizeCase', () => {
+  const product = sizeExpected('제품 32', { kind: 'product', w: 32, d: 25, h: 47, unit: 'cm' })
+  const pack = sizeExpected('포장 36', { kind: 'package', w: 36, d: 29, h: 52, unit: 'cm' })
+
+  it('표기 하나를 가로·깊이·높이·단위·제품/포장 5칸으로 채점해요', () => {
+    const result = scoreSizeCase('sz99', [product], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [sizeItem('제품 크기: 32 x 25 x 47 cm', { kind: 'product', w: 32, d: 25, h: 47, unit: 'cm' })],
+    })
+    expect(result.fields).toEqual([
+      { field: '표기1 가로', expected: '32', got: '32', outcome: 'correct' },
+      { field: '표기1 깊이', expected: '25', got: '25', outcome: 'correct' },
+      { field: '표기1 높이', expected: '47', got: '47', outcome: 'correct' },
+      { field: '표기1 단위', expected: 'cm', got: 'cm', outcome: 'correct' },
+      { field: '표기1 제품·포장', expected: '제품', got: '제품', outcome: 'correct' },
+    ])
+    expect(result.extra).toEqual([])
+  })
+
+  it('표기 키워드로 짝지어서 AI가 낸 순서가 달라도 같은 표기끼리 채점하고, 값이 다르면 틀림이에요', () => {
+    const result = scoreSizeCase('sz99', [product, pack], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [
+        sizeItem('포장 크기 36 x 29 x 52 cm', { kind: 'package', w: 36, d: 29, h: 52, unit: 'cm' }),
+        sizeItem('제품 크기 32 x 25 x 47 cm', { kind: 'package', w: 32, d: 25, h: 470, unit: 'cm' }),
+      ],
+    })
+    expect(result.fields.slice(0, 5).map((f) => f.outcome)).toEqual(['correct', 'correct', 'wrong', 'correct', 'wrong'])
+    expect(result.fields[2]).toEqual({ field: '표기1 높이', expected: '47', got: '470', outcome: 'wrong' })
+    expect(result.fields[4]).toEqual({ field: '표기1 제품·포장', expected: '제품', got: '포장', outcome: 'wrong' })
+    expect(result.fields.slice(5).map((f) => f.outcome)).toEqual(['correct', 'correct', 'correct', 'correct', 'correct'])
+    expect(result.extra).toEqual([])
+  })
+
+  it('AC62: 치수 정답이 없는 사진에서 표기 1개를 읽으면 더 읽음 1개이고 채점할 칸은 없어요', () => {
+    const result = scoreSizeCase('sz99', [], {
+      httpStatus: 200,
+      ms: 3000,
+      candidates: [sizeItem('제품 크기: 가로 32 x 깊이 25 x 높이 47cm', { kind: 'product', w: 32, d: 25, h: 47, unit: 'cm' })],
+    })
+    expect(result.fields).toEqual([])
+    expect(result.extra).toEqual(['제품 크기: 가로 32 x 깊이 25 x 높이 47cm'])
+  })
+
+  it('치수 정답이 없는 사진에서 AI도 표기를 하나도 안 읽으면 더 읽음 없이 채점할 칸도 없어요', () => {
+    const result = scoreSizeCase('sz99', [], { httpStatus: 200, ms: 3000, candidates: [] })
+    expect(result).toEqual({ id: 'sz99', httpStatus: 200, ms: 3000, fields: [], extra: [] })
+  })
+
+  it('AC62: 정답 표기 2개에 AI 표기 3개면 키워드로 짝 2개만 채점하고 나머지는 더 읽음 1개예요', () => {
+    const result = scoreSizeCase('sz99', [product, pack], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [
+        sizeItem('제품 크기 32 x 25 x 47 cm', { kind: 'product', w: 32, d: 25, h: 47, unit: 'cm' }),
+        sizeItem('상자 40 x 30 x 60 cm', { kind: 'package', w: 40, d: 30, h: 60, unit: 'cm' }),
+        sizeItem('포장 크기 36 x 29 x 52 cm', { kind: 'package', w: 36, d: 29, h: 52, unit: 'cm' }),
+      ],
+    })
+    expect(result.fields).toHaveLength(10)
+    expect(result.fields.every((f) => f.outcome === 'correct')).toBe(true)
+    expect(result.extra).toEqual(['상자 40 x 30 x 60 cm'])
+  })
+
+  it('AC62: 키워드가 든 AI 표기가 없는 정답 표기는 값이 있는 칸을 모두 못 읽음으로 세요', () => {
+    const result = scoreSizeCase('sz99', [product], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [sizeItem('상자 40 x 30 x 60 cm', { kind: 'package', w: 40, d: 30, h: 60, unit: 'cm' })],
+    })
+    expect(result.fields.map((f) => f.outcome)).toEqual(['missed', 'missed', 'missed', 'missed', 'missed'])
+    expect(result.fields.every((f) => f.got === null)).toBe(true)
+    expect(result.extra).toEqual(['상자 40 x 30 x 60 cm'])
+  })
+
+  it('키워드가 든 AI 표기가 없고 정답에 표기 없는 칸이 있으면 그 칸은 맞음(blank-ok)이에요', () => {
+    const bare = sizeExpected('45 30 20', { w: 45, d: 30, h: 20 })
+    const result = scoreSizeCase('sz99', [bare], { httpStatus: 200, ms: 4000, candidates: [] })
+    expect(result.fields.map((f) => f.outcome)).toEqual(['missed', 'missed', 'missed', 'blank-ok', 'blank-ok'])
+  })
+
+  it('정답의 단위·제품/포장이 표기 없음이면 AI도 비우면 맞음, 값을 내면 채움이에요(unknown도 빈칸)', () => {
+    // 단위가 적히지 않았고 제품/포장 표기도 없는 표기. unknown은 '표기 없음'이라 AI의 unknown과 null이 같은 빈칸이다.
+    const bare = sizeExpected('45 30 20', { w: 45, d: 30, h: 20 })
+    const blank = scoreSizeCase('sz99', [bare], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [sizeItem('크기 45 x 30 x 20', { w: 45, d: 30, h: 20 })],
+    })
+    expect(blank.fields.map((f) => f.outcome)).toEqual(['correct', 'correct', 'correct', 'blank-ok', 'blank-ok'])
+    const guessed = scoreSizeCase('sz99', [bare], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [sizeItem('크기 45 x 30 x 20', { kind: 'product', w: 45, d: 30, h: 20, unit: 'cm' })],
+    })
+    expect(guessed.fields.map((f) => f.outcome)).toEqual(['correct', 'correct', 'correct', 'filled', 'filled'])
+    expect(guessed.fields[3]).toEqual({ field: '표기1 단위', expected: null, got: 'cm', outcome: 'filled' })
+    expect(guessed.fields[4]).toEqual({ field: '표기1 제품·포장', expected: null, got: '제품', outcome: 'filled' })
+  })
+
+  it('정답이 mixed면 AI도 mixed여야 맞음이고, 한 단위로 바꿔 낸 숫자는 틀림이에요(환산하지 않은 값끼리 비교)', () => {
+    const mixed = sizeExpected('32cm 250mm', { kind: 'product', w: 32, d: 250, h: 47, unit: 'mixed' })
+    const right = scoreSizeCase('sz99', [mixed], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [sizeItem('가로 32cm × 깊이 250mm × 높이 47cm', { kind: 'product', w: 32, d: 250, h: 47, unit: 'mixed' })],
+    })
+    expect(right.fields.map((f) => f.outcome)).toEqual(['correct', 'correct', 'correct', 'correct', 'correct'])
+    const converted = scoreSizeCase('sz99', [mixed], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [sizeItem('가로 32cm × 깊이 250mm × 높이 47cm', { kind: 'product', w: 32, d: 25, h: 47, unit: 'cm' })],
+    })
+    expect(converted.fields.map((f) => f.outcome)).toEqual(['correct', 'wrong', 'correct', 'wrong', 'correct'])
+  })
+
+  it('AI가 못 읽은 칸(null)은 정답에 값이 있으면 못 읽음이에요', () => {
+    const result = scoreSizeCase('sz99', [product], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [sizeItem('제품 크기 32 x 25 x 47 cm', { kind: 'product', w: 32, d: null, h: 47, unit: 'cm' })],
+    })
+    expect(result.fields.map((f) => f.outcome)).toEqual(['correct', 'missed', 'correct', 'correct', 'correct'])
+  })
+
+  it('숫자는 글자로 바꿔 비교해서 320과 320.0은 같고 0.47과 47은 달라요', () => {
+    const e = sizeExpected('320', { kind: 'product', w: 320, d: 250, h: 470, unit: 'mm' })
+    const result = scoreSizeCase('sz99', [e], {
+      httpStatus: 200,
+      ms: 4000,
+      candidates: [sizeItem('320 x 250 x 470 mm', { kind: 'product', w: 320.0, d: 250, h: 0.47, unit: 'mm' })],
+    })
+    expect(result.fields.map((f) => f.outcome)).toEqual(['correct', 'correct', 'wrong', 'correct', 'correct'])
+  })
+
+  it('AC62: 429·503 사례는 칸을 채점하지 않아요', () => {
+    expect(scoreSizeCase('sz99', [product], { httpStatus: 429, ms: 40, candidates: null })).toEqual({
+      id: 'sz99',
+      httpStatus: 429,
+      ms: 40,
+      fields: [],
+      extra: [],
+    })
+    expect(scoreSizeCase('sz99', [product], { httpStatus: 503, ms: 30, candidates: null }).fields).toEqual([])
+  })
+
+  it('AC62: 시간 초과 사례는 값이 있는 칸을 못 읽음, 표기 없는 칸을 채점하지 않음으로 적어요', () => {
+    const bare = sizeExpected('45 30 20', { w: 45, d: 30, h: 20 })
+    const result = scoreSizeCase('sz99', [product, bare], { httpStatus: null, ms: null, candidates: null })
+    // 표기 1은 값이 있는 칸 5개, 표기 2는 3개(가로·깊이·높이). 나머지 2칸(단위·제품/포장)은 표기 없음.
+    expect(result.fields.filter((f) => f.outcome === 'missed')).toHaveLength(8)
+    expect(result.fields.filter((f) => f.outcome === 'unscored')).toHaveLength(2)
+    expect(result.fields.every((f) => f.got === null)).toBe(true)
+    expect(result.extra).toEqual([])
+  })
+
+  it('시간 초과 사례는 치수 정답이 없으면 채점할 칸도 없어요', () => {
+    expect(scoreSizeCase('sz99', [], { httpStatus: null, ms: null, candidates: null }).fields).toEqual([])
   })
 })
 

@@ -100,7 +100,7 @@ export function reportHeader(s: EvalSummary): [string, string] {
 const EXTRA_OBJECT = { 상품: '상품을', 표기: '표기를' } as const
 
 // 소수 첫째 자리 초. 부동소수 나눗셈(2.05.toFixed(1)이 2.0)을 피하려고 100ms 단위 정수로 반올림한다.
-function seconds(ms: number): string {
+export function seconds(ms: number): string {
   return (Math.round(ms / 100) / 10).toFixed(1)
 }
 

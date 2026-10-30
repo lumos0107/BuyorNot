@@ -1,0 +1,108 @@
+[
+  {
+    "id": "sz11",
+    "file": "치수/평가용/sz11.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 지어낸 이름, 공개하지 않음)",
+    "edits": "HTML로 그린 상품 상세 표(제품 크기와 포장 크기가 함께 있음, cm, 축 이름 있음)를 Chromium(Playwright)으로 찍고 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-sz11",
+    "synthetic": true,
+    "expected": [
+      { "textKeywords": "32 47", "kind": "product", "w": 32, "d": 25, "h": 47, "unit": "cm" },
+      { "textKeywords": "36 52", "kind": "package", "w": 36, "d": 29, "h": 52, "unit": "cm" }
+    ]
+  },
+  {
+    "id": "sz12",
+    "file": "치수/평가용/sz12.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 지어낸 이름, 공개하지 않음)",
+    "edits": "HTML로 그린 상품 상세 표(축 이름 없이 숫자를 ×로 이어 씀, cm)를 Chromium(Playwright)으로 찍고 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-sz12",
+    "synthetic": true,
+    "expected": [
+      { "textKeywords": "38 31", "kind": "product", "w": 38, "d": 24, "h": 31, "unit": "cm" }
+    ]
+  },
+  {
+    "id": "sz13",
+    "file": "치수/평가용/sz13.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 지어낸 이름, 공개하지 않음)",
+    "edits": "HTML로 그린 상품 상세 표('가로 × 세로 × 높이' 표기, cm)를 Chromium(Playwright)으로 찍고 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-sz13",
+    "synthetic": true,
+    "expected": [
+      { "textKeywords": "45 20", "kind": "product", "w": 45, "d": 30, "h": 20, "unit": "cm" }
+    ]
+  },
+  {
+    "id": "sz14",
+    "file": "치수/평가용/sz14.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 지어낸 이름, 공개하지 않음)",
+    "edits": "HTML로 그린 상품 상세 표(mm, W × D × H 표기, 제품·포장 표기 없음)를 Chromium(Playwright)으로 찍고 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-sz14",
+    "synthetic": true,
+    "uncertain": true,
+    "uncertainReason": "'크기 (W × D × H)'만 적혀 제품인지 포장인지 표기가 없어 제품/포장 칸을 표기 없음(unknown)으로 적었다. 상품 정보 표라 AI가 product로 읽어도 틀렸다고 단정하기 어렵다.",
+    "expected": [
+      { "textKeywords": "320 470", "kind": "unknown", "w": 320, "d": 250, "h": 470, "unit": "mm" }
+    ]
+  },
+  {
+    "id": "sz15",
+    "file": "치수/평가용/sz15.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 지어낸 이름, 공개하지 않음)",
+    "edits": "HTML로 그린 상품 상세 표('접었을 때'·'펼쳤을 때' 두 줄, cm)를 Chromium(Playwright)으로 찍고 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-sz15",
+    "synthetic": true,
+    "expected": [
+      { "textKeywords": "35 12", "kind": "product", "w": 40, "d": 35, "h": 12, "unit": "cm" },
+      { "textKeywords": "120 95", "kind": "product", "w": 40, "d": 120, "h": 95, "unit": "cm" }
+    ]
+  },
+  {
+    "id": "sz16",
+    "file": "치수/평가용/sz16.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 지어낸 이름, 공개하지 않음)",
+    "edits": "HTML로 그린 상품 상세 표(치수에 단위가 어디에도 적혀 있지 않음)를 Chromium(Playwright)으로 찍고 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-sz16",
+    "synthetic": true,
+    "expected": [
+      { "textKeywords": "45 20", "kind": "product", "w": 45, "d": 30, "h": 20, "unit": null }
+    ]
+  },
+  {
+    "id": "sz17",
+    "file": "치수/평가용/sz17.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 지어낸 이름, 공개하지 않음)",
+    "edits": "HTML로 그린 상품 상세 표(축마다 단위가 다름: 가로 cm·깊이 mm·높이 cm)를 Chromium(Playwright)으로 찍고 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-sz17",
+    "synthetic": true,
+    "expected": [
+      { "textKeywords": "250 47", "kind": "product", "w": 32, "d": 250, "h": 47, "unit": "mixed" }
+    ]
+  },
+  {
+    "id": "sz18",
+    "file": "치수/평가용/sz18.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 지어낸 이름, 공개하지 않음)",
+    "edits": "HTML로 그린 상품 상세 표(무게·용량·전력만 있고 치수 표기 없음)를 Chromium(Playwright)으로 찍고 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-sz18",
+    "synthetic": true,
+    "expected": []
+  }
+]

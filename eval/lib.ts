@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { seconds } from '../src/ai/evalSummary.ts'
 import type { DanawaRow, LowestPriceRequest, TagUnit, VoiceFillResponse } from '../src/ai/types.ts'
 import { pickRows } from '../worker/src/lowestPrice.ts'
 import { tally } from './score.ts'
@@ -12,6 +13,8 @@ import type {
   EvalCase,
   EvalResultFile,
   FieldOutcome,
+  SizeExpected,
+  SizeReadItem,
   Tally,
   TagExpected,
   TagReadItem,
@@ -87,6 +90,38 @@ export function checkTagExpected(e: unknown, id: string): TagExpected[] {
       size: p.size as number | null,
       unit: p.unit as string | null,
       count: p.count,
+    }
+  })
+}
+
+// 서버 /api/read-size의 kind·unit과 같은 값(src/ai/client.ts의 모양 검사와 같다)
+const SIZE_KINDS: readonly unknown[] = ['product', 'package', 'unknown']
+const SIZE_UNITS: readonly unknown[] = ['mm', 'cm', 'm', 'mixed']
+const MAX_AXIS = 1_000_000 // 서버가 받는 축 길이의 상한(worker/src/readSize.ts)
+
+function axisOrNull(v: unknown): v is number | null {
+  return v === null || (typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= MAX_AXIS)
+}
+
+// 치수 정답: 사진에 보이는 치수 표기를 모두 적은 배열(없으면 []). 적힌 숫자 그대로이고 단위로 환산하지 않는다.
+export function checkSizeExpected(e: unknown, id: string): SizeExpected[] {
+  if (!Array.isArray(e)) fail(id, 'expected는 표기 배열이어야 한다')
+  return e.map((p: unknown, i): SizeExpected => {
+    const at = `${id} 표기${i + 1}`
+    if (!isRec(p)) fail(at, '표기는 객체여야 한다')
+    if (!nonEmpty(p.textKeywords)) fail(at, 'textKeywords가 비었다')
+    if (!SIZE_KINDS.includes(p.kind)) fail(at, 'kind는 product·package·unknown')
+    for (const key of ['w', 'd', 'h'] as const) {
+      if (!axisOrNull(p[key])) fail(at, `${key}는 0 초과 수나 null(모르는 축)`)
+    }
+    if (!(p.unit === null || SIZE_UNITS.includes(p.unit))) fail(at, 'unit은 mm·cm·m·mixed나 null')
+    return {
+      textKeywords: p.textKeywords,
+      kind: p.kind as SizeExpected['kind'],
+      w: p.w as number | null,
+      d: p.d as number | null,
+      h: p.h as number | null,
+      unit: p.unit as SizeExpected['unit'],
     }
   })
 }
@@ -249,6 +284,23 @@ export function jpegSize(bytes: Uint8Array): { width: number; height: number } |
   return null
 }
 
+const PHOTO_MAX_SIDE = 1600 // 앱이 보내는 사진의 긴 변(JPEG 품질 0.85). 자료를 넣을 때 이렇게 줄여 둔다
+const PHOTO_MAX_CHARS = 4_100_000 // 서버의 사진 본문 상한(글자)
+
+// 사진 자료(_개인기록/평가/ 기준 경로)를 읽어 앱이 보내는 모양인지 검사하고 base64로 돌려준다
+// (가격표 사진·치수 캡처 공통). 줄이거나 바꾸지 않고, 맞지 않으면 던진다.
+export function loadPhoto(id: string, file: string): { image: string; width: number; height: number } {
+  const bytes = readFileSync(dataPath(file))
+  const size = jpegSize(bytes)
+  if (size === null) throw new Error(`${id}: JPEG가 아니다. 앱처럼 JPEG로 바꿔 넣는다`)
+  if (Math.max(size.width, size.height) > PHOTO_MAX_SIDE) {
+    throw new Error(`${id}: 긴 변 ${Math.max(size.width, size.height)}px. 앱처럼 ${PHOTO_MAX_SIDE}px 이하로 줄여 넣는다`)
+  }
+  const image = bytes.toString('base64')
+  if (image.length + 100 > PHOTO_MAX_CHARS) throw new Error(`${id}: 서버 상한(${PHOTO_MAX_CHARS}자)을 넘는다`)
+  return { image, ...size }
+}
+
 // WAV(RIFF)의 길이(초). WAV가 아니면 null.
 export function wavSeconds(bytes: Uint8Array): number | null {
   const tag = (at: number) => String.fromCharCode(...bytes.subarray(at, at + 4))
@@ -383,6 +435,34 @@ export function asTagItems(body: unknown): TagReadItem[] | null {
   return ok ? (body.items as TagReadItem[]) : null
 }
 
+// 치수 표기 목록(빈 목록도 쓸 수 있는 응답). 채점에 쓰는 칸(text·kind·w·d·h·unit)만 본다.
+export function asSizeCandidates(body: unknown): SizeReadItem[] | null {
+  if (!isRec(body) || !Array.isArray(body.candidates)) return null
+  const items: SizeReadItem[] = []
+  for (const c of body.candidates as unknown[]) {
+    if (
+      !isRec(c) ||
+      typeof c.text !== 'string' ||
+      !SIZE_KINDS.includes(c.kind) ||
+      !numOrNull(c.w) ||
+      !numOrNull(c.d) ||
+      !numOrNull(c.h) ||
+      !(c.unit === null || SIZE_UNITS.includes(c.unit))
+    ) {
+      return null
+    }
+    items.push({
+      text: c.text,
+      kind: c.kind as SizeReadItem['kind'],
+      w: c.w as number | null,
+      d: c.d as number | null,
+      h: c.h as number | null,
+      unit: c.unit as SizeReadItem['unit'],
+    })
+  }
+  return items
+}
+
 export function asVoice(body: unknown): VoiceFillResponse | null {
   if (
     isRec(body) &&
@@ -422,10 +502,6 @@ export function writeResult(
   return path
 }
 
-function sec(ms: number): string {
-  return (ms / 1000).toFixed(1)
-}
-
 // F43 성적표와 같은 말로 분모를 모두 보인다
 export function formatTally(t: Tally): string[] {
   const lines = [
@@ -437,7 +513,7 @@ export function formatTally(t: Tally): string[] {
     `실패한 요청이라 채점하지 않은 표기 없는 칸 ${t.unscored}칸 · 정답에 없는 것을 더 읽음 ${t.extra}개`,
     t.answered === 0 || t.medianMs === null || t.maxMs === null
       ? '응답 시간을 재지 못했어요.'
-      : `응답 시간 중앙값 ${sec(t.medianMs)}초 · 최대 ${sec(t.maxMs)}초 (${t.answered}번)`,
+      : `응답 시간 중앙값 ${seconds(t.medianMs)}초 · 최대 ${seconds(t.maxMs)}초 (${t.answered}번)`,
   ]
   return lines
 }

@@ -1,5 +1,5 @@
 // AI 평가 채점(PRD F43). 실제 Gemini를 부르지 않는 순수 함수만 둔다. 평가 스크립트(*.eval.ts)와 테스트가 함께 쓴다.
-import type { LowestPriceRequest, TagItem, VoiceFillResponse } from '../src/ai/types.ts'
+import type { LowestPriceRequest, SizeCandidate, TagItem, VoiceFillResponse } from '../src/ai/types.ts'
 
 // correct·wrong·missed: 정답에 값이 있는 칸 / blank-ok·filled: 정답이 '표기 없음'인 칸
 // unscored: 실패한 요청의 표기 없는 칸(분모에서 뺌)
@@ -42,6 +42,16 @@ export type VoiceExpected = {
   periodDays: number | null
 }
 export type DanawaExpected = { wanted: LowestPriceRequest; accepted: number[] }
+// 치수 정답: 표기마다 하나. textKeywords는 AI가 적힌 그대로 옮긴 text에서 짝을 찾는 키워드, kind·unit은 서버 값 그대로
+export type SizeExpected = {
+  textKeywords: string
+  kind: SizeCandidate['kind']
+  w: number | null
+  d: number | null
+  h: number | null
+  unit: SizeCandidate['unit']
+}
+export type SizeReadItem = Pick<SizeCandidate, 'text' | 'kind' | 'w' | 'd' | 'h' | 'unit'>
 
 type Field = EvalCase['fields'][number]
 type Reply = { httpStatus: number | null; ms: number | null }
@@ -192,6 +202,47 @@ export function scoreDanawaCase(
   const g = reply.picked.length === 0 ? null : reply.picked.join(',')
   const outcome = scoreDanawa(expected.accepted, reply.picked, reply.prices)
   return { ...base, fields: [{ field: '고른 줄', expected: e, got: g, outcome }], extra: [] }
+}
+
+// 칸: 가로·깊이·높이·단위·제품/포장(PRD F43). 제품/포장은 서버의 product·package를 '제품'·'포장'으로 적고
+// unknown(제품인지 포장인지 적혀 있지 않음)은 '표기 없음'이라 빈칸으로 본다. 단위 mixed는 값이다.
+// 표기 키워드는 짝짓기에만 쓰고 칸으로 채점하지 않는다.
+const SIZE_KIND_TEXT = { product: '제품', package: '포장', unknown: null } as const
+
+function sizeFields(n: number, exp: SizeExpected, got: SizeReadItem | null): Field[] {
+  const label = `표기${n}`
+  const rows: [string, string | null, string | null][] = [
+    ['가로', text(exp.w), got === null ? null : text(got.w)],
+    ['깊이', text(exp.d), got === null ? null : text(got.d)],
+    ['높이', text(exp.h), got === null ? null : text(got.h)],
+    ['단위', text(exp.unit), got === null ? null : text(got.unit)],
+    ['제품·포장', SIZE_KIND_TEXT[exp.kind], got === null ? null : SIZE_KIND_TEXT[got.kind]],
+  ]
+  return rows.map(([title, e, g]): Field => ({ field: `${label} ${title}`, expected: e, got: g, outcome: scoreField(e, g) }))
+}
+
+export function scoreSizeCase(
+  id: string,
+  expected: SizeExpected[],
+  reply: Reply & { candidates: SizeReadItem[] | null },
+): EvalCase {
+  const base = { id, httpStatus: reply.httpStatus, ms: reply.ms }
+  if (isLimited(reply.httpStatus)) return { ...base, fields: [], extra: [] }
+  if (reply.candidates === null) {
+    const fields = expected.flatMap((exp, i) => sizeFields(i + 1, exp, null))
+    return { ...base, fields: failedFields(fields), extra: [] }
+  }
+  const items = reply.candidates
+  const { pairs, extra } = pairByKeywords(
+    expected.map((e) => e.textKeywords),
+    items.map((it) => it.text),
+  )
+  const partner = new Map(pairs)
+  const fields = expected.flatMap((exp, i) => {
+    const j = partner.get(i)
+    return sizeFields(i + 1, exp, j === undefined ? null : items[j])
+  })
+  return { ...base, fields, extra: extra.map((k) => items[k].text) }
 }
 
 // F43 성적표의 분모를 모두 센다. requests = 제한·꺼짐을 뺀 요청, answered = 응답 시간을 잰 요청(200).

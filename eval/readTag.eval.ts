@@ -2,19 +2,17 @@
 //   npm run worker:dev   (worker/.dev.vars에 키·ALLOWED_ORIGINS=http://localhost:5173)
 //   node eval/readTag.eval.ts --set 조정용 --server http://localhost:8787
 //   node eval/readTag.eval.ts --set 평가용 --check     (자료만 검사, 서버를 부르지 않음)
-import { readFileSync } from 'node:fs'
 import { READ_TAG_PROMPT, READ_TAG_SCHEMA } from '../worker/src/readTag.ts'
 import {
   asTagItems,
   caseLine,
   checkTagExpected,
-  dataPath,
   finish,
   GAP_MS,
   gitState,
   guardSecondRun,
-  jpegSize,
   loadCases,
+  loadPhoto,
   main,
   modelName,
   parseArgs,
@@ -27,20 +25,6 @@ import {
 import { scoreTagCase } from './score.ts'
 
 const CASES = 'eval/cases/read-tag.json'
-const MAX_SIDE = 1600 // 앱이 보내는 사진의 긴 변(JPEG 품질 0.85). 자료를 넣을 때 이렇게 줄여 둔다
-const MAX_CHARS = 4_100_000 // 서버의 사진 본문 상한(글자)
-
-function loadPhoto(id: string, file: string): { image: string; width: number; height: number } {
-  const bytes = readFileSync(dataPath(file))
-  const size = jpegSize(bytes)
-  if (size === null) throw new Error(`${id}: JPEG가 아니다. 앱처럼 JPEG로 바꿔 넣는다`)
-  if (Math.max(size.width, size.height) > MAX_SIDE) {
-    throw new Error(`${id}: 긴 변 ${Math.max(size.width, size.height)}px. 앱처럼 ${MAX_SIDE}px 이하로 줄여 넣는다`)
-  }
-  const image = bytes.toString('base64')
-  if (image.length + 100 > MAX_CHARS) throw new Error(`${id}: 서버 상한(${MAX_CHARS}자)을 넘는다`)
-  return { image, ...size }
-}
 
 main(async () => {
   const args = parseArgs(process.argv.slice(2), { server: true })

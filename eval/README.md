@@ -1,7 +1,7 @@
 # eval: 실제 AI 정확도 평가
 
 실제 Gemini를 부르는 평가 스크립트와 채점기(PRD F43). CI(`npm test`)에서는 돌지 않고 손으로 돌린다.
-`npm test`에는 채점기 테스트(`score.test.ts`, `lib.test.ts`)만 들어간다. 결과 기록은 `docs/ai-eval.md`.
+`npm test`에는 채점기·요약 테스트(`score.test.ts`, `lib.test.ts`, `summarize.test.ts`)만 들어간다. 결과 기록은 `docs/ai-eval.md`.
 
 | 파일 | 하는 일 |
 | --- | --- |
@@ -9,14 +9,16 @@
 | `lib.ts` | 인자, 정답 파일 읽기·검사, 자료 머리(JPEG 크기·WAV 길이) 검사, 요청, 결과 파일 |
 | `readTag.eval.ts` | 가격표 사진 읽기: 우리 서버 `/api/read-tag` |
 | `voiceFill.eval.ts` | 말로 담기: 우리 서버 `/api/voice-fill` |
+| `readSize.eval.ts` | 상품 페이지 캡처의 치수 읽기: 우리 서버 `/api/read-size`(F44 2단계) |
 | `lowestPrice.eval.ts` | 다나와 같은 상품 고르기: 서버 없이 페이지 사본 + 서버 함수(`parseDanawaRows`·`buildPickPrompt`·`PICK_SCHEMA`·`pickRows`·`callGemini`) |
+| `summarize.ts` | 평가용 결과 파일들로 앱 성적표 요약을 만든다: `node eval/summarize.ts --out src/ai/evalSummary.json <평가용 결과 파일들>`(조정용 결과·모델이 다른 결과·같은 기능 두 번은 거부, 원시 응답·자료 파일 이름은 넣지 않음) |
 | `cases/*.json` | 정답 파일(사례 id·출처·정답만. 자료 파일은 커밋하지 않음) |
 
 ## 자료와 결과 위치(커밋하지 않음)
 
 `_개인기록/평가/` 아래에만 둔다(`.gitignore`의 `/_개인기록/`).
 
-- 사진: `사진/{조정용,평가용}/<id>.jpg` · 녹음: `녹음/{조정용,평가용}/<id>.<형식>` · 다나와: `다나와/{조정용,평가용}/<id>.html`(조회한 날 검색 결과 페이지 사본)
+- 사진: `사진/{조정용,평가용}/<id>.jpg` · 녹음: `녹음/{조정용,평가용}/<id>.<형식>` · 다나와: `다나와/{조정용,평가용}/<id>.html`(조회한 날 검색 결과 페이지 사본) · 치수 캡처: `치수/{조정용,평가용}/<id>.jpg`
 - 결과: `결과/<기능>_<묶음>_<시각>.json`(아래 `EvalResultFile` + 실행 기록 `meta` + 사례별 원시 응답 `raw`)
 
 자료를 넣을 때 앱과 같은 전처리를 해 둔다. 사진은 긴 변 1600px 이하 JPEG(앱은 품질 0.85), 녹음은 브라우저가 만든 형식 그대로 20초 이하. 스크립트는 줄이지 않고 검사만 한다(JPEG가 아니거나 1600px보다 크거나 WAV가 20초를 넘으면 멈춤).
@@ -41,6 +43,12 @@
   - `price`: 원 정수. 가격표가 없거나 읽을 수 없으면 `null`(표기 없음). 조건 없는 가격이 없고 회원가·카드 할인가만 있으면 그 가격과 `priceCondition`.
   - `size`·`unit`·`count`: 서버 읽기 규칙 그대로(F32). `size`는 낱개 용량, `count`는 포장에 적힌 낱개 수, 단위는 서버가 정규화한 `g`·`kg`·`mL`·`L`·`ea`. 환산하지 않는다. '100g당' 같은 단가 기준은 용량이 아니다(판정 R14: 용량·단위는 표기 없음, AI가 100을 넣으면 채움).
   - 상품이 하나도 없는 사진은 `[]`.
+- 치수 `expected`: 사진에 보이는 치수 표기를 **모두** 적은 배열. 표기마다 `{ textKeywords, kind, w, d, h, unit }`.
+  - `textKeywords`: 공백으로 나눈 키워드(AI가 적힌 그대로 옮긴 `text`에 모두 들어 있으면 짝). '제품'·'접었을 때' 같은 말은 AI가 `label` 칸으로만 뺄 수 있으니 적힌 숫자 두 개로 정하고, 같은 사진의 다른 표기 숫자와 겹치지 않게 한다.
+  - `kind`: `product`·`package`·`unknown`. 제품인지 포장인지 적혀 있지 않으면 `unknown`(채점에서 '표기 없음' 칸).
+  - `w`·`d`·`h`: 적힌 숫자 그대로(단위로 환산하지 않음). 축 이름이 없거나 '세로'처럼 분명하지 않으면 적힌 순서대로 가로·깊이·높이에 넣는다(서버 읽기 규칙). 지름처럼 세 축이 아니거나 읽을 수 없는 값은 `null`.
+  - `unit`: `mm`·`cm`·`m`, 축마다 단위가 다르면 `mixed`, 단위가 적혀 있지 않으면 `null`.
+  - 치수 표기가 없는 사진은 `[]`.
 - 녹음 `expected`: `{ nameKeywords, price, reasonKeywords, desire, periodDays }`. 말하지 않은 것은 `null`. `desire`는 1~5, `periodDays`는 1~30.
 - 다나와 `expected`: `{ wanted, accepted }`. `wanted`는 앱이 보내는 요청(`LowestPriceRequest`), `accepted`는 사본에서 `parseDanawaRows`로 뽑은 줄 번호(1부터) 중 같은 상품·같은 규격·같은 묶음인 줄(사람이 확인, 없으면 `[]`). 줄 목록은 `--check`로 본다. 광고 줄·가격만 같은 다른 상품은 허용 줄이 아니다.
 
@@ -49,6 +57,7 @@
 - 값이 있는 칸: 같으면 맞음, 다르면 틀림, 빈칸이면 못 읽음. 이름·이유는 키워드가 모두 들어 있으면 맞음(AI 값의 띄어쓰기·대소문자는 무시). 숫자는 글자로 바꿔 비교한다(`1.5`와 `1.50`은 JSON에서 같은 수).
 - 표기 없는 칸: AI도 비우면 맞음(`blank-ok`, 값이 있는 칸 정확도에는 넣지 않음), 값을 내면 채움(`filled`).
 - 가격표: 정답 순서대로 키워드로 AI 상품과 짝짓는다. 짝 없는 정답은 값이 있는 칸 못 읽음·표기 없는 칸 맞음, 짝 없는 AI 상품은 더 읽음(`extra`).
+- 치수: 정답 순서대로 `textKeywords`로 AI 표기(`text`)와 짝짓고(가격표와 같은 방식), 짝 표기마다 가로·깊이·높이·단위·제품/포장 5칸을 채점한다. 제품/포장은 `product`·`package`를 '제품'·'포장'으로 적어 비교하고 `unknown`은 표기 없는 칸이다. 단위 `mixed`는 값이다. 짝 없는 정답 표기는 값이 있는 칸 못 읽음·표기 없는 칸 맞음, 짝 없는 AI 표기는 더 읽음(`extra`), 정답 `[]`인 사진에서 표기를 읽으면 모두 더 읽음.
 - 다나와: 고른 줄이 모두 허용 줄이고 가장 낮은 가격의 허용 줄을 포함하면 맞음(판정 R15: 가장 낮은 가격이 같은 허용 줄이 여럿이면 그중 하나면 됨. 앱에 보이는 가장 낮은 가격이 같다). 허용 줄 밖을 하나라도 고르거나 가장 낮은 허용 줄을 빠뜨리면 틀림, 허용 줄이 있는데 못 고르면 못 읽음, 허용 줄이 없는데 고르면 채움, 허용 줄이 없고 안 고르면 `blank-ok`.
 - 요청: `httpStatus`는 채점용 분류다. 200 = 쓸 수 있는 응답. 429·503(우리 서버의 제한·꺼짐) = `fields: []`, 정확도에서 빼고 따로 센다. `null` = 시간 초과(60초)·네트워크 오류. 그 밖(서버 오류, 200인데 모양이 다른 응답은 502로 적음, 다나와 직접 호출의 Gemini 실패 502)은 실패: 값이 있는 칸 못 읽음, 표기 없는 칸 `unscored`(분모에서 뺌).
 - 다시 보내지 않는다(사례당 1번). 다나와 직접 호출은 서버의 `callGemini` 규칙(503일 때만 남은 시간이 15초 이상이면 1번 더)을 그대로 쓴다.
@@ -60,17 +69,22 @@
 node eval/readTag.eval.ts --set 평가용 --check
 node eval/voiceFill.eval.ts --set 평가용 --check
 node eval/lowestPrice.eval.ts --set 평가용 --check
+node eval/readSize.eval.ts --set 평가용 --check
 
 # 2. 정답 잠금: 실행 전에 cases/*.json의 SHA-256을 docs/ai-eval.md에 적는다
 sha256sum eval/cases/*.json
 
-# 3. 서버(사진·녹음만): worker/.dev.vars에 GEMINI_API_KEY와 ALLOWED_ORIGINS=http://localhost:5173
+# 3. 서버(사진·녹음·치수만): worker/.dev.vars에 GEMINI_API_KEY와 ALLOWED_ORIGINS=http://localhost:5173
 npm run worker:dev
 
 # 4. 조정용 → (프롬프트를 고칠 일이 있으면 tuning-prompts) → 평가용 한 번. 한 번에 하나씩.
 node eval/readTag.eval.ts --set 조정용 --server http://localhost:8787
 node eval/voiceFill.eval.ts --set 조정용 --server http://localhost:8787
 node eval/lowestPrice.eval.ts --set 조정용
+node eval/readSize.eval.ts --set 조정용 --server http://localhost:8787
+
+# 5. 평가용을 마지막 판에서 한 번 돌린 뒤: 평가용 결과로만 성적표 요약을 만든다(손으로 숫자를 고치지 않음)
+node eval/summarize.ts --out src/ai/evalSummary.json <평가용 결과 파일들>
 ```
 
 - 사례 사이 7초를 둔다. 스크립트 여러 개를 동시에 돌리지 않는다(결과 폴더의 `.running` 잠금 파일로 막음).

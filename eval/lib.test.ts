@@ -1,17 +1,22 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { seconds } from '../src/ai/evalSummary.ts'
 import type { DanawaRow } from '../src/ai/types.ts'
 import {
   asDanawaPicks,
+  asSizeCandidates,
   checkDanawaExpected,
+  checkSizeExpected,
   checkTagExpected,
   checkVoiceExpected,
+  formatTally,
   jpegSize,
   parseArgs,
   selectCases,
   wavSeconds,
 } from './lib.ts'
-import { scoreDanawaCase } from './score.ts'
+import { keywordMatch, scoreDanawaCase, tally } from './score.ts'
 
 function tagCase(id: string, set: '조정용' | '평가용', over: Record<string, unknown> = {}) {
   return {
@@ -103,6 +108,133 @@ describe('정답 검사', () => {
     expect(() => checkDanawaExpected({ wanted: { name: '햇반 210g' }, accepted: [0] }, 'dn01')).toThrow(/accepted/)
     expect(() => checkDanawaExpected({ wanted: { name: '햇반 210g' }, accepted: [2, 2] }, 'dn01')).toThrow(/accepted/)
     expect(() => checkDanawaExpected({ wanted: {}, accepted: [] }, 'dn01')).toThrow(/wanted/)
+  })
+})
+
+describe('치수 정답 검사', () => {
+  const one = (over: Record<string, unknown> = {}) => [
+    { textKeywords: '제품 32', kind: 'product', w: 32, d: 25, h: 47, unit: 'cm', ...over },
+  ]
+
+  it('치수 정답은 표기마다 키워드·제품/포장·세 축·단위를 받고, 표기가 없는 사진을 위해 빈 배열도 받아요', () => {
+    expect(checkSizeExpected(one(), 'sz11')).toEqual(one())
+    expect(checkSizeExpected([], 'sz18')).toEqual([])
+  })
+
+  it('치수 정답의 제품/포장은 product·package·unknown만, 단위는 mm·cm·m·mixed나 null만 받아요', () => {
+    expect(checkSizeExpected(one({ kind: 'unknown', unit: null }), 'sz11')[0].kind).toBe('unknown')
+    expect(checkSizeExpected(one({ unit: 'mixed' }), 'sz11')[0].unit).toBe('mixed')
+    expect(() => checkSizeExpected(one({ kind: 'box' }), 'sz11')).toThrow(/sz11.*kind/)
+    expect(() => checkSizeExpected(one({ unit: 'CM' }), 'sz11')).toThrow(/sz11.*unit/)
+    expect(() => checkSizeExpected(one({ unit: 'inch' }), 'sz11')).toThrow(/unit/)
+  })
+
+  it('치수 정답의 축은 0 초과 수나 null(모르는 축)이고 표기 키워드는 비울 수 없어요', () => {
+    expect(checkSizeExpected(one({ d: null }), 'sz11')[0].d).toBeNull()
+    expect(() => checkSizeExpected(one({ w: 0 }), 'sz11')).toThrow(/sz11.*w/)
+    expect(() => checkSizeExpected(one({ h: -3 }), 'sz11')).toThrow(/h/)
+    expect(() => checkSizeExpected(one({ d: '25' }), 'sz11')).toThrow(/d/)
+    expect(() => checkSizeExpected(one({ textKeywords: ' ' }), 'sz11')).toThrow(/textKeywords/)
+    expect(() => checkSizeExpected({}, 'sz11')).toThrow(/배열/)
+  })
+})
+
+describe('asSizeCandidates', () => {
+  const candidate = { text: '제품 크기 32 x 25 x 47 cm', label: null, kind: 'product', axes: 'order', w: 32, d: 25, h: 47, unit: 'cm' }
+
+  it('서버 응답의 표기 목록을 채점에 쓰는 칸만 돌려줘요', () => {
+    expect(asSizeCandidates({ candidates: [candidate], note: null })).toEqual([
+      { text: '제품 크기 32 x 25 x 47 cm', kind: 'product', w: 32, d: 25, h: 47, unit: 'cm' },
+    ])
+  })
+
+  it('표기가 하나도 없는 응답(빈 목록)도 쓸 수 있는 응답이에요', () => {
+    expect(asSizeCandidates({ candidates: [], note: null })).toEqual([])
+  })
+
+  it('모양이 다른 응답은 null(실패로 센다)이에요', () => {
+    expect(asSizeCandidates(null)).toBeNull()
+    expect(asSizeCandidates({})).toBeNull()
+    expect(asSizeCandidates({ candidates: '없음' })).toBeNull()
+    expect(asSizeCandidates({ candidates: [{ ...candidate, kind: 'box' }] })).toBeNull()
+    expect(asSizeCandidates({ candidates: [{ ...candidate, w: '32' }] })).toBeNull()
+    expect(asSizeCandidates({ candidates: [{ ...candidate, unit: 'inch' }] })).toBeNull()
+    expect(asSizeCandidates({ candidates: [{ ...candidate, text: 7 }] })).toBeNull()
+  })
+
+  it('단위 mixed와 null, 제품/포장 unknown은 그대로 받아요', () => {
+    const out = asSizeCandidates({ candidates: [{ ...candidate, kind: 'unknown', unit: 'mixed' }, { ...candidate, unit: null }] })
+    expect(out?.map((c) => [c.kind, c.unit])).toEqual([
+      ['unknown', 'mixed'],
+      ['product', null],
+    ])
+  })
+})
+
+describe('응답 시간 초 표기', () => {
+  // 이월(Task 1 리뷰): 평가 스크립트의 초 표기가 앱 성적표의 seconds()와 같아야 한다. x.x50 같은 경계에서
+  // (ms/1000).toFixed(1)은 0.15 → '0.1', 2.05 → '2.0'으로 내려가 앱(0.2, 2.1)과 다르다.
+  const timed = (medianMs: number, maxMs: number) =>
+    formatTally({ ...tally([{ id: 'a', httpStatus: 200, ms: medianMs, fields: [], extra: [] }]), medianMs, maxMs }).at(-1)
+
+  it('앱의 seconds()와 같은 100ms 단위 반올림이라 150ms는 0.2초, 2050ms는 2.1초예요', () => {
+    expect(seconds(150)).toBe('0.2')
+    expect(seconds(2050)).toBe('2.1')
+    expect(timed(150, 2050)).toBe('응답 시간 중앙값 0.2초 · 최대 2.1초 (1번)')
+  })
+
+  it('경계가 아닌 값은 가까운 소수 첫째 자리로 보여요', () => {
+    expect(timed(3022, 4942)).toBe('응답 시간 중앙값 3.0초 · 최대 4.9초 (1번)')
+    expect(timed(12349, 12350)).toBe('응답 시간 중앙값 12.3초 · 최대 12.4초 (1번)')
+  })
+})
+
+describe('치수 읽기 정답 파일', () => {
+  // 파일을 읽는 일은 사례 안에서 한다(파일이 없거나 틀리면 이 describe의 사례만 실패하도록)
+  const raw = () => JSON.parse(readFileSync('eval/cases/read-size.json', 'utf8')) as unknown
+  const evalCases = () => selectCases(raw(), '평가용', checkSizeExpected, 'read-size')
+
+  it('평가용 사례가 6개 이상이고 모두 직접 만든 합성 자료로 출처·이용 조건이 적혀 있어요', () => {
+    const cases = evalCases()
+    expect(cases.length).toBeGreaterThanOrEqual(6)
+    for (const c of cases) {
+      expect(c.synthetic).toBe(true)
+      expect(c.source).toBe('직접 만듦(합성)')
+      expect(c.license).not.toBe('')
+      expect(c.file).toMatch(/^치수\/평가용\/sz\d+\.jpg$/)
+    }
+  })
+
+  it('조정용 사례는 없어요(조정용 치수 자료가 아직 없음)', () => {
+    expect(() => selectCases(raw(), '조정용', checkSizeExpected, 'read-size')).toThrow(/조정용.*0개/)
+  })
+
+  it('제품·포장 치수가 함께 있는 사진, 상태별 치수가 둘인 사진, 치수 표기가 없는 사진이 있어요', () => {
+    const cases = evalCases()
+    const kindsOf = (c: { expected: { kind: string }[] }) => new Set(c.expected.map((e) => e.kind))
+    expect(cases.some((c) => kindsOf(c).has('product') && kindsOf(c).has('package'))).toBe(true)
+    expect(cases.some((c) => c.expected.length === 2 && kindsOf(c).size === 1 && kindsOf(c).has('product'))).toBe(true)
+    expect(cases.some((c) => c.expected.length === 0)).toBe(true)
+  })
+
+  it('표기 키워드는 자기 숫자에는 맞고 같은 사진의 다른 표기 숫자에는 맞지 않아 서로를 짝으로 잡지 않아요', () => {
+    // 가정: AI가 적힌 그대로 옮긴 text에는 세 숫자가 들어 있다(짝짓기는 AI text의 키워드로 한다)
+    const canonical = (e: { w: number | null; d: number | null; h: number | null }) => `${e.w} x ${e.d} x ${e.h}`
+    for (const c of evalCases()) {
+      c.expected.forEach((a, i) => {
+        expect(keywordMatch(a.textKeywords, canonical(a)), `${c.id} 표기${i + 1} 자기 숫자`).toBe(true)
+        c.expected.forEach((b, j) => {
+          if (i !== j) expect(keywordMatch(a.textKeywords, canonical(b)), `${c.id} 표기${i + 1}과 표기${j + 1}`).toBe(false)
+        })
+      })
+    }
+  })
+
+  it('단위는 mm·cm·mixed·단위 없음(null)을, 제품/포장은 표기 없음(unknown)까지 덮어요', () => {
+    const all = evalCases().flatMap((c) => c.expected)
+    const units = new Set(all.map((e) => e.unit))
+    for (const unit of ['mm', 'cm', 'mixed', null] as const) expect(units.has(unit)).toBe(true)
+    expect(all.some((e) => e.kind === 'unknown')).toBe(true)
   })
 })
 
