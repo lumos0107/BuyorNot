@@ -568,6 +568,7 @@ describe('단가 가격표, 모두 모르는 값, 상품 여러 개 (AC56)', () 
 
     await readPhoto(B)
     expect(confirmButton(B)).toBeDisabled()
+    expect(box(B).getByText('채울 값: 가격 모름 · 모름 × 모름')).toBeInTheDocument()
     fireEvent.change(box(B).getByLabelText('단위'), { target: { value: 'g' } })
     fireEvent.click(confirmButton(B))
 
@@ -666,7 +667,7 @@ describe('확인 상자의 단위 선택 (F32)', () => {
     expect(values(B)).toEqual({ price: '4500', unit: 'kg', size: '900', count: '1' })
   })
 
-  it('단위를 읽었으면 단위 선택이 없고, 단위를 못 읽어 개로 고르면 읽은 용량은 비운다', async () => {
+  it('단위를 읽었으면 단위 선택이 없고, 단위를 못 읽어 개로 고르면 읽은 용량도 계산용으로 넣은 개수 1도 비운다', async () => {
     const s = setup()
     s.server.on(READ, readTag(ITEM_L), readTag(ITEM_NO_UNIT))
     openBundle()
@@ -678,7 +679,81 @@ describe('확인 상자의 단위 선택 (F32)', () => {
     fireEvent.change(box(A).getByLabelText('단위'), { target: { value: 'ea' } })
     fireEvent.click(confirmButton(A))
 
-    expect(values(A)).toEqual({ price: '4500', unit: 'ea', size: null, count: '1' })
+    // R9: 개수는 읽은 값이 아니라 계산용으로 넣은 1이었으므로 단위를 개로 고르면 비운다
+    expect(values(A)).toEqual({ price: '4500', unit: 'ea', size: null, count: '' })
+  })
+
+  it('R9: 단위 null·용량 900·개수 null에서 개를 골라 채우면 용량과 개수 칸을 비우고, 개수 오류를 보이며 그 칸에 포커스가 간다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag(ITEM_NO_UNIT))
+    openBundle()
+    // 상품 A도 개 단위여야 두 단위 칸에 종류 오류가 없어, 첫 오류 칸이 B의 묶음 개수다
+    enter(A, { unit: 'ea' })
+    await readPhoto(B)
+    expect(box(B).getByText('채울 값: 가격 4,500원 · 900(단위 모름) × 1개(계산용 1묶음)')).toBeInTheDocument()
+
+    fireEvent.change(box(B).getByLabelText('단위'), { target: { value: 'ea' } })
+    fireEvent.click(confirmButton(B))
+
+    expect(values(B)).toEqual({ price: '4500', unit: 'ea', size: null, count: '' })
+    expect(card(B).getByText('묶음 개수를 정수로 입력해 주세요')).toBeInTheDocument()
+    expect(card(B).getByLabelText('묶음 개수')).toHaveAttribute('aria-invalid', 'true')
+    expect(card(B).getByLabelText('묶음 개수')).toHaveFocus()
+    // 가격은 읽은 값이라 오류가 없다. 개수를 모르니 "1개당 4,500원" 같은 결과도 없다
+    expect(card(B).getByLabelText('가격')).not.toHaveAttribute('aria-invalid')
+    expect(queryResult()).not.toBeInTheDocument()
+  })
+
+  it('R9: 읽은 개수가 있으면 단위를 개로 골라도 그 개수는 남고 용량만 비운다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag({ ...ITEM_NO_UNIT, count: 2 }))
+    openBundle()
+    enter(A, { unit: 'ea' })
+    await readPhoto(B)
+
+    fireEvent.change(box(B).getByLabelText('단위'), { target: { value: 'ea' } })
+    fireEvent.click(confirmButton(B))
+
+    expect(values(B)).toEqual({ price: '4500', unit: 'ea', size: null, count: '2' })
+    expect(card(B).getByLabelText('가격')).toHaveFocus()
+    expect(result().getByText('2,250.00원')).toBeInTheDocument()
+  })
+
+  it('R8: 단위를 고르면 "채울 값" 줄을 고른 단위로 다시 만들고, 단위 고르기로 돌리면 읽은 줄로 돌아간다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag(ITEM_NO_UNIT))
+    openBundle()
+    await readPhoto(B)
+    const original = '채울 값: 가격 4,500원 · 900(단위 모름) × 1개(계산용 1묶음)'
+    const select = box(B).getByLabelText('단위')
+    expect(box(B).getByText(original)).toBeInTheDocument()
+
+    fireEvent.change(select, { target: { value: 'g' } })
+    expect(box(B).getByText('채울 값: 가격 4,500원 · 900g × 1개(계산용 1묶음)')).toBeInTheDocument()
+    expect(box(B).queryByText(original)).not.toBeInTheDocument()
+    expect(box(B).queryByText(/단위 모름/)).not.toBeInTheDocument()
+
+    fireEvent.change(select, { target: { value: 'kg' } })
+    expect(box(B).getByText('채울 값: 가격 4,500원 · 900kg × 1개(계산용 1묶음)')).toBeInTheDocument()
+
+    // 개를 고르면 용량 없이 개수만 적고, 계산용 1은 버리므로 "모름"이다
+    fireEvent.change(select, { target: { value: 'ea' } })
+    expect(box(B).getByText('채울 값: 가격 4,500원 · 모름')).toBeInTheDocument()
+
+    fireEvent.change(select, { target: { value: '' } })
+    expect(box(B).getByText(original)).toBeInTheDocument()
+    // 읽은 내용 줄은 바뀌지 않는다
+    expect(box(B).getByText('읽은 내용: 세탁 세제 · 900')).toBeInTheDocument()
+  })
+
+  it('R8: 용량도 모르는 상품은 단위를 고르기 전 "(단위 모름)" 없이 "모름"이다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag(BLANK))
+    openBundle()
+    await readPhoto(B)
+
+    expect(box(B).getByText('채울 값: 가격 모름 · 모름 × 모름')).toBeInTheDocument()
+    expect(box(B).queryByText(/단위 모름/)).not.toBeInTheDocument()
   })
 })
 

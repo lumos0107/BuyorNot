@@ -4,7 +4,7 @@ import { PHOTO_TIMEOUT_MS } from '../../ai/config'
 import { blobToBase64, shrinkImage } from '../../ai/image'
 import { aiFailureMessage, PHOTO_DECODE_FAILED, PHOTO_NOTICE } from '../../ai/messages'
 import { UNIT_LABEL, type BundleRawInput, type Unit } from '../../logic/bundle'
-import { completeBundle, tagToBundle, type BundleFill } from '../../logic/bundleFill'
+import { completeBundle, fillLine, tagToBundle, type BundleFill } from '../../logic/bundleFill'
 import { Button } from '../../ui/Button'
 import { SelectField } from '../../ui/Field'
 import { PhotoPicker } from './PhotoPicker'
@@ -146,12 +146,12 @@ export function BundlePhotoFill({ cardName, onApply }: { cardName: string; onApp
   const fill = chosen?.fill ?? null
   const needsUnit = fill?.ok === true && fill.partial.unit === null
   const canApply = fill?.ok === true && (!needsUnit || unit !== '')
+  // 읽은 단위가 없으면 사용자가 고른 단위(아직이면 null). "채울 값" 줄은 이 단위를 읽은 것처럼 다시 만든다 (총괄 판정 R8)
+  const finalUnit = fill?.ok === true ? (fill.partial.unit ?? (unit === '' ? null : unit)) : null
 
   // 포커스는 카드가 옮긴다(오류가 있는 첫 칸, 없으면 가격 칸). 여기서는 상자만 닫는다
   const apply = () => {
-    if (fill === null || !fill.ok) return
-    const finalUnit = fill.partial.unit ?? (unit === '' ? null : unit)
-    if (finalUnit === null) return
+    if (fill === null || !fill.ok || finalUnit === null) return
     onApply(completeBundle(fill.partial, finalUnit))
     endFlow()
   }
@@ -194,7 +194,7 @@ export function BundlePhotoFill({ cardName, onApply }: { cardName: string; onApp
             {fill === null ? null : fill.ok ? (
               <>
                 <p>{fill.read}</p>
-                <p>{fill.fill}</p>
+                <p>{fillLine(fill.partial, finalUnit)}</p>
               </>
             ) : (
               <p>{fill.message}</p>
