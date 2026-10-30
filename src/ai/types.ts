@@ -29,3 +29,21 @@ export type DanawaRow = {
   unitPriceText: string | null
   malls: string
 }
+
+export type LowestPriceRequest = {
+  name: string
+  brand?: string | null
+  sizeText?: string | null
+  size?: number | null
+  unit?: TagUnit | null
+  count?: number | null
+}
+
+// found: 같은 상품으로 고른 줄(matches) · not_confirmed: 고르지 못해 앞쪽 줄(candidates)
+// unavailable: 다나와를 읽지 못함 · off: 다나와 조회를 꺼 둠. searchUrl은 늘 채운다.
+export type LowestPriceResponse = {
+  status: 'found' | 'not_confirmed' | 'unavailable' | 'off'
+  searchUrl: string
+  matches: DanawaRow[]
+  candidates: DanawaRow[]
+}

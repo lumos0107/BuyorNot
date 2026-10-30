@@ -1,5 +1,6 @@
 import type { Deps, Env } from './env.ts'
 import { handle, type Route } from './http.ts'
+import { lowestPrice } from './lowestPrice.ts'
 import { createRateLimiter } from './rateLimit.ts'
 import { readTag } from './readTag.ts'
 
@@ -13,6 +14,7 @@ const deps: Deps = {
 // 경로는 Task 3·5·6이 채운다
 const routes: Record<string, Route> = {
   '/api/read-tag': { limit: 4_100_000, run: readTag },
+  '/api/lowest-price': { limit: 10_000, run: lowestPrice },
 }
 
 export default {

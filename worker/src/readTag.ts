@@ -52,12 +52,12 @@ const MAX_PRICE = 1_000_000_000
 const MAX_COUNT = 9999
 const MAX_SIZE = 10_000_000
 
-function isRecord(v: unknown): v is Record<string, unknown> {
+export function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
 // 앞뒤 공백을 지우고 상한(글자 단위)에서 자른다. 비면 null.
-function cleanText(v: unknown, max: number): string | null {
+export function cleanText(v: unknown, max: number): string | null {
   if (typeof v !== 'string') return null
   const trimmed = v.trim()
   if (trimmed === '') return null
@@ -96,21 +96,33 @@ function unitOf(v: unknown): TagUnit | null {
   }
 }
 
-function normalizeItem(raw: unknown): TagItem | null {
-  if (!isRecord(raw)) return null
-  const name = cleanText(raw.name, 80)
-  if (name === null) return null
+// 상품 규격 칸(브랜드·포장 표기·용량·단위·개수). 가격표 읽기 결과와 온라인 가격 요청이 함께 쓴다.
+export function normalizeSpec(raw: Record<string, unknown>) {
   return {
-    name,
     brand: cleanText(raw.brand, 40),
-    price: intIn(raw.price, 1, MAX_PRICE),
-    priceCondition: cleanText(raw.priceCondition, 20),
-    regularPrice: intIn(raw.regularPrice, 1, MAX_PRICE),
-    priceBasis: cleanText(raw.priceBasis, 20),
     sizeText: cleanText(raw.sizeText, 40),
     size: sizeOf(raw.size),
     unit: unitOf(raw.unit),
     count: intIn(raw.count, 1, MAX_COUNT),
+  }
+}
+
+function normalizeItem(raw: unknown): TagItem | null {
+  if (!isRecord(raw)) return null
+  const name = cleanText(raw.name, 80)
+  if (name === null) return null
+  const spec = normalizeSpec(raw)
+  return {
+    name,
+    brand: spec.brand,
+    price: intIn(raw.price, 1, MAX_PRICE),
+    priceCondition: cleanText(raw.priceCondition, 20),
+    regularPrice: intIn(raw.regularPrice, 1, MAX_PRICE),
+    priceBasis: cleanText(raw.priceBasis, 20),
+    sizeText: spec.sizeText,
+    size: spec.size,
+    unit: spec.unit,
+    count: spec.count,
     tagReadable: raw.tagReadable === true,
   }
 }
