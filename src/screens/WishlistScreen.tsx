@@ -80,6 +80,9 @@ type Props = {
 
 const NOT_APPLIED = () => false
 
+// 서비스 설명 (F24, AC79): 고민 중인 물건이 없을 때 담기 폼 위에 보인다. 빈 목록 상자에 있던 문장을 그대로 옮겼다
+const SERVICE_INTRO = '사고 싶은 물건을 담아 두면 날마다 다시 생각해 보고, 처음 적은 이유와 지금 마음을 비교할 수 있어요.'
+
 export function WishlistScreen({
   items,
   now,
@@ -177,6 +180,8 @@ export function WishlistScreen({
           }}
         />
       ) : null}
+      {/* 고민 중인 물건이 없을 때 서비스 설명을 담기 폼 위, 예시 줄 바로 앞에 둔다. 빈 목록 상자에 있던 문장을 그대로 옮겼다 (F24, AC79) */}
+      {considering.length === 0 ? <p className="note">{SERVICE_INTRO}</p> : null}
       {/* 처음 연 사람이 바로 둘러볼 수 있게, 비어 있을 때 예시 물건 넣기를 담기 폼 위에 둔다 (2026-10-11 제작자 요청) */}
       {considering.length === 0 && onAddDemo ? (
         <div className="example-bar">
@@ -206,7 +211,6 @@ export function WishlistScreen({
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
-          <p className="note">사고 싶은 물건을 담아 두면 날마다 다시 생각해 보고, 처음 적은 이유와 지금 마음을 비교할 수 있어요.</p>
         </div>
       ) : (
         <section className="stack" aria-label="고민 중인 물건 목록">
