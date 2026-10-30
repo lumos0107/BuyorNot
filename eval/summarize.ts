@@ -46,8 +46,8 @@ export function summarize(file: EvalResultFile): FeatureSummary {
     valued: { correct: t.correct, wrong: t.wrong, missed: t.missed },
     blank: { total: t.blank, filled: t.filled },
     extra: countsExtra ? t.extra : null,
-    // 응답 시간은 쓸 수 있는 응답(200)만 잰다. 짝수 개의 중앙값은 가운데 둘의 평균을 반올림한다
-    latencyMs: { median: Math.round(t.medianMs ?? 0), max: Math.round(t.maxMs ?? 0), n: t.answered },
+    // 응답 시간은 쓸 수 있는 응답(200)만 잰다. 중앙값은 tally가 정수 ms로 한 번 반올림한 값 그대로(lib.ts 출력과 같은 값)
+    latencyMs: { median: t.medianMs ?? 0, max: Math.round(t.maxMs ?? 0), n: t.answered },
     failures: failureList(file.cases).slice(0, MAX_FAILURES),
     failureTotal: t.wrong + t.missed + t.filled + t.extra,
   }

@@ -36,7 +36,7 @@
     "group": "syn-sz13",
     "synthetic": true,
     "expected": [
-      { "textKeywords": "45", "kind": "product", "w": 45, "d": 30, "h": 20, "unit": "cm" }
+      { "textKeywords": "30", "kind": "product", "w": 45, "d": 30, "h": 20, "unit": "cm" }
     ]
   },
   {

@@ -265,10 +265,12 @@ export type Tally = {
   maxMs: number | null
 }
 
+// 짝수 개면 가운데 둘의 평균. 정수 ms로 여기서 한 번만 반올림해, 평가 출력(lib.ts)과 카드(summarize.ts)가 같은 값에서 초를 만든다
+// (따로 반올림하면 4149.5ms가 한쪽은 4.1초, 한쪽은 4.2초로 갈린다).
 function median(sorted: number[]): number | null {
   if (sorted.length === 0) return null
   const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+  return sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2)
 }
 
 export function tally(cases: EvalCase[]): Tally {

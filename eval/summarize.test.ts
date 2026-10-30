@@ -3,16 +3,18 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { isEvalSummary } from '../src/ai/evalSummary.ts'
+import { isEvalSummary, reportLines } from '../src/ai/evalSummary.ts'
 import {
   failedFields,
   scoreTagCase,
+  tally,
   type EvalCase,
   type EvalResultFile,
   type FieldOutcome,
   type TagExpected,
   type TagReadItem,
 } from './score.ts'
+import { formatTally } from './lib.ts'
 import { mergeSummaries, parseSummarizeArgs, runSummarize, summarize } from './summarize.ts'
 
 // PRD F43 성적표 요약. 채점기(score.ts)가 만든 사례를 그대로 집계하고, 분모는 score.ts의 tally와 같은 방식으로 센다.
@@ -152,6 +154,15 @@ describe('summarize', () => {
     expect(at(3000, 1000, 2000).latencyMs).toEqual({ median: 2000, max: 3000, n: 3 })
     expect(at(1000, 2000).latencyMs).toEqual({ median: 1500, max: 2000, n: 2 })
     expect(at(2500).latencyMs).toEqual({ median: 2500, max: 2500, n: 1 })
+  })
+
+  // 총괄 판정 R28(G2): 중앙값 4149.5ms는 평가 출력(lib.ts formatTally)과 성적표 카드(reportLines)에서 같은 초로 나와야 한다.
+  // 반올림을 한 번만 하면 4150ms → 4.2초이고, 두 곳이 따로 반올림하면 4.1초와 4.2초로 갈린다.
+  it('중앙값이 x49.5ms인 평가 출력의 초 표기와 카드의 초 표기가 같아요', () => {
+    const cases = [kase('a', { ms: 4149 }), kase('b', { ms: 4150 })]
+    const card = reportLines(summarize(resultFile(cases))).lines.at(-1)
+    expect(card).toBe('응답 시간 중앙값 4.2초 · 최대 4.2초 (2번)')
+    expect(formatTally(tally(cases)).at(-1)).toBe(card)
   })
 
   it('시간이 없는 200 응답은 응답 시간에 넣지 않아요', () => {

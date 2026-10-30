@@ -246,6 +246,35 @@ describe('치수 읽기 정답 파일', () => {
     }
   })
 
+  // 총괄 판정 R28(G4): 캡처에는 치수 말고도 숫자가 든 글(모델명·가격·무게·전력 등)이 있다. AI가 그것을 표기 후보로 옮겨도
+  // 정답의 짝이 되면 안 되니, 표기 키워드가 그 글에 들어가지 않아야 한다. 캡처 이미지는 _개인기록/에만 있어 테스트가 읽을 수 없으므로,
+  // 캡처(2026-10-31에 눈으로 읽음)에서 치수 표기를 뺀 숫자 든 글을 여기에 적는다. 사례를 더하면 이 표에도 더한다.
+  const FOOTER = '배송 2~3일 소요 · 무료배송 · 색상·모니터 설정에 따라 실제 제품과 다를 수 있어요.'
+  const CAPTURE_OTHER_TEXT: Record<string, string[]> = {
+    sz11: ['누리 슬림 공기청정기 NR-200', '129,000원', '모델명 NR-200', '4.2kg', '35W', '구매일로부터 1년'],
+    sz12: ['모아 미니 전기오븐 MO-31', '89,900원', '모델명 MO-31', '5.6kg', '1200W', '12L'],
+    sz13: ['하루 접이식 수납함 HR-45', '24,800원', '모델명 HR-45', '0.9kg'],
+    sz14: ['단아 전기포트 DA-17', '32,500원', '모델명 DA-17', '1.3kg', '1850W', '1.7L'],
+    sz15: ['포근 접이식 캠핑 테이블 PG-90', '56,000원', '모델명 PG-90', '3.8kg', '최대 30kg'],
+    sz16: ['다온 책상 서랍장 DO-3', '47,000원', '모델명 DO-3', '2.5kg', '3단'],
+    sz17: ['봄결 스탠드 선풍기 BG-40', '63,900원', '모델명 BG-40', '3.1kg', '38W', '5단'],
+    sz18: ['소담 무선 청소기 SD-80', '98,000원', '모델명 SD-80', '1.4kg', '0.6L', '150W', '최대 40분', '구매일로부터 1년'],
+  }
+
+  it('캡처 안의 다른 글 표가 평가용 사례 모두를 덮어요', () => {
+    expect(Object.keys(CAPTURE_OTHER_TEXT).sort()).toEqual(evalCases().map((c) => c.id).sort())
+  })
+
+  it('표기 키워드는 캡처의 모델명·가격·무게 같은 다른 글에도 맞지 않아요(sz13의 45가 모델명 HR-45에도 있던 일)', () => {
+    for (const c of evalCases()) {
+      for (const [i, e] of c.expected.entries()) {
+        for (const other of [...CAPTURE_OTHER_TEXT[c.id], FOOTER]) {
+          expect(keywordMatch(e.textKeywords, other), `${c.id} 표기${i + 1} 키워드 ${e.textKeywords}가 '${other}'에도 들어 있음`).toBe(false)
+        }
+      }
+    }
+  })
+
   it('단위는 mm·cm·mixed·단위 없음(null)을, 제품/포장은 표기 없음(unknown)까지 덮어요', () => {
     const all = evalCases().flatMap((c) => c.expected)
     const units = new Set(all.map((e) => e.unit))

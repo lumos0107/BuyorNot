@@ -542,4 +542,13 @@ describe('tally', () => {
     expect(t.medianMs).toBe(5000)
     expect(t.maxMs).toBe(9000)
   })
+
+  // 총괄 판정 R28(G2): 평가 출력(lib.ts)과 카드(summarize.ts)가 같은 값을 쓰도록 반올림은 tally에서 한 번만 한다
+  it('응답 시간 중앙값은 짝수 개면 가운데 둘의 평균을 정수 ms로 한 번 반올림해 돌려줘요', () => {
+    const at = (...times: number[]) => tally(times.map((ms, i) => ({ ...ok2, id: `m${i}`, ms }))).medianMs
+    expect(at(4149, 4150)).toBe(4150) // 4149.5
+    expect(at(9000, 1000, 2001, 2000)).toBe(2001) // 정렬 전 순서가 섞여 있어도, 2000.5
+    expect(at(1000, 2000)).toBe(1500)
+    expect(Number.isInteger(at(4149, 4150))).toBe(true)
+  })
 })
