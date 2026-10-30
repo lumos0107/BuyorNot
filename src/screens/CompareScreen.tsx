@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { aiServerUrl } from '../ai/config'
 import {
   bundleSummary,
@@ -28,6 +28,7 @@ import { bundleDraft, discountDraft, type PhotoDraft, type WishDraft } from '../
 import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
 import { TabPanel, Tabs, type TabItem } from '../ui/Tabs'
+import { BundlePhotoFill } from './ai/BundlePhotoFill'
 import { TagPhotoCheck } from './ai/TagPhotoCheck'
 
 // 무료배송 채우기(F13)는 2026-10-13 제작자 결정으로 화면에서 뺐다. 계산 로직(logic/shipping.ts)은 남겨 두었다
@@ -332,6 +333,8 @@ function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft)
   const result =
     checkedA.value && checkedB.value && !kindMismatch ? compareBundles(checkedA.value, checkedB.value) : null
   const checkedUse = validateMonthlyUse(use.form, a.form.unit)
+  // 사진으로 채우기(F32)는 AI 서버 주소가 있는 빌드에서만 카드마다 둔다 (PRD 10장 앱 공통)
+  const withAi = aiServerUrl() !== null
 
   return (
     <div className="stack">
@@ -355,8 +358,22 @@ function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft)
         }}
       />
       <div className="ab-grid">
-        <BundleCard name="상품 A" state={a} errors={checkedA.errors} onChange={setA} unitErrorId={kindMismatch ? mismatchId : undefined} />
-        <BundleCard name="상품 B" state={b} errors={checkedB.errors} onChange={setB} unitErrorId={kindMismatch ? mismatchId : undefined} />
+        <BundleCard
+          name="상품 A"
+          state={a}
+          errors={checkedA.errors}
+          onChange={setA}
+          unitErrorId={kindMismatch ? mismatchId : undefined}
+          onPhotoFill={withAi ? (raw) => setA(filled(raw)) : undefined}
+        />
+        <BundleCard
+          name="상품 B"
+          state={b}
+          errors={checkedB.errors}
+          onChange={setB}
+          unitErrorId={kindMismatch ? mismatchId : undefined}
+          onPhotoFill={withAi ? (raw) => setB(filled(raw)) : undefined}
+        />
       </div>
       {kindMismatch ? (
         <p className="field-error" role="alert" id={mismatchId}>
@@ -378,10 +395,21 @@ type BundleCardProps = {
   onChange: (next: SideState<BundleRawInput>) => void
   /** 두 상품의 단위 종류가 다를 때, 그 오류문의 id */
   unitErrorId?: string
+  /** 사진으로 읽은 값을 이 카드에 채운다 (F32, AI 서버 주소가 있을 때만 넘긴다). 주면 카드 제목 아래에 "사진으로 채우기"를 둔다 */
+  onPhotoFill?: (raw: BundleRawInput) => void
 }
 
-function BundleCard({ name, state, errors, onChange, unitErrorId }: BundleCardProps) {
+function BundleCard({ name, state, errors, onChange, unitErrorId, onPhotoFill }: BundleCardProps) {
   const { form, touched } = state
+  // 채우기를 누를 때마다 올려, 효과에서 오류가 있는 첫 칸(없으면 가격 칸)으로 포커스를 옮긴다 (PRD F32)
+  const [fillCount, setFillCount] = useState(0)
+  const cardRef = useRef<HTMLFieldSetElement>(null)
+  const priceId = useId()
+  useEffect(() => {
+    if (fillCount === 0) return
+    const target = cardRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? document.getElementById(priceId)
+    target?.focus()
+  }, [fillCount, priceId])
   type Field = Exclude<keyof BundleRawInput, 'unit'>
   const shown = (field: Field) => (touched[field] ? errors[field] : undefined)
   const set = (field: keyof BundleRawInput, value: string) =>
@@ -390,9 +418,19 @@ function BundleCard({ name, state, errors, onChange, unitErrorId }: BundleCardPr
   const isCount = unitKind(form.unit) === 'count'
 
   return (
-    <fieldset className="card stack">
+    <fieldset ref={cardRef} className="card stack">
       <legend className="card-title">{name}</legend>
+      {onPhotoFill ? (
+        <BundlePhotoFill
+          cardName={name}
+          onApply={(raw) => {
+            onPhotoFill(raw)
+            setFillCount((count) => count + 1)
+          }}
+        />
+      ) : null}
       <TextField
+        id={priceId}
         label="가격"
         inputMode="numeric"
         placeholder="원"
