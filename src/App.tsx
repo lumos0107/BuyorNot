@@ -58,6 +58,7 @@ export default function App() {
       <main>
         <TabPanel id="wishlist" hidden={screen !== 'wishlist'}>
           <WishlistScreen
+            active={screen === 'wishlist'}
             items={wishlist.items}
             now={wishlist.now}
             onAdd={wishlist.add}

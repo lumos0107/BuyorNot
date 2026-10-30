@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
+import { aiServerUrl } from '../ai/config'
+import type { VoiceFillResponse } from '../ai/types'
 import { formatDate } from '../logic/dates'
 import { DESIRE_LEVELS, DESIRE_TEXT, desireDueToday, desireTrend } from '../logic/desire'
 import { mergePhotoDraft, photoDraftNotice, type DraftMerge, type FormDraft } from '../logic/draft'
@@ -7,6 +9,7 @@ import { formatWon, josa } from '../logic/number'
 import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, hasAnswer, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
+import { applyVoiceFill, voiceStatusLines, type VoiceField } from '../logic/voiceFill'
 import {
   COOLING_PRESETS,
   EXAMPLE_ADD,
@@ -32,6 +35,7 @@ import { Button } from '../ui/Button'
 import { ExampleBar } from '../ui/ExampleBar'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
+import { VoiceFillButton, type VoiceMessage } from './ai/VoiceFillButton'
 
 // PRD F01 상품 등록·관리, F02 고민 기간과 결정, F07 연장, F08 결정 메모, F15 사기 전에 한 번 더, F22 고민 노트
 type Decision = 'purchased' | 'skipped'
@@ -55,6 +59,8 @@ type Props = {
   hourlyWage?: number | null
   /** 담기 폼에 넣을 값: 가격 비교에서 가져온 가격과 이유(F21) 또는 가격표 사진에서 읽은 상품명·가격·링크(F31) */
   draft?: FormDraft | null
+  /** 이 화면(고민 목록 메뉴)이 보이는가. 다른 메뉴로 옮기면 말로 담기의 녹음을 버린다 (F33) */
+  active?: boolean
   onDraftUsed?: () => void
   /** 오늘의 갖고 싶은 정도 (F22). 반영됐는지 돌려준다 */
   onCheckDesire?: (id: string, level: DesireLevel) => boolean
@@ -77,6 +83,7 @@ export function WishlistScreen({
   onReconsider,
   hourlyWage = null,
   draft = null,
+  active = true,
   onDraftUsed,
   onCheckDesire = NOT_APPLIED,
   onAnswer = NOT_APPLIED,
@@ -166,7 +173,7 @@ export function WishlistScreen({
       ) : null}
       <TodayNudge items={considering} now={now} />
       {/* 담기 폼은 짧아서 고민 중인 물건이 있어도 맨 위에 둔다 (F24) */}
-      <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} exampleFill={exampleFill} />
+      <AddForm onAdd={onAdd} items={items} now={now} draft={draft} onDraftUsed={onDraftUsed} exampleFill={exampleFill} active={active} />
       {considering.length === 0 ? (
         <div className="empty card stack">
           <p>아직 담아 둔 물건이 없어요.</p>
@@ -256,6 +263,19 @@ function focusField(form: HTMLFormElement | null, field: DraftFocus) {
   controls.find((control) => control.labels?.[0]?.textContent === FOCUS_LABEL[field])?.focus()
 }
 
+/** 말로 담기로 채운 칸으로 포커스 (F33). 갖고 싶은 정도·고민 기간은 고른 버튼, 직접 입력한 기간은 고민 일수 칸 */
+function focusVoiceField(form: HTMLFormElement, field: VoiceField) {
+  if (field === '갖고 싶은 정도') {
+    form.querySelector<HTMLInputElement>('input[name="desire-start"]:checked')?.focus()
+  } else if (field === '고민 기간') {
+    const customDays = Array.from(form.querySelectorAll('input')).find((control) => control.labels?.[0]?.textContent === '고민 일수')
+    const chosen = customDays ?? form.querySelector<HTMLInputElement>('input[name="cooling"]:checked')
+    chosen?.focus()
+  } else {
+    focusField(form, field === '상품명' ? 'name' : field === '가격' ? 'price' : 'reason')
+  }
+}
+
 function AddForm({
   onAdd,
   items,
@@ -263,6 +283,7 @@ function AddForm({
   draft,
   onDraftUsed,
   exampleFill = 0,
+  active,
 }: {
   onAdd: (input: NewWishInput) => void
   items: WishItem[]
@@ -271,7 +292,9 @@ function AddForm({
   onDraftUsed?: () => void
   /** 늘어나면 예시 값을 체크리스트까지 채운다 (F28) */
   exampleFill?: number
+  active: boolean
 }) {
+  const withAi = aiServerUrl() !== null
   const [raw, setRaw] = useState<AddRaw>(EMPTY_ADD)
   // 담을 때 갖고 싶은 정도 (F22, 선택)
   const [desire, setDesire] = useState<DesireLevel | undefined>()
@@ -283,6 +306,8 @@ function AddForm({
   const linkRef = useRef<HTMLDetailsElement>(null)
   // 담은 직후, 적은 값이 언제 어디에 쓰이는지 알려 준다. 폼에 다시 입력하면 지운다 (F24)
   const [added, setAdded] = useState<string | null>(null)
+  // 말로 담기의 결과 안내(status)·실패 문구(alert) (F33). 담거나 예시를 넣으면 지운다
+  const [voiceMessage, setVoiceMessage] = useState<VoiceMessage | null>(null)
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   // 가격 비교에서 고른 쪽의 가격과 이유를 채우고 상품명으로 포커스를 옮긴다 (F21). 적던 상품명은 지우지 않는다.
   // 가격표 사진 결과는 빈 칸에만 넣고 상품명·가격 중 빈 첫 칸(없으면 이유)으로 포커스를 옮긴다 (F31).
@@ -320,6 +345,7 @@ function AddForm({
     setAttempted(false)
     setAdded(null)
     setDraftNotice(null)
+    setVoiceMessage(null)
     setFromExample(true)
   }
   useEffect(() => {
@@ -327,6 +353,28 @@ function AddForm({
     if (checklistRef.current) checklistRef.current.open = true
     formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
   }, [exampleFill, formRef])
+  // 말로 담기 (F33): 채운 뒤 옮길 포커스(채운 칸이 없으면 field null = "말로 담기" 버튼)
+  const voiceButton = useRef<HTMLButtonElement>(null)
+  const [voiceFocus, setVoiceFocus] = useState<{ field: VoiceField | null } | null>(null)
+  // 응답이 온 순간의 폼 값에 합친다: 빈 칸만 채우고 적어 둔 칸(받아쓰는 동안 적은 칸 포함)은 그대로 둔다. 저장은 하지 않는다
+  const fillFromVoice = (fill: VoiceFillResponse) => {
+    const target = { name: raw.name, price: raw.price, reason: raw.reason, desire, preset: raw.preset, customDays: raw.customDays }
+    const { next, filled, kept } = applyVoiceFill(target, fill)
+    setRaw((r) => ({ ...r, name: next.name, price: next.price, reason: next.reason, preset: next.preset, customDays: next.customDays }))
+    setDesire(next.desire)
+    setAdded(null)
+    setVoiceMessage({ kind: 'status', lines: voiceStatusLines(fill.transcript, filled, kept) })
+    setVoiceFocus({ field: filled[0] ?? null })
+  }
+  // 숨은 화면(다른 메뉴)에서 끝났거나 사용자가 다른 칸에 적고 있으면 포커스를 옮기지 않는다
+  useEffect(() => {
+    const form = formRef.current
+    if (voiceFocus === null || !form || form.closest('[hidden]')) return
+    const focused = document.activeElement
+    if (focused !== null && focused !== document.body) return
+    if (voiceFocus.field === null) voiceButton.current?.focus()
+    else focusVoiceField(form, voiceFocus.field)
+  }, [voiceFocus, formRef])
   const answeredCount = QUESTION_ORDER.filter((key) => hasAnswer(answers, key)).length
   const setAnswer = <K extends QuestionKey>(key: K, v: Answers[K]) => {
     setAnswers((a) => ({ ...a, [key]: v }))
@@ -363,6 +411,7 @@ function AddForm({
     if (checklistRef.current) checklistRef.current.open = false
     setAttempted(false)
     setDraftNotice(null)
+    setVoiceMessage(null)
     setFromExample(false)
   }
 
@@ -383,6 +432,24 @@ function AddForm({
         <p className="note" role="status">
           예시를 입력했어요. ‘담아 두기’를 누르면 체크리스트 답도 물건 카드에 표시돼요.
         </p>
+      ) : null}
+      {/* 말로 담기 (F33): 안내 문구 아래, 상품명 위. AI 서버 주소가 있을 때만 */}
+      {withAi ? (
+        <>
+          <VoiceFillButton
+            active={active}
+            onFill={fillFromVoice}
+            onMessage={(message) => setVoiceMessage(message.lines.length > 0 ? message : null)}
+            buttonRef={voiceButton}
+          />
+          {voiceMessage ? (
+            <div className={voiceMessage.kind === 'alert' ? 'field-error' : 'note'} role={voiceMessage.kind}>
+              {voiceMessage.lines.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </div>
+          ) : null}
+        </>
       ) : null}
       <TextField
         label="상품명"
