@@ -2,14 +2,14 @@
 // 화면은 이 파일의 결과(AiResult)만 보고, 던져진 오류를 따로 잡지 않는다.
 // 이 파일은 요청만 보낸다. 사진·녹음을 보내는 화면은 messages.ts의 PHOTO_NOTICE·VOICE_NOTICE를 버튼 바로 아래(누르기 전)에 보여 줘야 한다.
 import { aiServerUrl } from './config'
-import type { DanawaRow, LowestPriceResponse, ReadTagResponse, TagItem, VoiceFillResponse } from './types'
+import type { DanawaRow, LowestPriceResponse, ReadSizeResponse, ReadTagResponse, SizeCandidate, TagItem, VoiceFillResponse } from './types'
 
 // rate_limited: 서버 제한(429) · disabled: 서버가 꺼 둠(503) · cancelled: 호출한 쪽이 끊음
 // failed: 그 밖의 모든 실패(네트워크·시간 초과·서버 오류·모양이 다른 응답·서버 주소 없음)
 export type AiFailure = 'rate_limited' | 'disabled' | 'failed' | 'cancelled'
 export type AiResult<T> = { ok: true; data: T } | { ok: false; error: AiFailure }
 
-type AiPath = '/api/read-tag' | '/api/lowest-price' | '/api/voice-fill'
+type AiPath = '/api/read-tag' | '/api/lowest-price' | '/api/voice-fill' | '/api/read-size'
 
 function fail(error: AiFailure): { ok: false; error: AiFailure } {
   return { ok: false, error }
@@ -147,4 +147,26 @@ export function isVoiceFillResponse(v: unknown): v is VoiceFillResponse {
     (v.desire === null || (typeof v.desire === 'number' && Number.isInteger(v.desire) && v.desire >= 1 && v.desire <= 5)) &&
     isNullableNumber(v.periodDays)
   )
+}
+
+const SIZE_KINDS: readonly unknown[] = ['product', 'package', 'unknown']
+const SIZE_AXES: readonly unknown[] = ['labeled', 'order']
+const SIZE_UNITS: readonly unknown[] = ['mm', 'cm', 'm', 'mixed']
+
+function isSizeCandidate(v: unknown): v is SizeCandidate {
+  return (
+    isRecord(v) &&
+    isString(v.text) &&
+    isNullableString(v.label) &&
+    SIZE_KINDS.includes(v.kind) &&
+    SIZE_AXES.includes(v.axes) &&
+    isNullableNumber(v.w) &&
+    isNullableNumber(v.d) &&
+    isNullableNumber(v.h) &&
+    (v.unit === null || SIZE_UNITS.includes(v.unit))
+  )
+}
+
+export function isReadSizeResponse(v: unknown): v is ReadSizeResponse {
+  return isRecord(v) && isArrayOf(v.candidates, isSizeCandidate) && isNullableString(v.note)
 }

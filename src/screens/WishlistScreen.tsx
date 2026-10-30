@@ -38,6 +38,7 @@ import { downloadText } from '../ui/download'
 import { ExampleBar } from '../ui/ExampleBar'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
+import { SizePhotoFill } from './ai/SizePhotoFill'
 import { VoiceFillButton, type VoiceMessage } from './ai/VoiceFillButton'
 import { FitCheck } from './FitCheck'
 
@@ -621,6 +622,7 @@ type Trigger = 'purchased' | 'skipped' | 'extend' | 'edit' | 'delete'
 
 function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, onRemove, onCheckDesire, onAnswer, onSetFit }: CardProps) {
   const [mode, setMode] = useState<CardMode>('view')
+  const withAi = aiServerUrl() !== null
   // 답하거나 다시 답하기가 반영되면 오늘의 고민에서 지금 보이는 질문(없으면 제목)으로 포커스를 옮긴다 (F22)
   const [noteFocus, setNoteFocus] = useState(0)
   const answerAndFocus = (key: QuestionKey, value: Answers[QuestionKey] | undefined) => {
@@ -685,8 +687,13 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
       </p>
       <p>처음 적은 이유: {item.reason}</p>
       <GominNote item={item} now={now} focusTick={noteFocus} onCheckDesire={(level) => onCheckDesire(item.id, level)} onAnswer={answerAndFocus} />
-      {/* 놓을 자리 확인 (F44): 1단계(직접 입력)는 서버 주소와 상관없이 보인다 */}
-      <FitCheck item={item} items={items} onSave={onSetFit} />
+      {/* 놓을 자리 확인 (F44): 1단계(직접 입력)는 서버 주소와 상관없이 보이고, 2단계(캡처에서 치수 읽기)는 서버 주소가 있을 때만 */}
+      <FitCheck
+        item={item}
+        items={items}
+        onSave={onSetFit}
+        aiSlot={withAi ? (slot) => <SizePhotoFill active={slot.active} current={slot.current} onApply={slot.apply} /> : undefined}
+      />
       <CompareLinks name={item.name} />
 
       {mode === 'confirm-delete' ? (

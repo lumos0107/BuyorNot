@@ -13,8 +13,9 @@ export const TIGHT_MM = 20
 export const PLACE_MAX = 20
 export const BASIS_MAX = 30
 
-const MM_MIN = 1
-const MM_MAX = 10000
+/** 치수 범위(mm). 직접 입력 검사·저장 검사·읽은 치수 환산(sizeFill)이 함께 쓴다 */
+export const MM_MIN = 1
+export const MM_MAX = 10000
 
 const NOT_CM = 'cm로 적어 주세요(예: 40 또는 40.5)'
 const ONE_DECIMAL = '소수 첫째 자리까지 적어 주세요'

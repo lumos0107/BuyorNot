@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { fitLines, fitSummary, formatCm, latestPlace, parseCm, validatePlace, type Dims, type Fit } from '../logic/fit'
+import { fitLines, fitSummary, formatCm, isFit, latestPlace, parseCm, validatePlace, type Dims, type Fit } from '../logic/fit'
 import type { WishItem } from '../logic/wishlist'
 import { Button } from '../ui/Button'
 import { TextField } from '../ui/Field'
@@ -124,6 +124,9 @@ export function FitCheck({
       return
     }
     const next: Fit = { ...value, ...(shown.basis ? { basis: shown.basis } : {}), savedAt: new Date().toISOString() }
+    // 저장 검사(isFit)에 맞지 않는 값(예: 30자를 넘는 기준)은 저장하지 않고 칸을 그대로 둔다.
+    // 저장하면 다음에 읽을 때 기록 전체가 손상으로 보인다 (Task 3 리뷰 방어)
+    if (!isFit(next)) return
     // 반영되지 않았으면(다른 탭에서 결정됨 등) 결과·제목·포커스·입력을 그대로 둔다
     if (!onSave(item.id, next)) return
     setAttempted(false)
