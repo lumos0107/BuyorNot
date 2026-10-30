@@ -72,11 +72,11 @@ export function applyVoiceFill(current: VoiceTarget, fill: VoiceFillResponse): {
 }
 
 /**
- * 결과 안내 줄 (role=status). 늘 받아쓴 내용으로 시작하고, 채운 칸 줄 → 둔 칸 줄이 이어지며,
- * 둘 다 없으면 찾지 못했다는 줄이 온다.
+ * 결과 안내 줄 (role=status). 받아쓴 내용으로 시작하고, 채운 칸 줄 → 둔 칸 줄이 이어지며,
+ * 둘 다 없으면 찾지 못했다는 줄이 온다. 받아쓴 말이 공백뿐이면 받아쓴 내용 줄은 뺀다(판정 R10: ‘’가 나오지 않게).
  */
 export function voiceStatusLines(transcript: string, filled: VoiceField[], kept: VoiceField[]): string[] {
-  const lines = [`AI가 받아쓴 내용: ‘${transcript}’ · 확인해 주세요`]
+  const lines = transcript.trim() === '' ? [] : [`AI가 받아쓴 내용: ‘${transcript}’ · 확인해 주세요`]
   if (filled.length > 0) {
     // 조사는 마지막 칸 이름의 받침에 맞춘다(붙인 문자열의 끝 글자가 마지막 칸 이름의 끝 글자다)
     const names = filled.join('·')
