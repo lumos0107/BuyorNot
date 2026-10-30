@@ -1,0 +1,67 @@
+[
+  {
+    "id": "vf11",
+    "file": "녹음/평가용/vf11.wav",
+    "source": "직접 만듦(합성): Windows 내장 한국어 음성 Microsoft Heami로 오프라인 합성",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "System.Speech로 16kHz 16비트 모노 WAV 합성, 문장은 docs/ai-eval.md 표",
+    "set": "평가용",
+    "group": "syn-vf11",
+    "synthetic": true,
+    "uncertain": true,
+    "uncertainReason": "합성 음성을 사람이 들어 확인하지 않음(정답은 입력 문장 기준). 실행 전에 제작자가 들어 본다.",
+    "expected": { "nameKeywords": "무선 이어폰", "price": 129000, "reasonKeywords": "출퇴근", "desire": null, "periodDays": 7 }
+  },
+  {
+    "id": "vf12",
+    "file": "녹음/평가용/vf12.wav",
+    "source": "직접 만듦(합성): Windows 내장 한국어 음성 Microsoft Heami로 오프라인 합성",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "System.Speech로 16kHz 16비트 모노 WAV 합성, 문장은 docs/ai-eval.md 표",
+    "set": "평가용",
+    "group": "syn-vf12",
+    "synthetic": true,
+    "uncertain": true,
+    "uncertainReason": "합성 음성을 사람이 들어 확인하지 않음(정답은 입력 문장 기준). 실행 전에 제작자가 들어 본다.",
+    "expected": { "nameKeywords": "전기 포트", "price": 28000, "reasonKeywords": "끓이 느려", "desire": 3, "periodDays": null }
+  },
+  {
+    "id": "vf13",
+    "file": "녹음/평가용/vf13.wav",
+    "source": "직접 만듦(합성): Windows 내장 한국어 음성 Microsoft Heami로 오프라인 합성",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "System.Speech로 16kHz 16비트 모노 WAV 합성, 말 앞·사이·뒤에 침묵 1.5·2·1초, 문장은 docs/ai-eval.md 표",
+    "set": "평가용",
+    "group": "syn-vf13",
+    "synthetic": true,
+    "uncertain": true,
+    "uncertainReason": "합성 음성을 사람이 들어 확인하지 않음(정답은 입력 문장 기준). 실행 전에 제작자가 들어 본다.",
+    "expected": { "nameKeywords": "요가 매트", "price": null, "reasonKeywords": null, "desire": null, "periodDays": null }
+  },
+  {
+    "id": "vf14",
+    "file": "녹음/평가용/vf14.wav",
+    "source": "직접 만듦(합성): Windows 내장 한국어 음성 Microsoft Heami로 오프라인 합성",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "System.Speech로 16kHz 16비트 모노 WAV 합성, 문장은 docs/ai-eval.md 표",
+    "set": "평가용",
+    "group": "syn-vf14",
+    "synthetic": true,
+    "uncertain": true,
+    "uncertainReason": "합성 음성을 사람이 들어 확인하지 않음(정답은 입력 문장 기준). 실행 전에 제작자가 들어 본다.",
+    "expected": { "nameKeywords": "수면 양말", "price": 12000, "reasonKeywords": "차가워", "desire": null, "periodDays": null }
+  },
+  {
+    "id": "vf15",
+    "file": "녹음/평가용/vf15.wav",
+    "source": "직접 만듦(합성): Windows 내장 한국어 음성 Microsoft Heami로 오프라인 합성",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "System.Speech로 16kHz 16비트 모노 WAV 합성, 문장은 docs/ai-eval.md 표",
+    "set": "평가용",
+    "group": "syn-vf15",
+    "synthetic": true,
+    "uncertain": true,
+    "uncertainReason": "합성 음성을 사람이 들어 확인하지 않음(정답은 입력 문장 기준). 실행 전에 제작자가 들어 본다.",
+    "expected": { "nameKeywords": "캠핑 의자", "price": 45000, "reasonKeywords": "주말 캠핑", "desire": 5, "periodDays": 14 }
+  }
+]

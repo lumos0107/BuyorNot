@@ -1,0 +1,86 @@
+[
+  {
+    "id": "dn11",
+    "file": "다나와/평가용/dn11.html",
+    "source": "직접 만듦(합성): worker/test/fixtures/danawa-search.html 꼴로 손으로 적은 다나와 비슷한 검색 결과 페이지(실제 다나와 페이지 아님)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "없음(만든 그대로)",
+    "set": "평가용",
+    "group": "syn-dn11",
+    "synthetic": true,
+    "expected": {
+      "wanted": { "name": "오뚜기 진라면 순한맛", "brand": "오뚜기", "sizeText": "120g×5", "size": 120, "unit": "g", "count": 5 },
+      "accepted": [1]
+    }
+  },
+  {
+    "id": "dn12",
+    "file": "다나와/평가용/dn12.html",
+    "source": "직접 만듦(합성): worker/test/fixtures/danawa-search.html 꼴로 손으로 적은 다나와 비슷한 검색 결과 페이지(실제 다나와 페이지 아님)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "없음(만든 그대로)",
+    "set": "평가용",
+    "group": "syn-dn12",
+    "synthetic": true,
+    "expected": {
+      "wanted": { "name": "비트 액체세제 드럼용", "brand": null, "sizeText": null, "size": null, "unit": null, "count": null },
+      "accepted": []
+    }
+  },
+  {
+    "id": "dn13",
+    "file": "다나와/평가용/dn13.html",
+    "source": "직접 만듦(합성): worker/test/fixtures/danawa-search.html 꼴로 손으로 적은 다나와 비슷한 검색 결과 페이지(실제 다나와 페이지 아님)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "없음(만든 그대로)",
+    "set": "평가용",
+    "group": "syn-dn13",
+    "synthetic": true,
+    "expected": {
+      "wanted": { "name": "제주삼다수 2L", "brand": null, "sizeText": "2L×6", "size": 2, "unit": "L", "count": 6 },
+      "accepted": [1, 4]
+    }
+  },
+  {
+    "id": "dn14",
+    "file": "다나와/평가용/dn14.html",
+    "source": "직접 만듦(합성): worker/test/fixtures/danawa-search.html 꼴로 손으로 적은 다나와 비슷한 검색 결과 페이지(실제 다나와 페이지 아님)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "없음(만든 그대로)",
+    "set": "평가용",
+    "group": "syn-dn14",
+    "synthetic": true,
+    "expected": {
+      "wanted": { "name": "맥심 모카골드 마일드 커피믹스", "brand": "동서", "sizeText": "12g×100T", "size": 12, "unit": "g", "count": 100 },
+      "accepted": [1]
+    }
+  },
+  {
+    "id": "dn15",
+    "file": "다나와/평가용/dn15.html",
+    "source": "직접 만듦(합성): worker/test/fixtures/danawa-search.html 꼴로 손으로 적은 다나와 비슷한 검색 결과 페이지(실제 다나와 페이지 아님)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "없음(만든 그대로)",
+    "set": "평가용",
+    "group": "syn-dn15",
+    "synthetic": true,
+    "expected": {
+      "wanted": { "name": "풀무원 국산콩 두부 부침용", "brand": "풀무원", "sizeText": "300g", "size": 300, "unit": "g", "count": null },
+      "accepted": []
+    }
+  },
+  {
+    "id": "dn16",
+    "file": "다나와/평가용/dn16.html",
+    "source": "직접 만듦(합성): worker/test/fixtures/danawa-search.html 꼴로 손으로 적은 다나와 비슷한 검색 결과 페이지(실제 다나와 페이지 아님)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(공개하지 않음)",
+    "edits": "없음(만든 그대로)",
+    "set": "평가용",
+    "group": "syn-dn16",
+    "synthetic": true,
+    "expected": {
+      "wanted": { "name": "햇반 210g 12개입", "brand": "CJ", "sizeText": "210g×12", "size": 210, "unit": "g", "count": 12 },
+      "accepted": [1, 3]
+    }
+  }
+]

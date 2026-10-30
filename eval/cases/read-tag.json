@@ -1,0 +1,221 @@
+[
+  {
+    "id": "rt01",
+    "file": "사진/조정용/rt01.jpg",
+    "source": "위키미디어 공용 Various_Teas_from_South_Korea.jpg https://commons.wikimedia.org/wiki/File:Various_Teas_from_South_Korea.jpg",
+    "license": "CC0 1.0 (퍼블릭 도메인 기증)",
+    "edits": "원본 위 칸 일부를 잘라 냄(2026-10-28 사전 시험), 2026-10-30 그대로 복사",
+    "set": "조정용",
+    "group": "tea-shelf",
+    "uncertain": true,
+    "uncertainReason": "루이보스·보리차 상자 아래 총량 글자(1.5g×50)는 작고 흐려 겨우 읽힘. 옥수수차 상자의 총량 글자는 가려 용량을 표기 없음으로, 상자의 '50'만 개수로 적음. 연근우엉차·도라지생강차·작두콩차 상자의 용량·개수는 보이지 않아 표기 없음.",
+    "expected": [
+      { "nameKeywords": "연근 우엉", "price": 7100, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "도라지 생강", "price": 8300, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "작두콩", "price": 8300, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "루이보스", "price": 4500, "priceCondition": null, "size": 1.5, "unit": "g", "count": 50 },
+      { "nameKeywords": "옥수수", "price": 4950, "priceCondition": null, "size": null, "unit": null, "count": 50 },
+      { "nameKeywords": "한잔용 보리차", "price": 4550, "priceCondition": null, "size": 1.5, "unit": "g", "count": 50 }
+    ]
+  },
+  {
+    "id": "rt02",
+    "file": "사진/조정용/rt02.jpg",
+    "source": "위키미디어 공용 Various_Teas_from_South_Korea.jpg https://commons.wikimedia.org/wiki/File:Various_Teas_from_South_Korea.jpg",
+    "license": "CC0 1.0 (퍼블릭 도메인 기증)",
+    "edits": "원본 가운데 칸 일부를 잘라 냄(2026-10-28 사전 시험), 2026-10-30 그대로 복사",
+    "set": "조정용",
+    "group": "tea-shelf",
+    "uncertain": true,
+    "uncertainReason": "같은 상품 상자가 위아래 두 줄로 있어 상품마다 한 번만 적음. 현미녹차 가격표 아래가 잘렸지만 2,400으로 읽힘. 상자 아래 중량 글자는 작아 확대해서 읽음.",
+    "expected": [
+      { "nameKeywords": "현미녹차", "price": 2400, "priceCondition": null, "size": 1.5, "unit": "g", "count": 25 },
+      { "nameKeywords": "한잔용 보리차", "price": 1950, "priceCondition": null, "size": 1.5, "unit": "g", "count": 20 },
+      { "nameKeywords": "옥수수", "price": 2050, "priceCondition": null, "size": 1.5, "unit": "g", "count": 20 },
+      { "nameKeywords": "루이보스", "price": 2300, "priceCondition": null, "size": 1.5, "unit": "g", "count": 25 },
+      { "nameKeywords": "둥굴레", "price": 3150, "priceCondition": null, "size": 1.2, "unit": "g", "count": 25 }
+    ]
+  },
+  {
+    "id": "rt03",
+    "file": "사진/조정용/rt03.jpg",
+    "source": "위키미디어 공용 Various_Teas_from_South_Korea.jpg https://commons.wikimedia.org/wiki/File:Various_Teas_from_South_Korea.jpg",
+    "license": "CC0 1.0 (퍼블릭 도메인 기증)",
+    "edits": "원본 아래 칸 일부를 잘라 냄(2026-10-28 사전 시험), 2026-10-30 그대로 복사",
+    "set": "조정용",
+    "group": "tea-shelf",
+    "uncertain": true,
+    "uncertainReason": "옥수수차·캐모마일현미녹차 가격표의 상품명 글자는 흐림(가격은 읽힘). 상자의 '100'·'80'을 개수로 적음(낱개 용량은 보이지 않음). 위 칸에 걸린 '호지차' 안내판은 상품이 아니라 넣지 않음. 캐모마일 현미녹차를 현미녹차보다 먼저 적어 짝짓기가 섞이지 않게 함.",
+    "expected": [
+      { "nameKeywords": "한잔용 보리차", "price": 8300, "priceCondition": null, "size": null, "unit": null, "count": 100 },
+      { "nameKeywords": "옥수수", "price": 8400, "priceCondition": null, "size": null, "unit": null, "count": 100 },
+      { "nameKeywords": "캐모마일 현미녹차", "price": 10150, "priceCondition": null, "size": null, "unit": null, "count": 80 },
+      { "nameKeywords": "현미녹차", "price": 7600, "priceCondition": null, "size": null, "unit": null, "count": 100 },
+      { "nameKeywords": "메밀차", "price": 8300, "priceCondition": null, "size": null, "unit": null, "count": 100 }
+    ]
+  },
+  {
+    "id": "rt04",
+    "file": "사진/조정용/rt04.jpg",
+    "source": "위키미디어 공용 2020-03-20_12.44.15_supermarket_at_29,_Taegi-ro,_Hoengseong-gun.jpg https://commons.wikimedia.org/wiki/File:2020-03-20_12.44.15_supermarket_at_29,_Taegi-ro,_Hoengseong-gun.jpg",
+    "license": "CC0 1.0 (퍼블릭 도메인 기증)",
+    "edits": "원본에서 손글씨 가격 안내판 부분을 잘라 냄(2026-10-28 사전 시험), 2026-10-30 그대로 복사",
+    "set": "조정용",
+    "group": "hoengseong-0320",
+    "uncertain": true,
+    "uncertainReason": "'(100g)'은 단위 가격 기준이라 용량·단위·개수를 표기 없음으로 적음(가격 기준 칸은 채점 칸이 아님). 왼쪽 뒤에 가려진 안내판 하나는 상품명을 읽을 수 없어 넣지 않음.",
+    "expected": [
+      { "nameKeywords": "고구마", "price": 430, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "감자", "price": 160, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "당근", "price": 270, "priceCondition": null, "size": null, "unit": null, "count": null }
+    ]
+  },
+  {
+    "id": "rt05",
+    "file": "사진/조정용/rt05.jpg",
+    "source": "위키미디어 공용 2020-03-20_12.44.44_supermarket_at_29,_Taegi-ro,_Hoengseong-gun.jpg https://commons.wikimedia.org/wiki/File:2020-03-20_12.44.44_supermarket_at_29,_Taegi-ro,_Hoengseong-gun.jpg",
+    "license": "CC0 1.0 (퍼블릭 도메인 기증)",
+    "edits": "원본에서 두유 선반 부분을 잘라 냄(2026-10-28 사전 시험), 2026-10-30 그대로 복사",
+    "set": "조정용",
+    "group": "hoengseong-0320",
+    "uncertain": true,
+    "uncertainReason": "가격표가 모두 흐려 가격을 표기 없음으로 적음. 같은 상품이 여러 자리에 있어 상품마다 한 번만 적음. 검은참깨는 아래 칸 상자에서 190mL×24를 읽음. 위 칸 상자들의 용량 글자는 읽을 수 없어 표기 없음. 왼쪽 끝 잘린 상품·맨 위 검은 상자·뒤 선물 세트는 이름을 읽을 수 없어 넣지 않음.",
+    "expected": [
+      { "nameKeywords": "베지밀 검은콩", "price": null, "priceCondition": null, "size": 190, "unit": "mL", "count": 24 },
+      { "nameKeywords": "검은참깨", "price": null, "priceCondition": null, "size": 190, "unit": "mL", "count": 24 },
+      { "nameKeywords": "검은콩 칼슘", "price": null, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "검은콩 참깨", "price": null, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "삼육두유A", "price": null, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "호두 아몬드", "price": null, "priceCondition": null, "size": null, "unit": null, "count": null }
+    ]
+  },
+  {
+    "id": "rt06",
+    "file": "사진/조정용/rt06.jpg",
+    "source": "위키미디어 공용 SK_Korea_tour_首爾_supermarket_pre-packaged_food_drink_products_plastic_bottles_July-2013.JPG https://commons.wikimedia.org/wiki/File:SK_Korea_tour_%E9%A6%96%E7%88%BE_supermarket_pre-packaged_food_drink_products_plastic_bottles_July-2013.JPG (작성자 Woodarelaisku)",
+    "license": "CC BY-SA 3.0 (저작자 표시·동일 조건, 사진은 공개하지 않음)",
+    "edits": "긴 변 1600px로 줄임(2026-10-28 사전 시험), 2026-10-30 그대로 복사",
+    "set": "조정용",
+    "group": "seoul-2013",
+    "uncertain": true,
+    "uncertainReason": "가격표가 없는 사진이라 가격은 모두 표기 없음. 뒤쪽 우유 세 개는 거울에 비친 모습이라 넣지 않음. 생수병·포트는 상품명을 읽을 수 없어 넣지 않음. 육포 봉지의 30g은 기울어져 겨우 읽힘. Light를 바나나맛보다 먼저 적어 짝짓기가 섞이지 않게 함.",
+    "expected": [
+      { "nameKeywords": "light", "price": null, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "바나나맛", "price": null, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "딸기맛", "price": null, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "칼몬드", "price": null, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "육포", "price": null, "priceCondition": null, "size": 30, "unit": "g", "count": null }
+    ]
+  },
+  {
+    "id": "rt07",
+    "file": "사진/조정용/rt07.jpg",
+    "source": "위키미디어 공용 2020-03-20_12.47.02_supermarket_at_29,_Taegi-ro,_Hoengseong-gun.jpg https://commons.wikimedia.org/wiki/File:2020-03-20_12.47.02_supermarket_at_29,_Taegi-ro,_Hoengseong-gun.jpg",
+    "license": "CC0 1.0 (퍼블릭 도메인 기증)",
+    "edits": "원본에서 라면 진열대 부분을 잘라 냄(2026-10-28 사전 시험), 2026-10-30 그대로 복사",
+    "set": "조정용",
+    "group": "hoengseong-0320",
+    "uncertain": true,
+    "uncertainReason": "가격 왼쪽 초록 딱지 글자를 읽을 수 없어 가격 조건을 표기 없음으로 적음(행사가로 보임). 정상가 4,980은 채점 칸이 아님. 노란·검은 라면 봉지 묶음은 이름을 확실히 읽을 수 없어 정답에 넣지 않음(AI가 읽으면 더 읽음으로 셈).",
+    "expected": [
+      { "nameKeywords": "오징어짬뽕", "price": 3980, "priceCondition": null, "size": null, "unit": null, "count": 6 }
+    ]
+  },
+  {
+    "id": "rt08",
+    "file": "사진/조정용/rt08.jpg",
+    "source": "위키미디어 공용 2020-03-20_12.45.34_supermarket_at_29,_Taegi-ro,_Hoengseong-gun.jpg https://commons.wikimedia.org/wiki/File:2020-03-20_12.45.34_supermarket_at_29,_Taegi-ro,_Hoengseong-gun.jpg",
+    "license": "CC0 1.0 (퍼블릭 도메인 기증)",
+    "edits": "원본에서 세제 선반 부분을 잘라 냄(2026-10-28 사전 시험), 2026-10-30 그대로 복사",
+    "set": "조정용",
+    "group": "hoengseong-0320",
+    "uncertain": true,
+    "uncertainReason": "가격표가 흐려 8,980으로 읽었지만 확실하지 않음. 비트 봉지의 용량 글자가 잘려 표기 없음으로 적음. 다른 세제(주황 통·초록 봉지·위 칸 봉지)는 이름을 읽을 수 없어 넣지 않음.",
+    "expected": [
+      { "nameKeywords": "비트 드럼", "price": 8980, "priceCondition": null, "size": null, "unit": null, "count": null }
+    ]
+  },
+  {
+    "id": "rt11",
+    "file": "사진/평가용/rt11.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 시험용 글자로만 씀, 공개하지 않음)",
+    "edits": "HTML로 그린 선반·가격표를 Chromium(Playwright)으로 찍고 긴 변 1600px 이하 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-rt11",
+    "synthetic": true,
+    "expected": [
+      { "nameKeywords": "진라면 순한맛", "price": 3480, "priceCondition": null, "size": 120, "unit": "g", "count": 5 }
+    ]
+  },
+  {
+    "id": "rt12",
+    "file": "사진/평가용/rt12.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 시험용 글자로만 씀, 공개하지 않음)",
+    "edits": "HTML로 그린 선반·가격표를 Chromium(Playwright)으로 찍고 긴 변 1600px 이하 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-rt12",
+    "synthetic": true,
+    "expected": [
+      { "nameKeywords": "매일우유 오리지널", "price": 2350, "priceCondition": "회원가", "size": 900, "unit": "mL", "count": null }
+    ]
+  },
+  {
+    "id": "rt13",
+    "file": "사진/평가용/rt13.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 시험용 글자로만 씀, 공개하지 않음)",
+    "edits": "HTML로 그린 정육 단가 표를 Chromium(Playwright)으로 찍고 긴 변 1600px 이하 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-rt13",
+    "synthetic": true,
+    "expected": [
+      { "nameKeywords": "삼겹살", "price": 2580, "priceCondition": null, "size": null, "unit": null, "count": null },
+      { "nameKeywords": "목살", "price": 2280, "priceCondition": null, "size": null, "unit": null, "count": null }
+    ]
+  },
+  {
+    "id": "rt14",
+    "file": "사진/평가용/rt14.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 시험용 글자로만 씀, 공개하지 않음)",
+    "edits": "HTML로 그린 선반·가격표를 Chromium(Playwright)으로 찍고 긴 변 1600px 이하 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-rt14",
+    "synthetic": true,
+    "expected": [
+      { "nameKeywords": "코카콜라 제로", "price": 6980, "priceCondition": null, "size": 355, "unit": "mL", "count": 6 },
+      { "nameKeywords": "칠성사이다", "price": 2980, "priceCondition": null, "size": 1.5, "unit": "L", "count": null },
+      { "nameKeywords": "포카리", "price": 5400, "priceCondition": null, "size": 620, "unit": "mL", "count": 4 }
+    ]
+  },
+  {
+    "id": "rt15",
+    "file": "사진/평가용/rt15.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 시험용 글자로만 씀, 공개하지 않음)",
+    "edits": "HTML로 그린 선반(가격표 없음)을 Chromium(Playwright)으로 찍고 긴 변 1600px 이하 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-rt15",
+    "synthetic": true,
+    "expected": [
+      { "nameKeywords": "새우깡", "price": null, "priceCondition": null, "size": 90, "unit": "g", "count": null },
+      { "nameKeywords": "포카칩", "price": null, "priceCondition": null, "size": 66, "unit": "g", "count": null }
+    ]
+  },
+  {
+    "id": "rt16",
+    "file": "사진/평가용/rt16.jpg",
+    "source": "직접 만듦(합성)",
+    "license": "직접 만든 합성 자료라 이용 제한 없음(상품명은 시험용 글자로만 씀, 공개하지 않음)",
+    "edits": "HTML로 그린 선반·가격표를 Chromium(Playwright)으로 찍고 흐림(가우스 1.2px)과 흰 반사를 덧그림(반사가 참치 가격 숫자를 가림), 긴 변 1600px 이하 JPEG 품질 85로 저장",
+    "set": "평가용",
+    "group": "syn-rt16",
+    "synthetic": true,
+    "expected": [
+      { "nameKeywords": "참치", "price": null, "priceCondition": null, "size": 85, "unit": "g", "count": 4 },
+      { "nameKeywords": "스팸", "price": 5980, "priceCondition": null, "size": 200, "unit": "g", "count": null }
+    ]
+  }
+]
