@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
 import { aiServerUrl } from '../ai/config'
 import type { VoiceFillResponse } from '../ai/types'
+import { buildIcs, googleCalendarUrl, icsFileName } from '../logic/calendar'
 import { formatDate } from '../logic/dates'
 import { DESIRE_LEVELS, DESIRE_TEXT, desireDueToday, desireTrend } from '../logic/desire'
 import { mergePhotoDraft, photoDraftNotice, type DraftMerge, type FormDraft } from '../logic/draft'
@@ -32,6 +33,7 @@ import {
   type WishPatchRaw,
 } from '../logic/wishlist'
 import { Button } from '../ui/Button'
+import { downloadText } from '../ui/download'
 import { ExampleBar } from '../ui/ExampleBar'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
@@ -711,6 +713,7 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
               구매 포기
             </Button>
           </div>
+          {item.status === 'considering' && state.phase === 'cooling' ? <CalendarRow item={item} /> : null}
           <div className="card-actions">
             <button type="button" className="link-btn" ref={bind('extend')} onClick={() => open('extend', 'extend')}>
               더 고민하기
@@ -725,6 +728,31 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
         </>
       )}
     </article>
+  )
+}
+
+// 고민 기간이 끝나는 날 캘린더에 넣기 (F35): 구글 캘린더 링크(새 창)와 .ics 파일. 서버·AI와 상관없다.
+// 구글 링크를 누를 때만 상품명과 일정 시각이 구글로 가고, .ics는 이 기기에서 파일로 만들어 내려받기만 한다.
+// 파일의 DTSTAMP는 내려받는 시각이라 화면의 now가 아니라 누른 순간의 시각을 쓴다.
+function CalendarRow({ item }: { item: WishItem }) {
+  const labelId = useId()
+  return (
+    <div className="stack" role="group" aria-labelledby={labelId}>
+      <p className="field-label" id={labelId}>
+        고민 기간이 끝나는 날 캘린더에 넣기:
+      </p>
+      <div className="btn-row">
+        <a className="btn" href={googleCalendarUrl(item)} target="_blank" rel="noopener noreferrer">
+          구글 캘린더
+        </a>
+        <Button onClick={() => downloadText(icsFileName(item), buildIcs(item, new Date()), 'text/calendar;charset=utf-8')}>
+          캘린더 파일(.ics)
+        </Button>
+      </div>
+      <p className="note">
+        구글 캘린더를 누르면 상품명과 일정 시각이 구글로 전달돼요. 기간을 늘리면 전에 넣은 일정은 바뀌지 않으니 고치거나 지우고 다시 넣어 주세요.
+      </p>
+    </div>
   )
 }
 

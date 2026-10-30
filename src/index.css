@@ -303,6 +303,11 @@ textarea.input {
   cursor: pointer;
 }
 
+/* 링크를 버튼 모양으로 쓸 때(구글 캘린더 열기)도 밑줄은 없앤다 */
+a.btn {
+  text-decoration: none;
+}
+
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
