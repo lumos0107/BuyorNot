@@ -62,6 +62,8 @@ function SizeReadFlow({ current, onApply }: FlowProps) {
   const [focusBox, setFocusBox] = useState<object | null>(null)
 
   const radioName = useId()
+  // 확인 상자 첫 줄(AI가 읽은 내용)의 id. 상자의 설명(aria-describedby)이 가리킨다
+  const firstLineId = useId()
   const root = useRef<HTMLDivElement>(null)
   const picker = useRef<HTMLInputElement>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -200,7 +202,8 @@ function SizeReadFlow({ current, onApply }: FlowProps) {
       ) : null}
 
       {phase === 'choose' ? (
-        <div ref={box} className="card stack" role="group" aria-label="확인 상자" tabIndex={-1}>
+        // 첫 줄을 상자의 설명으로 이어 포커스가 갈 때 함께 읽히게 한다. 표기를 고르기 전에는 첫 줄이 없어 잇지 않는다 (AC77)
+        <div ref={box} className="card stack" role="group" aria-label="확인 상자" aria-describedby={view === null ? undefined : firstLineId} tabIndex={-1}>
           {candidates.length > 1 ? (
             <div className="stack">
               {candidates.map((candidate, index) => (
@@ -213,7 +216,7 @@ function SizeReadFlow({ current, onApply }: FlowProps) {
           ) : null}
           {/* 고른 표기·단위·물건 칸이 바뀌면 문장이 바뀌므로 알림 칸에 둔다 */}
           <div className="stack" role="status">
-            {lines.map((line) => (line === null ? null : <p key={line}>{line}</p>))}
+            {lines.map((line, index) => (line === null ? null : <p key={line} id={index === 0 ? firstLineId : undefined}>{line}</p>))}
           </div>
           {needsUnit ? (
             <SelectField label="단위" value={unit} onChange={(event) => setUnit(event.target.value as SizeUnit | '')}>

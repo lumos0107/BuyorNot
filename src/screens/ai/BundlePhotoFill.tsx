@@ -39,6 +39,8 @@ export function BundlePhotoFill({ cardName, onApply }: { cardName: string; onApp
 
   const nameId = useId()
   const radioName = useId()
+  // 확인 상자 첫 줄의 id. 상자의 설명(aria-describedby)이 가리킨다. 카드마다 이 컴포넌트가 따로 있어 카드마다 다른 id다
+  const firstLineId = useId()
   const root = useRef<HTMLDivElement>(null)
   const picker = useRef<HTMLInputElement>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -178,7 +180,8 @@ export function BundlePhotoFill({ cardName, onApply }: { cardName: string; onApp
       ) : null}
 
       {phase === 'confirm' ? (
-        <div ref={box} className="card stack" role="group" aria-label="확인 상자" tabIndex={-1}>
+        // 첫 줄(AI가 읽은 내용, 거절이면 그 문장)을 상자의 설명으로 이어 포커스가 갈 때 함께 읽히게 한다. 고르기 전에는 첫 줄이 없어 잇지 않는다 (AC77)
+        <div ref={box} className="card stack" role="group" aria-label="확인 상자" aria-describedby={fill === null ? undefined : firstLineId} tabIndex={-1}>
           {entries.length > 1 ? (
             <div className="stack">
               {entries.map((entry, index) => (
@@ -193,11 +196,11 @@ export function BundlePhotoFill({ cardName, onApply }: { cardName: string; onApp
           <div className="stack" role="status">
             {fill === null ? null : fill.ok ? (
               <>
-                <p>{fill.read}</p>
+                <p id={firstLineId}>{fill.read}</p>
                 <p>{fillLine(fill.partial, finalUnit)}</p>
               </>
             ) : (
-              <p>{fill.message}</p>
+              <p id={firstLineId}>{fill.message}</p>
             )}
           </div>
           {needsUnit ? (

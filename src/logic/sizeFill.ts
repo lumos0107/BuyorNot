@@ -21,8 +21,9 @@ const ORDER_TEXT = '축이 분명하지 않아 적힌 순서대로 가로·깊�
 const MIXED_TEXT = '축마다 단위가 달라 자동으로 넣지 않아요. 직접 입력해 주세요.'
 const CHOOSE_UNIT_TEXT = '단위를 고르면 넣을 값을 cm로 보여 드려요.'
 const UNKNOWN = '모름'
-// 읽은 글이 사진에 정말 있는지는 AI가 보증하지 않으므로 사용자에게 대조를 부탁한다 (판정 R29-I1)
-const CHECK_TEXT = '사진과 같은지 확인해 주세요'
+// 읽은 글이 사진에 정말 있는지는 AI가 보증하지 않으므로 사용자에게 대조를 부탁한다 (판정 R29-I1).
+// F32 묶음 비교의 확인 상자 첫 줄도 같은 끝말을 쓴다 (판정 R38-I8)
+export const CHECK_TEXT = '사진과 같은지 확인해 주세요'
 
 const BASIS_SEPARATOR = ' · '
 const BASIS_KIND: Record<SizeCandidate['kind'], string | null> = { product: null, package: '포장 치수', unknown: '제품·포장 표기 없음' }

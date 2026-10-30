@@ -1,6 +1,7 @@
 import type { TagItem } from '../ai/types'
 import { UNIT_LABEL, type BundleRawInput, type Unit } from './bundle'
 import { formatWon } from './number'
+import { CHECK_TEXT } from './sizeFill'
 
 // PRD F32 두 상품 사진으로 묶음 비교 채우기. 읽은 상품(TagItem)을 묶음 비교 카드의 칸 값과 확인 상자 문장으로 바꾼다.
 // 칸 값은 문자열로 만들어 카드의 입력(BundleRawInput)과 같은 모양이다. 모르는 값은 빈 칸('')으로 둔다(그 칸의 기존 값도 지운다).
@@ -64,7 +65,8 @@ export function tagToBundle(item: TagItem): BundleFill {
   return {
     ok: true,
     partial,
-    read: `읽은 내용: ${item.name} · ${sizeLabel ? sizeLabel : '포장 표기 없음'}`,
+    // 따옴표 안은 AI가 읽은 글이다. '포장 표기 없음'은 읽은 글이 아니라서 따옴표 밖에 둔다 (판정 R38-I8, AC77)
+    read: `AI가 읽은 내용: ‘${item.name}’ · ${sizeLabel ? `‘${sizeLabel}’` : '포장 표기 없음'} · ${CHECK_TEXT}`,
     fill: fillLine(partial, unit),
   }
 }

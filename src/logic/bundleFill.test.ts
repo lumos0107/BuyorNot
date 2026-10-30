@@ -37,7 +37,7 @@ describe('읽은 상품을 묶음 비교 칸 값으로 바꾼다 (AC55)', () => 
     const result = filled({ ...ITEM, price: 9900, size: 2.5, unit: 'L', count: 1, sizeText: '2.5L' })
 
     expect(result.partial).toEqual({ price: '9900', size: '2.5', count: '1', unit: 'L', countAssumed: false })
-    expect(result.read).toBe('읽은 내용: 세탁 세제 · 2.5L')
+    expect(result.read).toBe('AI가 읽은 내용: ‘세탁 세제’ · ‘2.5L’ · 사진과 같은지 확인해 주세요')
     expect(result.fill).toBe('채울 값: 가격 9,900원 · 2.5L × 1개')
   })
 
@@ -45,7 +45,7 @@ describe('읽은 상품을 묶음 비교 칸 값으로 바꾼다 (AC55)', () => 
     const result = filled({ ...ITEM, price: 4500, size: 1.5, unit: 'g', count: 50, sizeText: '75g(1.5g×50)' })
 
     expect(result.partial).toEqual({ price: '4500', size: '1.5', count: '50', unit: 'g', countAssumed: false })
-    expect(result.read).toBe('읽은 내용: 세탁 세제 · 75g(1.5g×50)')
+    expect(result.read).toBe('AI가 읽은 내용: ‘세탁 세제’ · ‘75g(1.5g×50)’ · 사진과 같은지 확인해 주세요')
     expect(result.fill).toBe('채울 값: 가격 4,500원 · 1.5g × 50개')
   })
 
@@ -62,7 +62,7 @@ describe('읽은 상품을 묶음 비교 칸 값으로 바꾼다 (AC55)', () => 
     const result = filled({ ...ITEM, size: null, unit: 'ea', count: 6, sizeText: '6개입' })
 
     expect(result.partial).toEqual({ price: '4500', size: '', count: '6', unit: 'ea', countAssumed: false })
-    expect(result.read).toBe('읽은 내용: 세탁 세제 · 6개입')
+    expect(result.read).toBe('AI가 읽은 내용: ‘세탁 세제’ · ‘6개입’ · 사진과 같은지 확인해 주세요')
     expect(result.fill).toBe('채울 값: 가격 4,500원 · 6개')
   })
 
@@ -98,13 +98,25 @@ describe('읽은 상품을 묶음 비교 칸 값으로 바꾼다 (AC55)', () => 
   it('AC55: 포장 표기가 없으면 확인 상자 첫 줄에 "포장 표기 없음"을 적는다', () => {
     const result = filled({ ...ITEM, price: 9900, size: 2.5, unit: 'L', count: 1, sizeText: null })
 
-    expect(result.read).toBe('읽은 내용: 세탁 세제 · 포장 표기 없음')
+    expect(result.read).toBe('AI가 읽은 내용: ‘세탁 세제’ · 포장 표기 없음 · 사진과 같은지 확인해 주세요')
   })
 
   it('AC55: 포장 표기가 공백뿐이어도 "포장 표기 없음"이다', () => {
     const result = filled({ ...ITEM, price: 9900, size: 2.5, unit: 'L', count: 1, sizeText: '  ' })
 
-    expect(result.read).toBe('읽은 내용: 세탁 세제 · 포장 표기 없음')
+    expect(result.read).toBe('AI가 읽은 내용: ‘세탁 세제’ · 포장 표기 없음 · 사진과 같은지 확인해 주세요')
+  })
+
+  it('AC77: 포장 표기가 있으면 상품명과 표기를 각각 따옴표로, 없으면 포장 표기 없음을 따옴표 밖에 두고 사진과 같은지 확인해 달라고 붙여요', () => {
+    const withLabel = filled({ ...ITEM, price: 9900, size: 2.5, unit: 'L', count: 1, sizeText: '2.5L' })
+    const withoutLabel = filled({ ...ITEM, price: 9900, size: 2.5, unit: 'L', count: 1, sizeText: null })
+
+    expect(withLabel.read).toBe('AI가 읽은 내용: ‘세탁 세제’ · ‘2.5L’ · 사진과 같은지 확인해 주세요')
+    expect(withoutLabel.read).toBe('AI가 읽은 내용: ‘세탁 세제’ · 포장 표기 없음 · 사진과 같은지 확인해 주세요')
+    // "읽은 내용:"으로 시작하는 옛 첫 줄이 아니다
+    expect(withLabel.read.startsWith('읽은 내용:')).toBe(false)
+    // '포장 표기 없음'은 AI가 읽은 글이 아니라서 따옴표 안에 들어가지 않는다
+    expect(withoutLabel.read).not.toContain('‘포장 표기 없음’')
   })
 })
 
@@ -144,7 +156,7 @@ describe('단가 가격표와 모두 모르는 경우 (AC56)', () => {
   it('AC56: 가격·개수·용량이 모두 null이면 확인 상자는 모르는 값을 "모름"으로 적는다', () => {
     const result = filled({ ...ITEM, price: null, size: null, unit: null, count: null, sizeText: null })
 
-    expect(result.read).toBe('읽은 내용: 세탁 세제 · 포장 표기 없음')
+    expect(result.read).toBe('AI가 읽은 내용: ‘세탁 세제’ · 포장 표기 없음 · 사진과 같은지 확인해 주세요')
     // R8: 용량도 모르면 "(단위 모름)"을 붙이지 않고 그냥 "모름"
     expect(result.fill).toBe('채울 값: 가격 모름 · 모름 × 모름')
   })

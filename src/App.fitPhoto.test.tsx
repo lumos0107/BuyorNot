@@ -1126,3 +1126,52 @@ describe('AI가 읽은 내용을 사진과 대조한다 (F44 2단계, AC71)', ()
     expect(previews()).toEqual([s.urls.created[1], s.urls.created[1]])
   })
 })
+
+// ================================================================ 확인 상자 첫 줄이 상자의 설명 (F44 2단계, AC77)
+
+describe('확인 상자의 설명은 AI가 읽은 내용 첫 줄이다 (F44 2단계, AC77)', () => {
+  it('AC77: 표기 하나를 읽으면 확인 상자의 설명이 AI가 읽은 내용 첫 줄이다', async () => {
+    await openBox([FIRST])
+
+    // 상자 이름은 그대로 '확인 상자'이고, 설명이 첫 줄과 같은 문장이다
+    expect(boxEl()).toHaveAccessibleName(BOX)
+    expect(boxEl()).toHaveAccessibleDescription(READ_LINE)
+    // 설명으로 이은 요소는 알림 칸의 첫 줄 그 자체다
+    const describedBy = boxEl().getAttribute('aria-describedby')
+    expect(describedBy).not.toBeNull()
+    expect(document.getElementById(describedBy ?? '')).toBe(box().getByRole('status').firstElementChild)
+    expect(box().getByRole('status').firstElementChild).toHaveTextContent(READ_LINE)
+  })
+
+  it('AC77: 표기가 둘이면 고르기 전에는 설명이 없고 첫 표기를 고르면 그 첫 줄이 설명이다', async () => {
+    const folded = size({ label: '접었을 때', text: '접었을 때 30 x 20 x 10cm', w: 30, d: 20, h: 10 })
+    const unfolded = size({ label: '펼쳤을 때', text: '펼쳤을 때 60 x 40 x 10cm', w: 60, d: 40, h: 10 })
+    await openBox([folded, unfolded])
+
+    // 고르기 전에는 첫 줄이 없다. 없는 요소를 가리키는 연결도 두지 않는다
+    expect(boxLines()).toEqual([])
+    expect(boxEl()).toHaveAccessibleName(BOX)
+    expect(boxEl()).not.toHaveAccessibleDescription()
+    expect(boxEl()).not.toHaveAttribute('aria-describedby')
+
+    const radios = box().getAllByRole('radio')
+    fireEvent.click(radios[0])
+
+    expect(boxEl()).toHaveAccessibleName(BOX)
+    expect(boxEl()).toHaveAccessibleDescription('접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’ · 사진과 같은지 확인해 주세요')
+
+    // 다른 표기를 고르면 설명도 그 표기의 첫 줄로 바뀐다
+    fireEvent.click(radios[1])
+
+    expect(boxEl()).toHaveAccessibleDescription('펼쳤을 때 · AI가 읽은 내용: ‘펼쳤을 때 60 x 40 x 10cm’ · 사진과 같은지 확인해 주세요')
+  })
+
+  it('AC77: 단위가 mixed여도 첫 줄이 설명이다', async () => {
+    await openBox([size({ unit: 'mixed', axes: 'order' })])
+
+    // mixed는 첫 줄과 단위 문장만 보인다. 설명은 그중 첫 줄이다
+    expect(boxLines()).toEqual([READ_LINE, MIXED])
+    expect(boxEl()).toHaveAccessibleDescription(READ_LINE)
+    expect(boxEl().getAttribute('aria-describedby')).toBe(box().getByRole('status').firstElementChild?.id)
+  })
+})

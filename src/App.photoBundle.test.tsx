@@ -296,7 +296,7 @@ describe('사진으로 채우기 버튼과 전송 안내 (10장 앱 공통)', ()
     await sent(2)
 
     expect(s.server.callsTo(READ)).toHaveLength(2)
-    expect(box(B).getByText('읽은 내용: 세탁 세제 · 2.5L')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘세탁 세제’ · ‘2.5L’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
   })
 
   it.each([
@@ -335,7 +335,7 @@ describe('읽은 값을 확인 상자에서 확인하고 채운다 (AC55)', () =
     await readPhoto(B)
 
     // 확인 상자: 읽은 내용과 채울 값. 하나라서 라디오도 단위 선택도 없다. 누르기 전에는 칸이 그대로다
-    expect(box(B).getByText('읽은 내용: 세탁 세제 · 2.5L')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘세탁 세제’ · ‘2.5L’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
     expect(box(B).getByText('채울 값: 가격 9,900원 · 2.5L × 1개')).toBeInTheDocument()
     expect(box(B).queryAllByRole('radio')).toHaveLength(0)
     expect(box(B).queryByLabelText('단위')).not.toBeInTheDocument()
@@ -378,7 +378,7 @@ describe('읽은 값을 확인 상자에서 확인하고 채운다 (AC55)', () =
 
   it('AC55: 응답 4500·개당 1.5·g·50개·"75g(1.5g×50)"을 채우면 B 칸이 4500·g·1.5·50이 된다', async () => {
     await openBox(B, ITEM_TEA)
-    expect(box(B).getByText('읽은 내용: 티백 · 75g(1.5g×50)')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘티백’ · ‘75g(1.5g×50)’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
     expect(box(B).getByText('채울 값: 가격 4,500원 · 1.5g × 50개')).toBeInTheDocument()
 
     fireEvent.click(confirmButton(B))
@@ -402,7 +402,7 @@ describe('읽은 값을 확인 상자에서 확인하고 채운다 (AC55)', () =
     enter(B, { unit: 'g', price: '700', size: '250', count: '2' })
 
     await readPhoto(B)
-    expect(box(B).getByText('읽은 내용: 세탁 세제 · 6개입')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘세탁 세제’ · ‘6개입’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
     expect(box(B).getByText('채울 값: 가격 4,500원 · 6개')).toBeInTheDocument()
     fireEvent.click(confirmButton(B))
 
@@ -678,6 +678,91 @@ describe('단가 가격표, 모두 모르는 값, 상품 여러 개 (AC56)', () 
   })
 })
 
+// ================================================================ AC77 확인 상자 첫 줄이 상자의 설명
+
+describe('확인 상자 첫 줄은 AI가 읽은 내용이고 상자의 설명이다 (AC77)', () => {
+  const FIRST_L = 'AI가 읽은 내용: ‘세탁 세제’ · ‘2.5L’ · 사진과 같은지 확인해 주세요'
+  const FIRST_TEA = 'AI가 읽은 내용: ‘티백’ · ‘75g(1.5g×50)’ · 사진과 같은지 확인해 주세요'
+  const FIRST_NO_LABEL = 'AI가 읽은 내용: ‘세탁 세제’ · 포장 표기 없음 · 사진과 같은지 확인해 주세요'
+  // 설명으로 이은 요소가 있으면 그 요소를 돌려준다(없으면 null)
+  const describedElement = (name: string) => {
+    const id = boxEl(name).getAttribute('aria-describedby')
+    return id === null ? null : document.getElementById(id)
+  }
+
+  it('AC77: 상품 B를 읽으면 확인 상자 첫 줄이 AI가 읽은 내용이고 상자의 설명도 같은 문장이다', async () => {
+    await openBox(B, ITEM_L)
+
+    expect(box(B).getByText(FIRST_L)).toBeInTheDocument()
+    expect(boxEl(B)).toHaveAccessibleDescription(FIRST_L)
+    // 상자 이름은 그대로 '확인 상자'다
+    expect(boxEl(B)).toHaveAccessibleName(BOX)
+    expect(box(B).queryByText(/^읽은 내용:/)).not.toBeInTheDocument()
+    // 설명으로 이은 요소는 알림 칸의 첫 줄 그 자체다
+    expect(describedElement(B)).toBe(box(B).getByRole('status').firstElementChild)
+  })
+
+  it('AC77: 포장 표기가 없으면 첫 줄과 상자 설명에서 포장 표기 없음이 따옴표 밖에 있다', async () => {
+    await openBox(B, item({ price: 9900, size: 2.5, unit: 'L', count: 1, sizeText: null }))
+
+    expect(box(B).getByText(FIRST_NO_LABEL)).toBeInTheDocument()
+    expect(boxEl(B)).toHaveAccessibleDescription(FIRST_NO_LABEL)
+    expect(box(B).queryByText(/‘포장 표기 없음’/)).not.toBeInTheDocument()
+  })
+
+  it('AC77: 단가 가격표면 상자의 설명이 AC73 거절 문장이다', async () => {
+    await openBox(B, ITEM_UNIT_PRICE_ML)
+
+    expect(box(B).getByText(UNIT_PRICE_ML)).toBeInTheDocument()
+    expect(boxEl(B)).toHaveAccessibleDescription(UNIT_PRICE_ML)
+    expect(boxEl(B)).toHaveAccessibleName(BOX)
+    expect(describedElement(B)).toBe(box(B).getByRole('status').firstElementChild)
+    // 거절한 상자에는 'AI가 읽은 내용' 줄이 없다
+    expect(box(B).queryByText(/읽은 내용:/)).not.toBeInTheDocument()
+  })
+
+  it('AC77: 상품이 둘이면 고르기 전에는 상자 설명이 없고, 고르면 고른 상품의 첫 줄이 설명이다', async () => {
+    await openBox(B, ITEM_L, ITEM_TEA)
+
+    // 고르기 전에는 첫 줄이 없다. 없는 요소를 가리키는 연결도 두지 않는다
+    expect(boxEl(B)).toHaveAccessibleName(BOX)
+    expect(boxEl(B)).not.toHaveAccessibleDescription()
+    expect(boxEl(B)).not.toHaveAttribute('aria-describedby')
+
+    fireEvent.click(box(B).getByRole('radio', { name: ITEM_TEA.name }))
+
+    expect(boxEl(B)).toHaveAccessibleDescription(FIRST_TEA)
+
+    // 다른 상품을 고르면 설명도 그 상품의 첫 줄로 바뀐다
+    fireEvent.click(box(B).getByRole('radio', { name: ITEM_L.name }))
+
+    expect(boxEl(B)).toHaveAccessibleDescription(FIRST_L)
+  })
+
+  it('AC77: 상품 A와 B의 확인 상자가 함께 열리면 설명이 각자 자기 첫 줄이다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag(ITEM_L), readTag(ITEM_TEA))
+    openBundle()
+
+    await readPhoto(A, 1)
+    await readPhoto(B, 2)
+
+    expect(queryBox(A)).toBeInTheDocument()
+    expect(queryBox(B)).toBeInTheDocument()
+    expect(boxEl(A)).toHaveAccessibleDescription(FIRST_L)
+    expect(boxEl(B)).toHaveAccessibleDescription(FIRST_TEA)
+    // 두 상자가 가리키는 요소는 서로 다르고 각자 자기 상자 안의 첫 줄이다
+    const first = describedElement(A)
+    const second = describedElement(B)
+    expect(first).not.toBeNull()
+    expect(second).not.toBeNull()
+    expect(first).not.toBe(second)
+    expect(boxEl(A)).toContainElement(first)
+    expect(boxEl(B)).toContainElement(second)
+    expect(s.server.callsTo(READ)).toHaveLength(2)
+  })
+})
+
 // ================================================================ 확인 상자의 단위 선택
 
 describe('확인 상자의 단위 선택 (F32)', () => {
@@ -786,7 +871,7 @@ describe('확인 상자의 단위 선택 (F32)', () => {
     fireEvent.change(select, { target: { value: '' } })
     expect(box(B).getByText(original)).toBeInTheDocument()
     // 읽은 내용 줄은 바뀌지 않는다
-    expect(box(B).getByText('읽은 내용: 세탁 세제 · 900')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘세탁 세제’ · ‘900’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
   })
 
   it('R8: 용량도 모르는 상품은 단위를 고르기 전 "(단위 모름)" 없이 "모름"이다', async () => {
@@ -904,13 +989,13 @@ describe('취소와 늦은 응답 (10장 앱 공통)', () => {
     await readPhoto(B, 2)
 
     expect(lateA.signal?.aborted).toBe(true)
-    expect(box(B).getByText('읽은 내용: 티백 · 75g(1.5g×50)')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘티백’ · ‘75g(1.5g×50)’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
 
     lateA.release(readTag(ITEM_L))
     await settle()
 
-    expect(box(B).getByText('읽은 내용: 티백 · 75g(1.5g×50)')).toBeInTheDocument()
-    expect(box(B).queryByText('읽은 내용: 세탁 세제 · 2.5L')).not.toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘티백’ · ‘75g(1.5g×50)’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
+    expect(box(B).queryByText('AI가 읽은 내용: ‘세탁 세제’ · ‘2.5L’ · 사진과 같은지 확인해 주세요')).not.toBeInTheDocument()
     expect(card(B).queryByRole('alert')).not.toBeInTheDocument()
     expect(s.server.callsTo(READ)).toHaveLength(2)
   })
@@ -935,7 +1020,7 @@ describe('취소와 늦은 응답 (10장 앱 공통)', () => {
     heldB.release(readTag(ITEM_TEA))
     await settle()
 
-    expect(box(B).getByText('읽은 내용: 티백 · 75g(1.5g×50)')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘티백’ · ‘75g(1.5g×50)’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
   })
 
   it('확인 상자가 열려 있을 때 새 사진을 고르면 앞의 확인 상자는 닫히고 읽는 중이 된다', async () => {
@@ -952,7 +1037,7 @@ describe('취소와 늦은 응답 (10장 앱 공통)', () => {
     expect(card(B).getByRole('status')).toHaveTextContent(READING)
     heldB.release(readTag(ITEM_TEA))
     await settle()
-    expect(box(B).getByText('읽은 내용: 티백 · 75g(1.5g×50)')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘티백’ · ‘75g(1.5g×50)’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
   })
 
   it('상품 A를 취소해도 상품 B의 읽기는 이어지고, B의 응답이 오면 B 카드만 확인 상자가 열린다', async () => {
@@ -976,7 +1061,7 @@ describe('취소와 늦은 응답 (10장 앱 공통)', () => {
     await settle()
 
     expect(queryBox(A)).not.toBeInTheDocument()
-    expect(box(B).getByText('읽은 내용: 세탁 세제 · 2.5L')).toBeInTheDocument()
+    expect(box(B).getByText('AI가 읽은 내용: ‘세탁 세제’ · ‘2.5L’ · 사진과 같은지 확인해 주세요')).toBeInTheDocument()
     expect(photoInput(A)).toHaveFocus()
   })
 })
