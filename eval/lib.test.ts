@@ -217,6 +217,22 @@ describe('치수 읽기 정답 파일', () => {
     expect(cases.some((c) => c.expected.length === 0)).toBe(true)
   })
 
+  it('표기 키워드는 표기마다 그 표기에 적힌 숫자 하나뿐이에요(숫자 하나를 잘못 읽어도 짝은 유지되고 틀림으로 세려고)', () => {
+    for (const c of evalCases()) {
+      for (const [i, e] of c.expected.entries()) {
+        const where = `${c.id} 표기${i + 1}`
+        expect(e.textKeywords, `${where} 키워드는 숫자 하나`).toMatch(/^\d+(\.\d+)?$/)
+        const own = [e.w, e.d, e.h].filter((n) => n !== null).map(String)
+        expect(own, `${where} 키워드는 자기 축 숫자 중 하나`).toContain(e.textKeywords)
+      }
+    }
+  })
+
+  it('숫자 키워드는 부분 문자열로 맞아서 12는 120에도 맞아요(그래서 다른 표기 숫자 안에 들어가지 않는 숫자로 정해요)', () => {
+    expect(keywordMatch('12', '40 x 120 x 95')).toBe(true)
+    expect(keywordMatch('35', '40 x 120 x 95')).toBe(false)
+  })
+
   it('표기 키워드는 자기 숫자에는 맞고 같은 사진의 다른 표기 숫자에는 맞지 않아 서로를 짝으로 잡지 않아요', () => {
     // 가정: AI가 적힌 그대로 옮긴 text에는 세 숫자가 들어 있다(짝짓기는 AI text의 키워드로 한다)
     const canonical = (e: { w: number | null; d: number | null; h: number | null }) => `${e.w} x ${e.d} x ${e.h}`

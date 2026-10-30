@@ -9,8 +9,8 @@
     "group": "syn-sz11",
     "synthetic": true,
     "expected": [
-      { "textKeywords": "32 47", "kind": "product", "w": 32, "d": 25, "h": 47, "unit": "cm" },
-      { "textKeywords": "36 52", "kind": "package", "w": 36, "d": 29, "h": 52, "unit": "cm" }
+      { "textKeywords": "32", "kind": "product", "w": 32, "d": 25, "h": 47, "unit": "cm" },
+      { "textKeywords": "36", "kind": "package", "w": 36, "d": 29, "h": 52, "unit": "cm" }
     ]
   },
   {
@@ -23,7 +23,7 @@
     "group": "syn-sz12",
     "synthetic": true,
     "expected": [
-      { "textKeywords": "38 31", "kind": "product", "w": 38, "d": 24, "h": 31, "unit": "cm" }
+      { "textKeywords": "38", "kind": "product", "w": 38, "d": 24, "h": 31, "unit": "cm" }
     ]
   },
   {
@@ -36,7 +36,7 @@
     "group": "syn-sz13",
     "synthetic": true,
     "expected": [
-      { "textKeywords": "45 20", "kind": "product", "w": 45, "d": 30, "h": 20, "unit": "cm" }
+      { "textKeywords": "45", "kind": "product", "w": 45, "d": 30, "h": 20, "unit": "cm" }
     ]
   },
   {
@@ -51,7 +51,7 @@
     "uncertain": true,
     "uncertainReason": "'크기 (W × D × H)'만 적혀 제품인지 포장인지 표기가 없어 제품/포장 칸을 표기 없음(unknown)으로 적었다. 상품 정보 표라 AI가 product로 읽어도 틀렸다고 단정하기 어렵다.",
     "expected": [
-      { "textKeywords": "320 470", "kind": "unknown", "w": 320, "d": 250, "h": 470, "unit": "mm" }
+      { "textKeywords": "320", "kind": "unknown", "w": 320, "d": 250, "h": 470, "unit": "mm" }
     ]
   },
   {
@@ -64,8 +64,8 @@
     "group": "syn-sz15",
     "synthetic": true,
     "expected": [
-      { "textKeywords": "35 12", "kind": "product", "w": 40, "d": 35, "h": 12, "unit": "cm" },
-      { "textKeywords": "120 95", "kind": "product", "w": 40, "d": 120, "h": 95, "unit": "cm" }
+      { "textKeywords": "35", "kind": "product", "w": 40, "d": 35, "h": 12, "unit": "cm" },
+      { "textKeywords": "95", "kind": "product", "w": 40, "d": 120, "h": 95, "unit": "cm" }
     ]
   },
   {
@@ -78,7 +78,7 @@
     "group": "syn-sz16",
     "synthetic": true,
     "expected": [
-      { "textKeywords": "45 20", "kind": "product", "w": 45, "d": 30, "h": 20, "unit": null }
+      { "textKeywords": "45", "kind": "product", "w": 45, "d": 30, "h": 20, "unit": null }
     ]
   },
   {
@@ -91,7 +91,7 @@
     "group": "syn-sz17",
     "synthetic": true,
     "expected": [
-      { "textKeywords": "250 47", "kind": "product", "w": 32, "d": 250, "h": 47, "unit": "mixed" }
+      { "textKeywords": "32", "kind": "product", "w": 32, "d": 250, "h": 47, "unit": "mixed" }
     ]
   },
   {
