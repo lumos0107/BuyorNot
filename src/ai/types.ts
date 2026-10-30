@@ -20,3 +20,12 @@ export type ReadTagResponse = {
   items: TagItem[]
   note: string | null
 }
+
+// 다나와 검색 결과에서 뽑은 한 줄. packCount가 null이면 묶음 표시가 없어 개수를 모른다.
+export type DanawaRow = {
+  name: string
+  packCount: number | null
+  price: number
+  unitPriceText: string | null
+  malls: string
+}
