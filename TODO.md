@@ -399,7 +399,7 @@
 
 - [x] **14-1** AI 서버 뼈대: 출처 검사·CORS·긴급 차단·IP당 1분 10번·본문 크기 검사 (PRD 10장 AI 공통) (계획 ai-stage1 T1) — `4c1193b`
 - [x] **14-2** Gemini 호출: 40초 상한·503일 때만 1번 더·요청 전체 55초 (PRD 10장 AI 공통) (계획 ai-stage1 T2) — `949220d`
-- [ ] **14-3** `/api/read-tag` 가격표 읽기와 파일 머리 검사 (PRD F31 · AC51) (계획 ai-stage1 T3)
+- [x] **14-3** `/api/read-tag` 가격표 읽기와 파일 머리 검사 (PRD F31 · AC51) (계획 ai-stage1 T3) — `9110cb6`
 - [ ] **14-4** 다나와 검색 페이지 가져오기·줄 뽑기 (PRD F31) (계획 ai-stage1 T4)
 - [ ] **14-5** `/api/lowest-price` 같은 상품 줄 고르기 (PRD F31 · AC52·AC53) (계획 ai-stage1 T5)
 - [ ] **14-6** `/api/voice-fill` 녹음으로 칸 채우기 (PRD F33 · AC57) (계획 ai-stage1 T6)
