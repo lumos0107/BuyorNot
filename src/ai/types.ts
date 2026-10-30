@@ -57,3 +57,24 @@ export type VoiceFillResponse = {
   desire: 1 | 2 | 3 | 4 | 5 | null
   periodDays: number | null
 }
+
+// 치수 읽기(F44 2단계): 캡처에 적힌 치수 표기 하나. 값은 적힌 그대로의 숫자이고 단위 환산·반올림은 앱이 한다.
+// axes가 labeled면 축 이름(가로·깊이·높이)이 분명해 w·d·h에 넣은 것, order면 적힌 순서대로 넣은 것이다.
+// unit이 mixed면 축마다 단위가 다르고, null이면 단위가 적혀 있지 않다.
+export type SizeUnit = 'mm' | 'cm' | 'm'
+
+export type SizeCandidate = {
+  text: string
+  label: string | null
+  kind: 'product' | 'package' | 'unknown'
+  axes: 'labeled' | 'order'
+  w: number | null
+  d: number | null
+  h: number | null
+  unit: SizeUnit | 'mixed' | null
+}
+
+export type ReadSizeResponse = {
+  candidates: SizeCandidate[]
+  note: string | null
+}

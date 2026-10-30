@@ -2,6 +2,7 @@ import type { Deps, Env } from './env.ts'
 import { handle, type Route } from './http.ts'
 import { lowestPrice } from './lowestPrice.ts'
 import { createRateLimiter } from './rateLimit.ts'
+import { readSize } from './readSize.ts'
 import { readTag } from './readTag.ts'
 import { voiceFill } from './voiceFill.ts'
 
@@ -17,6 +18,7 @@ const routes: Record<string, Route> = {
   '/api/read-tag': { limit: 4_100_000, run: readTag },
   '/api/lowest-price': { limit: 10_000, run: lowestPrice },
   '/api/voice-fill': { limit: 2_100_000, run: voiceFill },
+  '/api/read-size': { limit: 4_100_000, run: readSize },
 }
 
 export default {

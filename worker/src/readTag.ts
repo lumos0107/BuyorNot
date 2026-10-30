@@ -73,8 +73,13 @@ function basisOf(v: unknown): string | null {
   return cleanText(typeof v === 'string' ? v.trim().replace(/\s*당$/, '') : v, 20)
 }
 
+// 0 초과 max 이하의 숫자만 남긴다(반올림하지 않음). 치수 읽기도 함께 쓴다.
+export function positiveNumberUpTo(v: unknown, max: number): number | null {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= max ? v : null
+}
+
 function sizeOf(v: unknown): number | null {
-  return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= MAX_SIZE ? v : null
+  return positiveNumberUpTo(v, MAX_SIZE)
 }
 
 function unitOf(v: unknown): TagUnit | null {
@@ -147,17 +152,24 @@ export function normalizeTagResult(raw: unknown): ReadTagResponse {
 
 const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
+// 사진 요청 검사: 선언한 형식(jpeg·png·webp)과 파일 머리가 맞아야 한다. 아니면 null(400). 치수 읽기도 함께 쓴다.
+export function parseImageBody(body: unknown): { image: string; mimeType: string } | null {
+  if (!isRecord(body)) return null
+  const { image, mimeType } = body
+  if (typeof image !== 'string' || typeof mimeType !== 'string') return null
+  if (!IMAGE_MIME_TYPES.includes(mimeType) || !matchesMime(image, mimeType)) return null
+  return { image, mimeType }
+}
+
 export async function readTag(
   body: unknown,
   env: Env,
   deps: Deps,
   ctx: RequestContext,
 ): Promise<Response> {
-  const badRequest = () => json(400, { error: 'bad_request' }, ctx)
-  if (!isRecord(body)) return badRequest()
-  const { image, mimeType } = body
-  if (typeof image !== 'string' || typeof mimeType !== 'string') return badRequest()
-  if (!IMAGE_MIME_TYPES.includes(mimeType) || !matchesMime(image, mimeType)) return badRequest()
+  const request = parseImageBody(body)
+  if (request === null) return json(400, { error: 'bad_request' }, ctx)
+  const { image, mimeType } = request
 
   const result = await callGemini({
     key: env.GEMINI_API_KEY,
