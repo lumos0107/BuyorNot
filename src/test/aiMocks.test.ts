@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { aiReply, mockAiServer, mockImagePipeline, mockObjectUrls } from './aiMocks'
+import { aiReply, FakeMediaRecorder, mockAiServer, mockImagePipeline, mockMicrophone, mockObjectUrls } from './aiMocks'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -97,5 +97,104 @@ describe('mockAiServer', () => {
     server.on('/api/a', aiReply.network())
 
     await expect(post('/api/a', {})).rejects.toThrow(TypeError)
+  })
+})
+
+describe('mockMicrophone', () => {
+  const open = () => navigator.mediaDevices.getUserMedia({ audio: true })
+
+  it('granted면 바로 스트림을 주고, 트랙의 stop() 횟수를 세고, end()로 ended를 보낸다', async () => {
+    const mic = mockMicrophone({ permission: 'granted', trackCount: 2 })
+
+    const stream = await open()
+    const ended = vi.fn()
+    mic.tracks[0].addEventListener('ended', ended)
+    mic.tracks[0].stop()
+    mic.tracks[0].end()
+
+    expect(mic.getUserMedia).toHaveBeenCalledWith({ audio: true })
+    expect(stream.getTracks()).toEqual(mic.tracks)
+    expect(mic.tracks).toHaveLength(2)
+    expect(mic.tracks.map((track) => track.stopCalls)).toEqual([1, 0])
+    expect(ended).toHaveBeenCalledTimes(1)
+  })
+
+  it('denied면 NotAllowedError로 거절하고 트랙을 만들지 않는다', async () => {
+    const mic = mockMicrophone({ permission: 'denied' })
+
+    await expect(open()).rejects.toMatchObject({ name: 'NotAllowedError' })
+    expect(mic.tracks).toEqual([])
+  })
+
+  it('pending이면 grant()를 부를 때까지 기다리고, 허가가 난 순간에 트랙이 생긴다', async () => {
+    const mic = mockMicrophone({ permission: 'pending' })
+    const settled = vi.fn()
+
+    const request = open().then(settled)
+    await Promise.resolve()
+    expect(settled).not.toHaveBeenCalled()
+    expect(mic.tracks).toEqual([])
+
+    mic.grant()
+    await request
+
+    expect(settled).toHaveBeenCalledTimes(1)
+    expect(mic.tracks).toHaveLength(1)
+  })
+
+  it('테스트가 끝나면 navigator가 원래대로 돌아오고, 가짜 아래에서도 navigator의 다른 값은 그대로 읽힌다', () => {
+    const real = navigator
+    mockMicrophone({ permission: 'granted' })
+
+    expect(navigator).not.toBe(real)
+    expect(navigator.userAgent).toBe(real.userAgent)
+    expect(typeof navigator.mediaDevices.getUserMedia).toBe('function')
+
+    vi.unstubAllGlobals()
+    expect(navigator).toBe(real)
+    expect(navigator.mediaDevices).toBeUndefined()
+  })
+})
+
+describe('FakeMediaRecorder', () => {
+  it('stop()은 dataavailable(Blob) 다음 stop 이벤트를 보내고, 마이크 스트림에서 만들면 stop → stop 이벤트 → 트랙 stop 순서가 기록된다', async () => {
+    const mic = mockMicrophone({ permission: 'granted' })
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const recorder = new FakeMediaRecorder(stream)
+    const events: string[] = []
+    recorder.addEventListener('dataavailable', (event) => events.push(`dataavailable:${(event as unknown as { data: Blob }).data.size > 0}`))
+    recorder.addEventListener('stop', () => {
+      events.push('stop')
+      mic.tracks[0].stop()
+    })
+
+    recorder.start()
+    expect(recorder.state).toBe('recording')
+    recorder.stop()
+
+    expect(recorder.state).toBe('inactive')
+    expect(events).toEqual(['dataavailable:true', 'stop'])
+    expect(mic.recorders).toEqual([recorder])
+    expect(mic.timeline).toEqual(['recorder.stop', 'stop event', 'track.stop'])
+  })
+
+  it('이미 멈춘 녹음기의 stop()과 이미 녹음 중인 녹음기의 start()는 InvalidStateError를 던진다', () => {
+    const recorder = new FakeMediaRecorder()
+
+    expect(() => recorder.stop()).toThrow(expect.objectContaining({ name: 'InvalidStateError' }))
+    recorder.start()
+    expect(() => recorder.start()).toThrow(expect.objectContaining({ name: 'InvalidStateError' }))
+  })
+
+  it('fail()은 error 이벤트만 보내고 녹음 상태는 그대로 둔다', () => {
+    const recorder = new FakeMediaRecorder()
+    const onError = vi.fn()
+    recorder.addEventListener('error', onError)
+    recorder.start()
+
+    recorder.fail()
+
+    expect(onError).toHaveBeenCalledTimes(1)
+    expect(recorder.state).toBe('recording')
   })
 })

@@ -208,6 +208,142 @@ export function nextTask(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve))
 }
 
-// Task 12(말로 담기)에서 채운다. 지금은 두지 않는다.
-// - FakeMediaRecorder: start·stop·ondataavailable·onstop과 isTypeSupported, 트랙 끊김을 흉내
-// - mockMicrophone(): navigator.mediaDevices.getUserMedia를 허용·거부·대기로 바꾸고 트랙 stop 횟수를 기록
+// ---- 마이크·녹음기 흉내 (녹음 훅 테스트용) ----
+// mockMicrophone이 navigator.mediaDevices.getUserMedia를 가짜로 바꾸고, 녹음기는 테스트가 vi.stubGlobal('MediaRecorder', FakeMediaRecorder)로 깐다.
+// 둘 다 같은 timeline에 'recorder.stop' → 'stop event' → 'track.stop' 순서를 적어 정리 순서를 볼 수 있게 한다.
+
+/** 마이크가 끊긴 트랙. stop()을 부른 횟수를 세고, end()로 'ended' 이벤트를 보낸다 */
+export class FakeMediaTrack extends EventTarget {
+  stopCalls = 0
+  private readonly timeline: string[]
+
+  constructor(timeline: string[]) {
+    super()
+    this.timeline = timeline
+  }
+
+  stop(): void {
+    this.stopCalls += 1
+    this.timeline.push('track.stop')
+  }
+
+  /** 마이크 연결이 끊긴 것처럼 'ended'를 보낸다(앱이 stop()으로 멈춘 트랙은 이 이벤트를 보내지 않는다) */
+  end(): void {
+    this.dispatchEvent(new Event('ended'))
+  }
+}
+
+type MicrophoneLog = { timeline: string[]; recorders: FakeMediaRecorder[] }
+
+/** getUserMedia가 돌려주는 스트림. 녹음기가 이 스트림에서 만들어지면 같은 기록에 이어 적는다 */
+export class FakeMediaStream {
+  readonly tracks: FakeMediaTrack[]
+  readonly log: MicrophoneLog
+
+  constructor(log: MicrophoneLog, trackCount: number) {
+    this.log = log
+    this.tracks = Array.from({ length: trackCount }, () => new FakeMediaTrack(log.timeline))
+  }
+
+  getTracks(): FakeMediaTrack[] {
+    return this.tracks
+  }
+
+  getAudioTracks(): FakeMediaTrack[] {
+    return this.tracks
+  }
+}
+
+/**
+ * MediaRecorder 흉내. start()하면 state가 'recording'이 되고, stop()은 dataavailable(Blob) 다음 stop 이벤트를 바로 보낸다.
+ * fail()은 error 이벤트만 보낸다. 실제처럼 이미 멈춘 녹음기의 stop()은 InvalidStateError를 던진다.
+ */
+export class FakeMediaRecorder extends EventTarget {
+  mimeType = 'audio/webm;codecs=opus'
+  state: 'inactive' | 'recording' = 'inactive'
+  private readonly log: MicrophoneLog | null
+
+  constructor(stream?: unknown) {
+    super()
+    this.log = stream instanceof FakeMediaStream ? stream.log : null
+    this.log?.recorders.push(this)
+  }
+
+  start(): void {
+    if (this.state !== 'inactive') throw new DOMException('The MediaRecorder is already recording.', 'InvalidStateError')
+    this.state = 'recording'
+  }
+
+  stop(): void {
+    if (this.state === 'inactive') throw new DOMException('The MediaRecorder is already stopped.', 'InvalidStateError')
+    this.log?.timeline.push('recorder.stop')
+    this.state = 'inactive'
+    // jsdom에는 BlobEvent가 없어 data를 단 Event로 흉내 낸다
+    const data = new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])], { type: this.mimeType })
+    this.dispatchEvent(Object.assign(new Event('dataavailable'), { data }))
+    this.log?.timeline.push('stop event')
+    this.dispatchEvent(new Event('stop'))
+  }
+
+  /** 녹음기 오류(인코딩 실패 등)를 흉내 낸다 */
+  fail(): void {
+    this.dispatchEvent(new Event('error'))
+  }
+}
+
+export type MicrophoneOptions = {
+  permission: 'granted' | 'denied' | 'pending'
+  // 스트림마다 트랙 수(기본 1). '트랙을 모두 멈춘다'를 볼 때 2 이상으로 둔다
+  trackCount?: number
+}
+
+// navigator.mediaDevices.getUserMedia를 가짜로 바꾼다. granted면 바로 스트림을, denied면 NotAllowedError로 거절하고,
+// pending이면 테스트가 grant()를 부를 때까지 기다린다(권한 창이 떠 있는 상태). 트랙은 허가가 난 순간 만들어진다.
+// navigator에는 mediaDevices만 더한 Proxy를 stubGlobal로 깔아서 vi.unstubAllGlobals()가 원래 navigator로 되돌린다.
+export function mockMicrophone(opts: MicrophoneOptions) {
+  const { permission, trackCount = 1 } = opts
+  const log: MicrophoneLog = { timeline: [], recorders: [] }
+  const tracks: FakeMediaTrack[] = []
+  const waiting: (() => void)[] = []
+
+  const open = (): MediaStream => {
+    const stream = new FakeMediaStream(log, trackCount)
+    tracks.push(...stream.tracks)
+    return stream as unknown as MediaStream
+  }
+
+  const getUserMedia = vi.fn((_constraints?: MediaStreamConstraints): Promise<MediaStream> => {
+    if (permission === 'denied') return Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
+    if (permission === 'granted') return Promise.resolve(open())
+    return new Promise<MediaStream>((resolve) => {
+      waiting.push(() => resolve(open()))
+    })
+  })
+
+  const mediaDevices = { getUserMedia }
+  vi.stubGlobal(
+    'navigator',
+    new Proxy(navigator, {
+      get(target, property) {
+        if (property === 'mediaDevices') return mediaDevices
+        // jsdom의 navigator 메서드·getter는 진짜 navigator를 this로 불러야 한다
+        const value: unknown = Reflect.get(target, property, target)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    }),
+  )
+
+  return {
+    getUserMedia,
+    /** 지금까지 열린 모든 스트림의 트랙 */
+    tracks,
+    /** 만들어진 FakeMediaRecorder들(마이크 스트림에서 만든 것만) */
+    recorders: log.recorders,
+    /** 'recorder.stop' · 'stop event' · 'track.stop'이 불린 순서 */
+    timeline: log.timeline,
+    /** pending일 때 기다리던 권한 요청을 모두 허가한다 */
+    grant: () => {
+      for (const release of waiting.splice(0)) release()
+    },
+  }
+}
