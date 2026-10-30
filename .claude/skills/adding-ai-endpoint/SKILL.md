@@ -26,12 +26,12 @@ AI 기능은 모두 같은 모양이다: 앱이 사진·녹음을 줄여 보내�
 ## 앱
 
 - `src/ai/client.ts`: `postJson`의 path 유니온에 주소 추가, `is…Response` 가드(필드 타입까지).
-- 화면 조각: `PhotoPicker`(또는 녹음기) 바로 아래 `PHOTO_NOTICE`/`VOICE_NOTICE` → `shrinkImage` 실패면 `PHOTO_DECODE_FAILED`, 서버에 보내지 않음 → `postJson(…, { timeoutMs: 사진 45_000·녹음 60_000, signal, guard })` → 요청마다 AbortController + 요청 번호, 취소·새 입력·칸 고침이면 앞 요청을 끊고 늦은 응답은 버림 → 읽은 값은 고칠 수 있는 칸이나 확인 상자로, 사용자가 누르기 전에는 저장하지 않음 → 숨은 화면에서는 포커스를 옮기지 않음 → 실패 문구는 `aiFailureMessage`, 자동 재시도 없음.
+- 화면 조각: `PhotoPicker`(또는 녹음기) 바로 아래 `PHOTO_NOTICE`/`VOICE_NOTICE` → `shrinkImage` 실패면 `PHOTO_DECODE_FAILED`, 서버에 보내지 않음 → `postJson(…, { timeoutMs: PHOTO_TIMEOUT_MS·VOICE_TIMEOUT_MS, signal, guard })`(둘 다 60_000, `src/ai/config.ts`) → 요청마다 AbortController + 요청 번호, 취소·새 입력·칸 고침이면 앞 요청을 끊고 늦은 응답은 버림 → 읽은 값은 고칠 수 있는 칸이나 확인 상자로, 사용자가 누르기 전에는 저장하지 않음 → 숨은 화면에서는 포커스를 옮기지 않음 → 실패 문구는 `aiFailureMessage`, 자동 재시도 없음.
 - `aiServerUrl()`이 없으면 이 버튼을 렌더하지 않는다.
 
 ## 테스트(이름은 writing-tests-from-spec)
 
-서버: 정규화(빈 값·범위 밖·문자열 숫자·개수 상한·정해진 값 밖), 400(형식·빈 값·머리 불일치), 상한과 같은 본문은 통과·한 글자 넘김은 413, 502, 프롬프트와 이미지를 보내고 CORS·no-store로 답함. 앱: 가드 통과·거절, 경로, 429·503·실패 문구와 재시도 없음, 열 수 없는 사진, 늦은 응답 버림, 서버 주소 없으면 버튼 없음.
+서버: 정규화(빈 값·범위 밖·문자열 숫자·개수 상한·정해진 값 밖), 400(형식·빈 값·머리 불일치), 상한과 같은 본문은 통과·한 글자 넘김은 413, Gemini 실패 502·Gemini 429는 429 `upstream_limited`(다시 부르지 않음)·키 없음은 503 `disabled`(본문 검사 뒤, Gemini 요청 없음), 프롬프트와 이미지를 보내고 CORS·no-store로 답함. 앱: 가드 통과·거절, 경로, 429 두 가지(본문 `rate_limited`·`upstream_limited`)·503·실패 문구와 재시도 없음, 열 수 없는 사진, 늦은 응답 버림, 서버 주소 없으면 버튼 없음.
 
 개인정보 스크립트는 경로 이름(`/api/read-…`, `PhotoPicker`)으로 전송 화면을 찾으므로, 다른 함수를 거쳐 보내는 경우는 놓칠 수 있다 → 실제 전송 흐름은 checking-privacy 2단계로 사람이 본다.
 
