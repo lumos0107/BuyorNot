@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { aiReply, FakeMediaRecorder, mockAiServer, mockImagePipeline, mockMicrophone, mockObjectUrls } from './aiMocks'
+import { aiReply, FakeMediaRecorder, mockAiServer, mockImagePipeline, mockMicrophone, mockObjectUrls, ThrowingMediaRecorder } from './aiMocks'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -196,5 +196,11 @@ describe('FakeMediaRecorder', () => {
 
     expect(onError).toHaveBeenCalledTimes(1)
     expect(recorder.state).toBe('recording')
+  })
+})
+
+describe('ThrowingMediaRecorder', () => {
+  it('만들려고 하면 NotSupportedError를 던진다', () => {
+    expect(() => new ThrowingMediaRecorder()).toThrow(expect.objectContaining({ name: 'NotSupportedError' }))
   })
 })

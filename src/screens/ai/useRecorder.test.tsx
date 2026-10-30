@@ -1,6 +1,6 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FakeMediaRecorder, mockMicrophone } from '../../test/aiMocks'
+import { FakeMediaRecorder, mockAiServer, mockMicrophone, ThrowingMediaRecorder } from '../../test/aiMocks'
 import { useRecorder, type RecordingResult, type StartResult } from './useRecorder'
 
 // PRD F33 말로 담기의 녹음기와 10장 앱 공통(GPT 36번): 권한, 20초 자동 멈춤, 1초 미만 거절, 끊김, 정리.
@@ -27,13 +27,19 @@ function setup(options: { permission?: Permission | null; trackCount?: number; w
   // permission이 null이면 navigator.mediaDevices가 없는 브라우저
   const mic = permission === null ? null : mockMicrophone({ permission, trackCount })
   if (withRecorder) vi.stubGlobal('MediaRecorder', FakeMediaRecorder)
-  const fetchSpy = vi.fn()
-  vi.stubGlobal('fetch', fetchSpy)
+  // 경로를 하나도 등록하지 않은 AI 서버: 이 훅이 무엇을 보내면 calls나 unexpected에 남는다
+  const server = mockAiServer()
   const onStopped = vi.fn<(result: RecordingResult) => void>()
   const hook = renderHook((props: { active: boolean }) => useRecorder({ active: props.active, onStopped }), { initialProps: { active: true } })
-  return { mic: mic!, onStopped, fetchSpy, ...hook }
+  return { mic: mic!, onStopped, server, ...hook }
 }
 type Setup = ReturnType<typeof setup>
+
+// 이 훅은 아무것도 보내지 않는다: 서버에 요청이 가지도, 등록하지 않은 주소로 요청이 가지도 않았다
+function expectNothingSent(s: Setup) {
+  expect(s.server.calls).toEqual([])
+  expect(s.server.unexpected).toEqual([])
+}
 
 async function startRecording(s: Setup): Promise<StartResult> {
   let result: StartResult | undefined
@@ -96,14 +102,7 @@ describe('useRecorder 시작 전', () => {
 
   it('MediaRecorder를 만들지 못하면 unsupported를 돌려주고 이미 연 마이크 트랙을 멈춘다', async () => {
     const s = setup()
-    vi.stubGlobal(
-      'MediaRecorder',
-      class {
-        constructor() {
-          throw new DOMException('The stream has no supported mime type.', 'NotSupportedError')
-        }
-      },
-    )
+    vi.stubGlobal('MediaRecorder', ThrowingMediaRecorder)
 
     expect(await startRecording(s)).toBe('unsupported')
 
@@ -231,7 +230,7 @@ describe('useRecorder 녹음 중', () => {
     })
     expect(s.onStopped).toHaveBeenCalledTimes(1)
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
-    expect(s.fetchSpy).not.toHaveBeenCalled()
+    expectNothingSent(s)
   })
 
   it('손으로 멈추면 그때까지 녹음한 소리를 알리고, 멈춘 뒤 20초 타이머가 다시 울리지 않는다', async () => {
@@ -294,7 +293,7 @@ describe('useRecorder 1초 미만', () => {
     expect(s.onStopped).toHaveBeenCalledTimes(1)
     expect(s.onStopped).toHaveBeenCalledWith({ ok: false, reason: 'too-short' })
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1])
-    expect(s.fetchSpy).not.toHaveBeenCalled()
+    expectNothingSent(s)
   })
 
   it('999ms는 too-short이고 1,000ms부터는 짧지 않은 녹음이다', async () => {
@@ -339,6 +338,7 @@ describe('useRecorder 끊김', () => {
     expect(s.result.current.state).toBe('idle')
     advance(60_000)
     expect(s.onStopped).toHaveBeenCalledTimes(1)
+    expectNothingSent(s)
   })
 
   it('녹음기에서 오류가 나면 interrupted로 한 번 알리고 트랙을 모두 멈춘다', async () => {
@@ -353,6 +353,7 @@ describe('useRecorder 끊김', () => {
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
     advance(60_000)
     expect(s.onStopped).toHaveBeenCalledTimes(1)
+    expectNothingSent(s)
   })
 
   it('사용자가 멈추지 않았는데 브라우저가 녹음기를 스스로 멈추면 interrupted로 알리고 트랙을 멈춘다', async () => {
@@ -366,6 +367,7 @@ describe('useRecorder 끊김', () => {
     expect(s.onStopped).toHaveBeenCalledTimes(1)
     expect(s.onStopped).toHaveBeenCalledWith({ ok: false, reason: 'interrupted' })
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1])
+    expectNothingSent(s)
   })
 
   it('손으로 멈춘 뒤에 트랙 ended나 녹음기 오류가 와도 결과는 그대로이고 다시 알리지 않는다', async () => {
@@ -400,6 +402,7 @@ describe('useRecorder 끊김', () => {
     expect(s.onStopped).toHaveBeenCalledTimes(1)
     expect(s.onStopped).toHaveBeenCalledWith({ ok: false, reason: 'interrupted' })
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1])
+    expectNothingSent(s)
   })
 })
 
@@ -419,7 +422,7 @@ describe('useRecorder 취소와 정리', () => {
       expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
       advance(60_000)
       expect(s.onStopped).toHaveBeenCalledTimes(1)
-      expect(s.fetchSpy).not.toHaveBeenCalled()
+      expectNothingSent(s)
     })
   })
 
@@ -439,7 +442,7 @@ describe('useRecorder 취소와 정리', () => {
       expect(s.onStopped).not.toHaveBeenCalled()
       advance(60_000)
       expect(s.onStopped).not.toHaveBeenCalled()
-      expect(s.fetchSpy).not.toHaveBeenCalled()
+      expectNothingSent(s)
     })
   })
 
@@ -494,7 +497,7 @@ describe('useRecorder 취소와 정리', () => {
     expect(s.onStopped).toHaveBeenCalledWith({ ok: false, reason: 'cancelled' })
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1])
     expect(s.result.current.state).toBe('idle')
-    expect(s.fetchSpy).not.toHaveBeenCalled()
+    expectNothingSent(s)
   })
 
   it('녹음을 하지 않을 때 active가 바뀌거나 화면이 숨겨져도 아무것도 알리지 않는다', () => {

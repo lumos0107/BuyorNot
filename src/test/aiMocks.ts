@@ -291,6 +291,13 @@ export class FakeMediaRecorder extends EventTarget {
   }
 }
 
+/** 만들 수 없는 MediaRecorder. 마이크는 있는데 이 브라우저의 녹음기가 그 스트림으로는 녹음하지 못하는 경우(NotSupportedError)를 흉내 낸다 */
+export class ThrowingMediaRecorder {
+  constructor() {
+    throw new DOMException('The stream has no supported mime type.', 'NotSupportedError')
+  }
+}
+
 export type MicrophoneOptions = {
   permission: 'granted' | 'denied' | 'pending'
   // 스트림마다 트랙 수(기본 1). '트랙을 모두 멈춘다'를 볼 때 2 이상으로 둔다
