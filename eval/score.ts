@@ -5,8 +5,9 @@ import type { LowestPriceRequest, SizeCandidate, TagItem, VoiceFillResponse } fr
 // unscored: 실패한 요청의 표기 없는 칸(분모에서 뺌)
 export type FieldOutcome = 'correct' | 'wrong' | 'missed' | 'blank-ok' | 'filled' | 'unscored'
 
-// httpStatus는 채점용 분류다. 200 = 쓸 수 있는 응답, 429·503 = 우리 서버의 제한·꺼짐(fields는 빈 배열),
-// null = 시간 초과·네트워크 오류, 그 밖 = 실패(다나와 직접 호출의 Gemini 실패, 모양이 다른 응답은 502로 적는다).
+// httpStatus는 채점용 분류다. 200 = 쓸 수 있는 응답, 429·503 = 제한·꺼짐(fields는 빈 배열): 429는 우리 서버의 같은 IP 제한(rate_limited)과
+// Gemini의 제한(upstream_limited, 서버를 거치지 않는 다나와 직접 호출의 Gemini 429 포함), 503은 서버가 꺼져 있거나 키가 없음(disabled)(PRD v0.38 10장).
+// null = 시간 초과·네트워크 오류, 그 밖 = 실패(다나와 직접 호출의 그 밖의 Gemini 실패, 모양이 다른 응답은 502로 적는다).
 export type EvalCase = {
   id: string
   httpStatus: number | null
