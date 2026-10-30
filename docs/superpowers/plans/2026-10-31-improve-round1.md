@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 다각도 평가 1회차의 결정(판정 R29)대로 PRD v0.35의 F24·F44·F31·F32·F06 보강(AC69~AC74)을 만들고, README를 사실에 맞추고 '스킬로 과제를 한 방법' 장을 더한다.
+**Goal:** 다각도 평가 1회차의 결정(판정 R29)대로 PRD v0.36의 F24·F44·F31·F32·F06 보강(AC69~AC74)을 만들고, README를 사실에 맞추고 '스킬로 과제를 한 방법' 장을 더한다.
 
 **Architecture:** 화면 문장은 지금처럼 `src/logic`의 상수·문장 함수(`draft.ts`, `sizeFill.ts`, `tagCompare.ts`, `bundleFill.ts`)에 두고 화면은 그 결과만 그린다. 담은 직후 포커스는 구매 포기 뒤 화면 제목으로 포커스를 옮기는 F18 방식(`WishlistScreen.tsx`의 `decide` → `headingRef.current?.focus()`, 그 아래 '결정 알림')과 F30 '적으러 가기'(카드 안 요소를 id로 찾아 `focus()`)를 그대로 쓴다. 캡처 크게 보기는 `PhotoPreview`가 이미 만든 미리보기 주소를 두 번째 `<img>`에도 쓴다. 서버(`worker/`)·프롬프트·스키마·저장 형식은 건드리지 않는다.
 
 **Tech Stack:** React 19, TypeScript 6, Vite 8, Vitest 5 + Testing Library(jsdom), Node 24. 1·2단계 계획과 같다.
 
-**Spec:** `PRD.md` v0.35 — F06 예시 줄 보강, F24 2026-10-31 보강, F31 '결과 맨 위'·'사진 초안의 링크', F32 단가 줄, F44 2단계 확인 상자 첫 줄·'캡처 크게 보기', 9장 '남은 결정 목록', 11장 AC69~AC74(바뀐 줄을 가리키는 AC53·AC56·AC67). 결정 근거: `docs/평가/2026-10-31-1회차.md` 4장(판정 R29), 원문 `docs/평가/2026-10-31-1회차/`(A_user.md 화면, D_a11y_copy.md 파일:줄, B_professor.md README·스킬). 제작자 판정 칸: `docs/평가/판정표.md`.
+**Spec:** `PRD.md` v0.36 — F06 예시 줄 보강, F24 2026-10-31 보강(판정 R30: 반영되지 않은 담기는 담은 직후 안내 없이 입력을 그대로 둠 포함), F31 '결과 맨 위'·'사진 초안의 링크', F32 단가 줄, F44 2단계 확인 상자 첫 줄·'캡처 크게 보기', 9장 '남은 결정 목록', 11장 AC69~AC74(바뀐 줄을 가리키는 AC53·AC56·AC67). 결정 근거: `docs/평가/2026-10-31-1회차.md` 4장(판정 R29), 원문 `docs/평가/2026-10-31-1회차/`(A_user.md 화면, D_a11y_copy.md 파일:줄, B_professor.md README·스킬). 제작자 판정 칸: `docs/평가/판정표.md`.
 
 **작업 순서(구현 위험이 큰 것부터, README는 마지막):** 평가 결정의 항목과 작업 번호는 이렇게 짝을 짓는다.
 
@@ -22,7 +22,7 @@
 
 ## Global Constraints
 
-- PRD v0.35의 새 문장과 동작은 모두 'Claude 결정, 제작자 확인 전'이다. 작업을 시작하기 전에 `docs/평가/판정표.md`에서 그 작업의 줄을 본다. 제작자가 '아니오'나 '바꿈'으로 적었으면 코드보다 PRD를 먼저 고치고(updating-prd) 이 계획의 문장도 바꾼다. 빈칸이면 PRD v0.35 문장대로 만든다.
+- PRD v0.36의 새 문장과 동작은 모두 'Claude 결정, 제작자 확인 전'이다. 작업을 시작하기 전에 `docs/평가/판정표.md`에서 그 작업의 줄을 본다. 제작자가 '아니오'나 '바꿈'으로 적었으면 코드보다 PRD를 먼저 고치고(updating-prd) 이 계획의 문장도 바꾼다. 빈칸이면 PRD v0.36 문장대로 만든다.
 - 화면 문구는 PRD에 적힌 문장 그대로 쓴다(따옴표 안 글자, `·`, `‘ ’`, 마침표까지). F31 결과에는 '최저가'·'싸요'·'이득'을 쓰지 않고, 어디서도 사라·말라를 말하지 않는다. 문구를 바꾼 작업은 checking-ui-copy 스킬로 점검한다.
 - 저장 형식은 바꾸지 않는다(WishItem 새 필드 없음, `schemaVersion: 1`). "방금 담았어요."와 사진 초안 링크 기록은 화면 상태일 뿐 저장하지 않는다.
 - 실제 Gemini를 부르지 않는다. 프롬프트(`READ_TAG_PROMPT`·`READ_SIZE_PROMPT` 등)와 응답 스키마, `worker/`는 바꾸지 않는다.
@@ -31,7 +31,7 @@
 - 색은 `src/index.css`의 변수만 쓰고 그라데이션·이모지는 쓰지 않는다. 읽은 글은 글자로만 그린다(`dangerouslySetInnerHTML` 금지).
 - 테스트의 가짜 전역(createImageBitmap·canvas·URL.createObjectURL·fetch)은 `src/test/aiMocks.ts`의 것만 쓰고, 쓰는 파일은 `afterEach`에서 `vi.unstubAllGlobals()`·`vi.unstubAllEnvs()`·`vi.useRealTimers()`로 되돌린다.
 - 테스트 이름은 한국어 문장 + 끝에 검증 번호(예: `'… (AC70)'`). 기대 문장은 PRD에서 복사한다(writing-tests-from-spec).
-- 기존 테스트는 고치지 않는다. PRD v0.35가 문장을 바꾼 곳(AC56·AC67과 F31 '결과 맨 위')만 작업에 적힌 대로 고치고, 커밋 메시지에 그 AC를 적는다.
+- 기존 테스트는 고치지 않는다. PRD v0.36가 문장을 바꾼 곳(AC56·AC67과 F31 '결과 맨 위')만 작업에 적힌 대로 고치고, 커밋 메시지에 그 AC를 적는다.
 - 작업마다 끝에 `npm test`, `npm run lint`, `npx tsc -b`가 통과해야 한다. 커밋 전 `python .claude/skills/checking-before-commit/scripts/check_all.py`(코드가 있으면 `--quick` 없이). 커밋만 하고 push하지 않는다. `_개인기록/`, `PRD_1주안.md`, `worker/.dev.vars`, `.env*.local`은 커밋하지 않는다. 파일은 LF.
 - TODO·DEVLOG는 총괄이 코드 커밋 뒤 그 해시로 고친다(구현자는 고치지 않음, syncing-todo·updating-devlog).
 
@@ -58,6 +58,7 @@
   - `WishlistScreen` Props `onAdd: (input: NewWishInput) => string | null | void`(id를 돌려주지 않는 호출부와 `vi.fn()`도 그대로 쓴다. 문자열일 때만 포커스를 옮긴다)
   - `const JUST_ADDED = '방금 담았어요.'`(WishlistScreen.tsx), `const cardNameId = (id: string) => \`card-name-${id}\``, `const justAddedId = (id: string) => \`just-added-${id}\``
   - `AddForm`의 새 prop `onJustAdded: (id: string | null) => void`. 담은 직후 안내 상태를 `{ id: string | null; text: string } | null`로 바꾸고, 그 id가 바뀔 때마다 `useEffect`에서 `onJustAdded(id)`를 부른다(그리는 중에 부모 상태를 바꾸지 않게). 안내가 지워지는 모든 길(지금 `setAdded(null)`이 있는 곳)에서 id도 null이 된다.
+  - `AddForm` 제출: `const id = onAdd(...)`가 `null`이면(다른 탭 때문에 반영되지 않음) 담은 직후 안내를 만들지 않고 입력·정도·체크리스트 답·말로 담기 상태를 하나도 비우지 않은 채 끝낸다(PRD F24 판정 R30). `undefined`(id를 돌려주지 않는 호출부·`vi.fn()`)는 지금처럼 담은 것으로 본다.
   - `CardProps`에 `justAdded: boolean`. 카드 이름 `<p className="card-title">`에 `id={cardNameId(item.id)}`, `tabIndex={-1}`, `justAdded`일 때 `aria-describedby={justAddedId(item.id)}`. 이름 줄(`card-row`) 바로 아래에 `justAdded`일 때만 `<p id={justAddedId(item.id)} className="just-added">{JUST_ADDED}</p>`(알림 칸이 아님, PRD F24 보강).
   - `WishlistScreen`: `const [justAdded, setJustAdded] = useState<string | null>(null)`, `useEffect(() => { if (justAdded) document.getElementById(cardNameId(justAdded))?.focus() }, [justAdded])`, 각 `WishCard`에 `justAdded={item.id === justAdded}`.
   - `.just-added { color: var(--accent); font-weight: 600; }`
@@ -69,7 +70,8 @@
   - `담은 뒤 새로고침하면 "방금 담았어요."는 없다 (AC70)`(unmount 뒤 다시 render)
   - `같은 이름의 물건이 이미 있어도 새로 담은 카드로 포커스가 간다 (AC70)`(이미 있는 '나이키 에어포스' 하나 + 같은 이름 담기 → 포커스 카드의 남은 시간이 '3일 남음')
   - `담은 뒤 다른 물건을 구매 포기해도 "방금 담았어요."는 새 카드에만 있다 (AC70)`
-  - `src/App.multitab.test.tsx` '물건 기록: 여러 탭' 안에 `다른 탭이 먼저 저장해 담기가 반영되지 않으면 포커스를 옮기지 않고 "방금 담았어요."도 없다 (AC70)` — `otherTabWrites(STORAGE_KEY, …, false)` 뒤 `addWish`, `expect(wishForm().getByRole('button', { name: '담아 두기' })).toHaveFocus()`, `screen.queryByText('방금 담았어요.')` null
+  - `src/App.multitab.test.tsx` '물건 기록: 여러 탭' 안에 `다른 탭이 먼저 저장해 담기가 반영되지 않으면 포커스를 옮기지 않고 담은 직후 안내 없이 입력을 그대로 둔다 (AC70)` — `otherTabWrites(STORAGE_KEY, …, false)` 뒤 `addWish`, `expect(wishForm().getByRole('button', { name: '담아 두기' })).toHaveFocus()`, `screen.queryByText('방금 담았어요.')` null, `wishForm().queryByRole('status', { name: '담은 물건' })` null, 상품명·가격·이유 칸 값이 '무선 헤드폰'·'30000'(표시 형식 그대로)·'이유'
+  - 같은 곳에 `반영되지 않은 뒤 '담아 두기'를 다시 누르면 담기고 그 카드 이름으로 포커스가 간다 (AC70)` — 위에 이어 배너 '확인'을 누르고 '담아 두기'를 다시 눌러 `names(STORAGE_KEY)`에 '무선 헤드폰'이 들어가고 `document.activeElement?.closest('article')`의 이름이 '무선 헤드폰'
 - [ ] **Step 2: 실패 확인** — `npx vitest run src/App.justAdded.test.tsx src/App.multitab.test.tsx` → 포커스·문장 단언으로 실패(모듈 없음이 아니라 기대값 불일치까지 본다).
 - [ ] **Step 3: 구현** — 위 Interfaces대로. `App.tsx`의 `onAdd={wishlist.add}`는 그대로 둔다.
 - [ ] **Step 4: 통과 확인** — `npm test`(기존 담기 테스트 전부 포함), `npm run lint`, `npx tsc -b`.
@@ -89,7 +91,7 @@
 - `SizePhotoFill`: `<PhotoPreview file={photo} enlarge={{ label: '캡처 크게 보기', alt: '고른 캡처' }} />`, 라디오 이름은 `candidateView(candidate, null, current).choice`.
 - `.photo-large { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; }`
 
-- [ ] **Step 1: 기존 테스트를 PRD v0.35에 맞춤(AC67·AC71)** — `sizeFill.test.ts`와 `App.fitPhoto.test.tsx`의 `READ_LINE`을 `'AI가 읽은 내용: ‘제품 크기: 가로 32 x 깊이 25 x 높이 47cm’ · 사진과 같은지 확인해 주세요'`로, `App.fitPhoto.test.tsx:344-345`의 라디오 이름을 `'접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’'`·`'펼쳤을 때 · AI가 읽은 내용: ‘펼쳤을 때 60 x 40 x 10cm’'`로, `:351` 첫 줄을 `'접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’ · 사진과 같은지 확인해 주세요'`로, 두 파일 머리 주석의 "적힌 내용" 가정을 새 문장으로 바꾼다. 테스트 이름의 '적힌 내용'은 'AI가 읽은 내용'으로.
+- [ ] **Step 1: 기존 테스트를 PRD v0.36에 맞춤(AC67·AC71)** — `sizeFill.test.ts`와 `App.fitPhoto.test.tsx`의 `READ_LINE`을 `'AI가 읽은 내용: ‘제품 크기: 가로 32 x 깊이 25 x 높이 47cm’ · 사진과 같은지 확인해 주세요'`로, `App.fitPhoto.test.tsx:344-345`의 라디오 이름을 `'접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’'`·`'펼쳤을 때 · AI가 읽은 내용: ‘펼쳤을 때 60 x 40 x 10cm’'`로, `:351` 첫 줄을 `'접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’ · 사진과 같은지 확인해 주세요'`로, 두 파일 머리 주석의 "적힌 내용" 가정을 새 문장으로 바꾼다. 테스트 이름의 '적힌 내용'은 'AI가 읽은 내용'으로.
 - [ ] **Step 2: 실패하는 새 테스트** — `sizeFill.test.ts`: `라디오 이름은 확인 요청 없이 label과 AI가 읽은 내용만이에요 (AC71)`(`choice` 두 경우), `확인 상자 첫 줄은 AI가 읽은 내용 뒤에 사진과 같은지 확인해 달라고 붙여요 (AC71)`(단위 mixed 포함). `App.fitPhoto.test.tsx`:
   - `응답을 받은 뒤 캡처 크게 보기를 누르면 같은 주소의 큰 사진이 보이고 새 주소·요청은 없다 (AC71)` — `getByRole('img', { name: '고른 캡처' })`가 보이고 `src`가 작은 미리보기 `img`의 `src`와 같음, `urls.created` 길이 그대로, `server.callsTo(READ)` 1번
   - `다시 누르면 큰 사진이 접힌다 (AC71)`(`not.toBeVisible()`)
@@ -100,7 +102,7 @@
 - [ ] **Step 3: 실패 확인** — `npx vitest run src/logic/sizeFill.test.ts src/App.fitPhoto.test.tsx`.
 - [ ] **Step 4: 구현** — 위 Interfaces대로. 파일 끝 `afterEach`의 주소 짝 맞추기 단언이 그대로 통과해야 한다.
 - [ ] **Step 5: 통과 확인** — `npm test`(`App.photoTag.test.tsx`·`App.photoBundle.test.tsx`의 미리보기 주소 단언 포함), `npm run lint`, `npx tsc -b`, `git diff | python .claude/skills/checking-ui-copy/scripts/check_copy.py --diff -`.
-- [ ] **Step 6: 커밋** `feat: say AI가 읽은 내용 and let the capture be viewed large (F44, AC67, AC71)` — 본문에 기존 AC67 테스트 문장을 바꾼 이유(PRD v0.35 R29-I1)를 적는다.
+- [ ] **Step 6: 커밋** `feat: say AI가 읽은 내용 and let the capture be viewed large (F44, AC67, AC71)` — 본문에 기존 AC67 테스트 문장을 바꾼 이유(PRD v0.36 R29-I1)를 적는다.
 
 ### Task 3: 상품명을 바꾸면 사진 초안의 다나와 링크를 지운다 (P2)
 
@@ -150,7 +152,7 @@
 - `BundlePhotoFill`: 고른 상품이 거절(`fill?.ok === false`)이면 '채우기' 버튼을 그리지 않고 '취소'만 둔다. 그 밖은 지금 그대로(`disabled={!canApply}`).
 - `CompareScreen.tsx` `ExampleIntro`의 안내: `처음에는 예시 값이 들어 있어요. 비교할 금액과 조건으로 바꿔 보세요. ‘초기화’를 누르면 입력칸을 비우고, ‘예시 넣기’를 누르면 예시 값을 다시 넣어요.` `startWithExample`은 그대로.
 
-- [ ] **Step 1: 기존 테스트를 PRD v0.35에 맞춤** — `App.photoTag.test.tsx`의 `TOP_NOTE`를 `'가격 차이로는 필요한 물건인지 알 수 없어요.'`로 바꾸고, off 응답인 `:805-807`(https가 아닌 검색 주소)은 `TOP_NOTE` 대신 `DANAWA_OFF_NOTE` 문장을 단언한다(AC72). `bundleFill.test.ts:117·134`의 메시지를 새 문장(100g·1kg)으로, `App.photoBundle.test.tsx:33`의 `UNIT_PRICE`를 새 문장(100g)으로, 단가 가격표를 고른 상태의 `expect(confirmButton(B)).toBeDisabled()` 두 곳(530줄, 613줄)을 '채우기' 버튼이 없다는 단언(`box(B).queryByRole('button', { name: '채우기' })` null)으로 바꾸고, 609줄 테스트 이름을 `AC56·AC73: 고른 상품이 단가 가격표이면 채우기가 없고, 채울 수 있는 상품으로 바꾸면 다시 보인다`로 바꾼다(그 뒤 `toBeEnabled()` 단언은 그대로). 415·570·588줄(단위를 아직 안 고른 경우 등)은 그대로 둔다.
+- [ ] **Step 1: 기존 테스트를 PRD v0.36에 맞춤** — `App.photoTag.test.tsx`의 `TOP_NOTE`를 `'가격 차이로는 필요한 물건인지 알 수 없어요.'`로 바꾸고, off 응답인 `:805-807`(https가 아닌 검색 주소)은 `TOP_NOTE` 대신 `DANAWA_OFF_NOTE` 문장을 단언한다(AC72). `bundleFill.test.ts:117·134`의 메시지를 새 문장(100g·1kg)으로, `App.photoBundle.test.tsx:33`의 `UNIT_PRICE`를 새 문장(100g)으로, 단가 가격표를 고른 상태의 `expect(confirmButton(B)).toBeDisabled()` 두 곳(530줄, 613줄)을 '채우기' 버튼이 없다는 단언(`box(B).queryByRole('button', { name: '채우기' })` null)으로 바꾸고, 609줄 테스트 이름을 `AC56·AC73: 고른 상품이 단가 가격표이면 채우기가 없고, 채울 수 있는 상품으로 바꾸면 다시 보인다`로 바꾼다(그 뒤 `toBeEnabled()` 단언은 그대로). 415·570·588줄(단위를 아직 안 고른 경우 등)은 그대로 둔다.
 - [ ] **Step 2: 실패하는 새 테스트**
   - `tagCompare.test.ts`: `결과 맨 위 줄은 다나와 상태마다 정해진 문장이고 못 읽었으면 없어요 (AC72)`(네 상태)
   - `App.photoTag.test.tsx`: `found·not_confirmed면 제목 다음 첫 줄이 가격 차이 문장이다 (AC72)`, `off면 첫 줄이 자동으로 가져오지 않는다는 문장이고 가격 차이 문장은 없으며 다나와에서 직접 보기 링크가 있다 (AC72)`, `unavailable이면 첫 줄이 다나와 결과를 가져오지 못했어요이고 가격 차이 문장은 없다 (AC72)`. "제목 다음 첫 줄"은 결과 영역에서 제목 `h4` 다음 형제 요소의 글로 본다.

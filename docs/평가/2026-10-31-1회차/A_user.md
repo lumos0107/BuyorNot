@@ -1,7 +1,7 @@
 # 평가 A (실제 사용자 관점) — 살까말까 ai-stage1
 
 평가 관점: 충동구매가 잦은 22살 대학생, 폰(360×800), 처음 여는 사람. 2026-10-31, 개발 서버 `localhost:5173/BuyorNot/`(AI 켬, 다나와 조회 꺼짐).
-화면 근거: `C:\Users\seungjun\AppData\Local\Temp\claude\c--Users-seungjun-Documents-claude-code\34dfaccd-3447-437e-a232-9e76d92a55d6\scratchpad\eval1-user\` (번호_이름.png). 내가 만든 합성 사진·HTML·내려받은 .ics도 같은 폴더(`img_pricetag.png`, `img_bundle.png`, `img_capture.png`, `src_*.html`, `buyornot-2026-11-03.ics`). Playwright가 스크래치 경로에 바로 저장하지 못해 `claude_code\.playwright-mcp\eval1-user\`에 찍고 복사함.
+화면 근거: `(저장소 밖 임시 폴더)\eval1-user\` (번호_이름.png). 내가 만든 합성 사진·HTML·내려받은 .ics도 같은 폴더(`img_pricetag.png`, `img_bundle.png`, `img_capture.png`, `src_*.html`, `buyornot-2026-11-03.ics`). Playwright가 스크래치 경로에 바로 저장하지 못해 `(작업 루트)\.playwright-mcp\eval1-user\`에 찍고 복사함.
 
 실제 AI 호출: **모델 호출 3번**(가격표 읽기 `/api/read-tag` 2번, 치수 읽기 `/api/read-size` 1번). 그 밖에 "온라인 가격 확인" 버튼이 `/api/lowest-price`를 1번 불렀지만 다나와가 꺼져 있어 링크만 돌려줌(모델 호출 아님). 모든 AI 결과는 **한 번씩만** 본 표본이라, 정확도 판단이 아니라 "이 화면에서 이렇게 보였다"는 기록이다.
 
