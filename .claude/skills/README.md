@@ -16,7 +16,7 @@
 | `checking-before-commit` | 커밋하기 직전 | `check_all.py`: 금지 파일·CR·문구·개인정보·PRD·TODO 검사 + 전체 테스트·린트·타입 |
 | `writing-tests-from-spec` | PRD 검증 사례를 테스트로 옮길 때 | 없음 |
 | `updating-devlog` | 작업이 끝나 DEVLOG·README를 남길 때 | 없음 |
-| `syncing-todo` | PRD·계획이 바뀌었거나 작업이 끝났을 때 TODO 맞추기 | `check_todo.py`: 기준 버전·기능·계획 작업 수·완료 해시 |
+| `syncing-todo` | PRD·계획이 바뀌었거나 작업이 끝났을 때 TODO 맞추기 | `check_todo.py`: 기준 버전·기능·계획 작업 수·완료 해시 · `mark_done.py`: 작업 한 줄 완료 표시(2026-10-30 추가, GPT 46번) |
 
 ## 만드는 방법
 
