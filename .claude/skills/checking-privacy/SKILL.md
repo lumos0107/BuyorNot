@@ -23,6 +23,7 @@ description: Use when writing or reviewing 살까말까 (BuyorNot) code that sen
 
 1. **스크립트**(저장소 루트에서): `python .claude/skills/checking-privacy/scripts/check_privacy.py` (초안 파일만: `--files 파일1 파일2 …`)
    - **금지**가 0개가 될 때까지 고친다. 키 값은 스크립트도 찍지 않는다.
+   - 전송 안내 검사는 주석을 뺀 코드에서 안내 상수 이름을 찾는다. 주석에 이름만 적어 통과시키지 않는다. 요청만 보내고 화면을 그리지 않는 파일(`src/ai/client.ts`)은 스크립트의 `TRANSPORT_FILES`에 있어 검사에서 빠진다. 그런 파일을 새로 만들면 목록에 더하고 이유를 커밋에 적는다.
 2. **사람이 볼 것**(스크립트가 못 봄):
    - 요청 본문에 위 표의 항목만 들어가는가(기록 전체·다른 칸이 섞이지 않는가).
    - 사진은 `shrinkImage`(캔버스로 다시 그려 EXIF 위치 정보가 빠짐)를 거친 것만 보낸다.

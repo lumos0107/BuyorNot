@@ -17,6 +17,7 @@ KEY_PATTERN = re.compile(r"AIza[0-9A-Za-z_\-]{35}")
 SECRET_PATHS = ["_개인기록/", "worker/.dev.vars", "PRD_1주안.md", "gemini_key", ".env.local", ".env.development.local"]
 GITIGNORE_NEEDS = ["/_개인기록/", "worker/.dev.vars", ".wrangler/"]
 CASE_FIELDS = ["source", "license", "edits"]
+TRANSPORT_FILES = ("src/ai/client.ts",)
 
 found: list[tuple[str, str, str]] = []  # (level, where, why)
 
@@ -38,12 +39,17 @@ def check_worker(path: str, text: str) -> None:
 
 
 def check_app(path: str, text: str) -> None:
+    # 요청만 보내고 화면을 그리지 않는 파일(경로 목록)은 안내 검사에서 뺀다. 안내는 그 파일을 쓰는 화면이 보인다
+    if Path(path).as_posix().endswith(TRANSPORT_FILES):
+        return
+    # 안내 이름은 주석이 아닌 코드에 있어야 한다(주석에 이름만 적어 통과하는 것을 막는다)
+    code = "\n".join(l for l in text.split("\n") if not re.match(r"\s*(//|/\*|\*)", l))
     # 사진을 받는 서버 주소는 모두 /api/read-…로 짓는다(adding-ai-endpoint). 새 주소가 생겨도 고칠 필요 없다
-    sends_photo = re.search(r"PhotoPicker|/api/read-[a-z-]+", text)
-    sends_voice = re.search(r"useRecorder|/api/voice-fill", text)
-    if sends_photo and "PHOTO_NOTICE" not in text and "PhotoPicker.tsx" not in path:
+    sends_photo = re.search(r"PhotoPicker|/api/read-[a-z-]+", code)
+    sends_voice = re.search(r"useRecorder|/api/voice-fill", code)
+    if sends_photo and "PHOTO_NOTICE" not in code and "PhotoPicker.tsx" not in path:
         hit("error", path, "사진을 보내는 화면에 PHOTO_NOTICE(구글 Gemini로 보내진다는 안내)가 없다")
-    if sends_voice and "VOICE_NOTICE" not in text and "useRecorder" not in Path(path).name:
+    if sends_voice and "VOICE_NOTICE" not in code and "useRecorder" not in Path(path).name:
         hit("error", path, "녹음을 보내는 화면에 VOICE_NOTICE가 없다")
     for i, l in enumerate(text.split("\n"), 1):
         if "dangerouslySetInnerHTML" in l:
