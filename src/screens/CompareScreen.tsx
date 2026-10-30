@@ -23,7 +23,7 @@ import {
   type DiscountSide,
 } from '../logic/discount'
 import { formatFixed, formatWon } from '../logic/number'
-import { bundleDraft, discountDraft, type WishDraft } from '../logic/draft'
+import { bundleDraft, discountDraft, type PhotoDraft, type WishDraft } from '../logic/draft'
 import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
 import { TabPanel, Tabs, type TabItem } from '../ui/Tabs'
@@ -46,6 +46,8 @@ export function CompareScreen({
   startWithExample?: boolean
   /** 비교 결과를 고민 목록에 담기 (F21) */
   onAddToWishlist?: (draft: WishDraft) => void
+  /** 가격표 사진 결과를 고민 목록의 담기 폼에 빈 칸만 채워 담기 (F31). 가격표 사진 탭(Task 10)이 생기면 구조 분해해서 쓴다 */
+  onAddPhotoDraft?: (draft: PhotoDraft) => void
 }) {
   const [kind, setKind] = useState<CompareKind>('discount')
   return (

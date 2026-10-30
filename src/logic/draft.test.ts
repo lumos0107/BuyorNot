@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bundleDraft, discountDraft, userWrittenReason } from './draft'
+import { bundleDraft, discountDraft, mergePhotoDraft, photoDraftNotice, userWrittenReason } from './draft'
 
 // PRD F21 비교 결과를 고민 목록에 담기: 고른 쪽의 가격과 비교 내용을 담기 폼에 채운다
 describe('담기 폼에 채울 내용 (F21)', () => {
@@ -52,5 +52,58 @@ describe('사용자가 쓴 이유만 남기기 (F23)', () => {
 
   it('문장을 고쳐 형식이 달라지면 사용자가 쓴 것으로 본다', () => {
     expect(userWrittenReason('가격 비교: B안 결제액 72,000원 할인')).toBe('가격 비교: B안 결제액 72,000원 할인')
+  })
+})
+
+// PRD F31 담기 폼에 넣을 때는 빈 칸만 채운다 (AC54): 적어 둔 상품명·가격은 그대로, 링크는 둔 칸으로 세지 않는다
+describe('사진 결과를 담기 폼에 합치기 (F31)', () => {
+  const photo = { name: '농심 오징어짬뽕 소컵 6입', price: 3980, url: 'https://search.danawa.com/?query=x' }
+
+  // plan: mergePhotoDraft fills only empty fields and lists kept ones
+  it('AC54: 폼이 비어 있으면 상품명·가격·링크를 모두 채우고 둔 칸은 없다', () => {
+    expect(mergePhotoDraft({ name: '', price: '', url: '' }, photo)).toEqual({
+      name: '농심 오징어짬뽕 소컵 6입',
+      price: '3980',
+      url: 'https://search.danawa.com/?query=x',
+      kept: [],
+    })
+  })
+
+  it('AC54: 상품명 "라면"·가격 "4500"을 적어 뒀으면 그대로 두고 링크만 채우며 둔 칸은 상품명·가격 순이다', () => {
+    expect(mergePhotoDraft({ name: '라면', price: '4500', url: '' }, photo)).toEqual({
+      name: '라면',
+      price: '4500',
+      url: 'https://search.danawa.com/?query=x',
+      kept: ['상품명', '가격'],
+    })
+  })
+
+  it('가격만 적어 뒀으면 상품명을 채우고 가격은 그대로 두며 둔 칸은 가격뿐이다', () => {
+    expect(mergePhotoDraft({ name: '', price: '4500', url: '' }, photo)).toMatchObject({ name: '농심 오징어짬뽕 소컵 6입', price: '4500', kept: ['가격'] })
+  })
+
+  it('상품명만 적어 뒀으면 가격을 채우고 상품명은 그대로 두며 둔 칸은 상품명뿐이다', () => {
+    expect(mergePhotoDraft({ name: '라면', price: '', url: '' }, photo)).toMatchObject({ name: '라면', price: '3980', kept: ['상품명'] })
+  })
+
+  it('공백만 적힌 칸은 빈 칸으로 보고 채운다', () => {
+    expect(mergePhotoDraft({ name: '   ', price: ' ', url: '  ' }, photo)).toEqual({
+      name: '농심 오징어짬뽕 소컵 6입',
+      price: '3980',
+      url: 'https://search.danawa.com/?query=x',
+      kept: [],
+    })
+  })
+
+  it('링크를 이미 적어 뒀으면 그대로 두고 둔 칸으로 세지 않는다', () => {
+    expect(mergePhotoDraft({ name: '', price: '', url: 'https://example.com/a' }, photo)).toMatchObject({ url: 'https://example.com/a', kept: [] })
+  })
+
+  it('AC54: 안내는 두 문장이고, 둔 칸이 있을 때만 끝에 "이미 적은 칸은 그대로 뒀어요: 상품명·가격"을 붙인다', () => {
+    expect(photoDraftNotice([])).toBe('가격표 사진에서 상품명과 가격을 가져왔어요. 사고 싶은 이유를 적고 담아 두세요.')
+    expect(photoDraftNotice(['상품명', '가격'])).toBe(
+      '가격표 사진에서 상품명과 가격을 가져왔어요. 사고 싶은 이유를 적고 담아 두세요. 이미 적은 칸은 그대로 뒀어요: 상품명·가격',
+    )
+    expect(photoDraftNotice(['가격'])).toMatch(/ 이미 적은 칸은 그대로 뒀어요: 가격$/)
   })
 })

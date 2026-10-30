@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
 import { formatDate } from '../logic/dates'
 import { DESIRE_LEVELS, DESIRE_TEXT, desireDueToday, desireTrend } from '../logic/desire'
-import type { WishDraft } from '../logic/draft'
+import { mergePhotoDraft, photoDraftNotice, type DraftMerge, type FormDraft } from '../logic/draft'
 import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
 import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, hasAnswer, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
@@ -53,8 +53,8 @@ type Props = {
   onReconsider?: (id: string) => void
   /** 사기 전 점검에서 금액을 시간으로 보여줄 때 쓴다 (결정 기록의 시급 설정) */
   hourlyWage?: number | null
-  /** 가격 비교에서 가져온 가격과 이유 (F21) */
-  draft?: WishDraft | null
+  /** 담기 폼에 넣을 값: 가격 비교에서 가져온 가격과 이유(F21) 또는 가격표 사진에서 읽은 상품명·가격·링크(F31) */
+  draft?: FormDraft | null
   onDraftUsed?: () => void
   /** 오늘의 갖고 싶은 정도 (F22). 반영됐는지 돌려준다 */
   onCheckDesire?: (id: string, level: DesireLevel) => boolean
@@ -238,6 +238,24 @@ type Preset = (typeof COOLING_PRESETS)[number] | 'custom'
 type AddRaw = { name: string; price: string; reason: string; url: string; preset: Preset; customDays: string }
 const EMPTY_ADD: AddRaw = { name: '', price: '', reason: '', url: '', preset: 3, customDays: '' }
 
+// 담기 폼에 값을 넣은 뒤 포커스를 둘 칸
+type DraftFocus = 'name' | 'price' | 'reason'
+
+/** 사진 결과를 넣은 뒤 상품명·가격 중 비어 있는 첫 칸, 둘 다 차 있으면 사고 싶은 이유 (F31) */
+function firstEmptyField(merged: Pick<DraftMerge, 'name' | 'price'>): DraftFocus {
+  if (merged.name.trim() === '') return 'name'
+  if (merged.price.trim() === '') return 'price'
+  return 'reason'
+}
+
+const FOCUS_LABEL: Record<DraftFocus, string> = { name: '상품명', price: '가격', reason: '사고 싶은 이유' }
+
+function focusField(form: HTMLFormElement | null, field: DraftFocus) {
+  if (!form) return
+  const controls = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea'))
+  controls.find((control) => control.labels?.[0]?.textContent === FOCUS_LABEL[field])?.focus()
+}
+
 function AddForm({
   onAdd,
   items,
@@ -249,7 +267,7 @@ function AddForm({
   onAdd: (input: NewWishInput) => void
   items: WishItem[]
   now: Date
-  draft: WishDraft | null
+  draft: FormDraft | null
   onDraftUsed?: () => void
   /** 늘어나면 예시 값을 체크리스트까지 채운다 (F28) */
   exampleFill?: number
@@ -267,20 +285,30 @@ function AddForm({
   const [added, setAdded] = useState<string | null>(null)
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   // 가격 비교에서 고른 쪽의 가격과 이유를 채우고 상품명으로 포커스를 옮긴다 (F21). 적던 상품명은 지우지 않는다.
-  // 새 비교 값은 그리는 중에 알아차려 폼에 넣고(이전 값 기억), 포커스 이동과 알림은 그린 뒤에 한다
-  const [fromCompare, setFromCompare] = useState(false)
-  const [appliedDraft, setAppliedDraft] = useState<WishDraft | null>(null)
+  // 가격표 사진 결과는 빈 칸에만 넣고 상품명·가격 중 빈 첫 칸(없으면 이유)으로 포커스를 옮긴다 (F31).
+  // 새 값은 그리는 중에 알아차려 폼에 넣고(이전 값 기억), 포커스 이동과 알림은 그린 뒤에 한다
+  const [draftNotice, setDraftNotice] = useState<string | null>(null)
+  const [draftFocus, setDraftFocus] = useState<DraftFocus>('name')
+  const [appliedDraft, setAppliedDraft] = useState<FormDraft | null>(null)
   if (draft && draft !== appliedDraft) {
     setAppliedDraft(draft)
-    setRaw((r) => ({ ...r, price: String(draft.price), reason: draft.reason }))
+    if (draft.source === 'compare') {
+      setRaw((r) => ({ ...r, price: String(draft.value.price), reason: draft.value.reason }))
+      setDraftNotice('가격 비교에서 가격과 이유를 가져왔어요. 상품명을 적고 담아 두세요.')
+      setDraftFocus('name')
+    } else {
+      const merged = mergePhotoDraft(raw, draft.value)
+      setRaw((r) => ({ ...r, name: merged.name, price: merged.price, url: merged.url }))
+      setDraftNotice(photoDraftNotice(merged.kept))
+      setDraftFocus(firstEmptyField(merged))
+    }
     setAttempted(false)
-    setFromCompare(true)
   }
   useEffect(() => {
     if (!draft) return
-    formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+    focusField(formRef.current, draftFocus)
     onDraftUsed?.()
-  }, [draft, onDraftUsed, formRef])
+  }, [draft, draftFocus, onDraftUsed, formRef])
   // 예시 채우기 (F28): 새 요청은 그리는 중에 알아차려 값을 넣고, 체크리스트 펼치기와 포커스 이동은 그린 뒤에 한다
   const [fromExample, setFromExample] = useState(false)
   const [appliedFill, setAppliedFill] = useState(exampleFill)
@@ -291,7 +319,7 @@ function AddForm({
     setAnswers({ ...EXAMPLE_ADD.answers })
     setAttempted(false)
     setAdded(null)
-    setFromCompare(false)
+    setDraftNotice(null)
     setFromExample(true)
   }
   useEffect(() => {
@@ -334,7 +362,7 @@ function AddForm({
     setAnswers({})
     if (checklistRef.current) checklistRef.current.open = false
     setAttempted(false)
-    setFromCompare(false)
+    setDraftNotice(null)
     setFromExample(false)
   }
 
@@ -346,9 +374,9 @@ function AddForm({
           {added}
         </p>
       ) : null}
-      {fromCompare ? (
+      {draftNotice ? (
         <p className="note" role="status">
-          가격 비교에서 가격과 이유를 가져왔어요. 상품명을 적고 담아 두세요.
+          {draftNotice}
         </p>
       ) : null}
       {fromExample ? (

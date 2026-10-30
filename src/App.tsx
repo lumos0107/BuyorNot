@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { WishDraft } from './logic/draft'
+import type { FormDraft } from './logic/draft'
 import { BackupSection } from './screens/BackupSection'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
@@ -23,8 +23,8 @@ const SCREENS: readonly TabItem<Screen>[] = [
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('wishlist')
-  // 가격 비교에서 고른 쪽을 고민 목록의 담기 폼에 채운다 (F21)
-  const [draft, setDraft] = useState<WishDraft | null>(null)
+  // 가격 비교에서 고른 쪽(F21)이나 가격표 사진에서 읽은 값(F31)을 고민 목록의 담기 폼에 채운다
+  const [draft, setDraft] = useState<FormDraft | null>(null)
   const wishlist = useWishlist()
   const settings = useSettings()
   const subscriptions = useSubscriptions()
@@ -79,8 +79,12 @@ export default function App() {
           <CompareScreen
             startWithExample
             onGoToWishlist={() => setScreen('wishlist')}
-            onAddToWishlist={(next) => {
-              setDraft(next)
+            onAddToWishlist={(value) => {
+              setDraft({ source: 'compare', value })
+              setScreen('wishlist')
+            }}
+            onAddPhotoDraft={(value) => {
+              setDraft({ source: 'photo', value })
               setScreen('wishlist')
             }}
           />
