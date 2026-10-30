@@ -13,6 +13,8 @@ const env: Env = {
   AI_ENABLED: 'true',
   DANAWA_ENABLED: 'false',
 }
+// 배포에서 비밀 변수를 빠뜨린 환경
+const withoutKey: Env = { ALLOWED_ORIGINS: ORIGIN, AI_ENABLED: 'true', DANAWA_ENABLED: 'false' }
 const ctx: RequestContext = { origin: ORIGIN, startedAt: 0 }
 
 function makeDeps() {
@@ -216,6 +218,37 @@ describe('가격표 읽기 요청', () => {
     expect(res.status).toBe(502)
     expect(await res.json()).toEqual({ error: 'upstream' })
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN)
+  })
+
+  it('AC75: Gemini가 429를 주면 429 upstream_limited로 답하고 다시 부르지 않아요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    fetchMock.mockImplementation(async () => new Response('{}', { status: 429 }))
+    const res = await readTag({ image: JPEG, mimeType: 'image/jpeg' }, env, deps, ctx)
+    expect(res.status).toBe(429)
+    expect(await res.json()).toEqual({ error: 'upstream_limited' })
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('AC75: 키가 없으면 Gemini를 부르지 않고 503 disabled로 답해요', async () => {
+    for (const noKey of [withoutKey, { ...env, GEMINI_API_KEY: '' }]) {
+      const { deps, fetchMock } = makeDeps()
+      const res = await readTag({ image: JPEG, mimeType: 'image/jpeg' }, noKey, deps, ctx)
+      expect(res.status, JSON.stringify(noKey.GEMINI_API_KEY)).toBe(503)
+      expect(await res.json()).toEqual({ error: 'disabled' })
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN)
+      expect(res.headers.get('Cache-Control')).toBe('no-store')
+      expect(fetchMock).not.toHaveBeenCalled()
+    }
+  })
+
+  it('AC75: 키가 없어도 본문 검사가 먼저라 형식이 틀리면 400이에요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    const res = await readTag({ image: JPEG, mimeType: 'image/gif' }, withoutKey, deps, ctx)
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'bad_request' })
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   // 상품이 많은 선반 사진(20개, 긴 이름)도 잘리지 않게 공통 상한(4096)보다 크게 둔다(2026-10-31 판정 R25)

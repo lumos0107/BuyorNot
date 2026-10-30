@@ -1,7 +1,7 @@
 import type { VoiceFillResponse } from '../../src/ai/types.ts'
 import type { Deps, Env, RequestContext } from './env.ts'
 import { callGemini } from './gemini.ts'
-import { json } from './http.ts'
+import { geminiFailed, json } from './http.ts'
 import { matchesMime } from './magic.ts'
 import { cleanText, intIn, isRecord } from './readTag.ts'
 
@@ -78,7 +78,7 @@ export async function voiceFill(
     deps,
     ctx,
   })
-  if (!result.ok) return json(502, { error: 'upstream' }, ctx)
+  if (!result.ok) return geminiFailed(result, ctx)
   const normalized = normalizeVoice(result.value)
   if (normalized === null) return json(502, { error: 'upstream' }, ctx)
   return json(200, normalized, ctx)

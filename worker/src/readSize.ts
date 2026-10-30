@@ -1,7 +1,7 @@
 import type { ReadSizeResponse, SizeCandidate } from '../../src/ai/types.ts'
 import type { Deps, Env, RequestContext } from './env.ts'
 import { callGemini } from './gemini.ts'
-import { json } from './http.ts'
+import { geminiFailed, json } from './http.ts'
 import { cleanText, isRecord, parseImageBody, positiveNumberUpTo } from './readTag.ts'
 
 export const READ_SIZE_PROMPT = `상품 상세 페이지를 캡처한 사진이다. 사진에 적힌 크기(치수) 표기를 모두 읽어라.
@@ -127,6 +127,6 @@ export async function readSize(
     deps,
     ctx,
   })
-  if (!result.ok) return json(502, { error: 'upstream' }, ctx)
+  if (!result.ok) return geminiFailed(result, ctx)
   return json(200, normalizeSizeResult(result.value), ctx)
 }

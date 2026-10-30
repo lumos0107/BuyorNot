@@ -170,6 +170,20 @@ describe('AI 서버 요청 처리', () => {
     expect(other.status).toBe(200)
   })
 
+  // 우리 서버의 IP 제한(rate_limited)과 Gemini의 제한(upstream_limited)은 앱이 다른 문구로 보인다. 앞의 것은 본문이 rate_limited로 남아야 한다
+  it('AC75: 같은 IP 11번째는 본문이 rate_limited인 429예요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    const { routes, run } = makeRoutes()
+    for (let i = 0; i < 10; i++) await handle(post('{}', { ip: '203.0.113.9' }), env, deps, routes)
+    const blocked = await handle(post('{}', { ip: '203.0.113.9' }), env, deps, routes)
+    expect(blocked.status).toBe(429)
+    expect(await blocked.json()).toEqual({ error: 'rate_limited' })
+    expect(blocked.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN)
+    expect(blocked.headers.get('Cache-Control')).toBe('no-store')
+    expect(run).toHaveBeenCalledTimes(10)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('IP 헤더가 없으면 unknown 하나로 묶어서 세요', async () => {
     const { deps } = makeDeps()
     const { routes } = makeRoutes()

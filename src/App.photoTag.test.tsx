@@ -28,6 +28,7 @@ const DECODE_FAILED = '이 사진을 열 수 없어요. 다른 사진을 고르�
 const BUSY = '지금은 사용이 많아요. 잠시 뒤 다시 해 주세요.'
 const PAUSED = 'AI 기능을 잠시 멈췄어요. 직접 입력해 주세요.'
 const UNREADABLE = '지금은 읽지 못했어요. 직접 입력해 주세요.'
+const GEMINI_LIMITED = 'AI 사용이 제한됐어요. 나중에 다시 시도하거나 직접 입력해 주세요.'
 const NOT_FOUND = '상품이나 가격표를 찾지 못했어요. 다시 찍거나 직접 입력해 주세요.'
 const PRICE_UNREAD = '가격을 읽지 못했어요'
 const NEED_PRICE = '매장 가격을 적어 주세요'
@@ -881,6 +882,22 @@ describe('사진 읽기가 실패하면 (10장 앱 공통 실패 문구)', () =>
     await readPhoto()
 
     expect(panel().getByRole('alert')).toHaveTextContent(message)
+    expect(productsHeading()).not.toBeInTheDocument()
+    expect(panel().queryByText(READING)).not.toBeInTheDocument()
+    await advance(120_000)
+    expect(s.server.callsTo(READ)).toHaveLength(1)
+  })
+
+  it('AC76: 사진 읽기에 서버가 429 upstream_limited면 Gemini 제한 문구를 role=alert로 보이고, 시간이 지나도 다시 요청하지 않는다', async () => {
+    fakeClock()
+    const s = setup()
+    s.server.on(READ, aiReply.status(429, { error: 'upstream_limited' }))
+    openPhotoTab()
+
+    await readPhoto()
+
+    expect(panel().getByRole('alert')).toHaveTextContent(GEMINI_LIMITED)
+    expect(panel().queryByText(BUSY)).not.toBeInTheDocument()
     expect(productsHeading()).not.toBeInTheDocument()
     expect(panel().queryByText(READING)).not.toBeInTheDocument()
     await advance(120_000)

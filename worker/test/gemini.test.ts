@@ -39,8 +39,9 @@ function setup(startedAt = 0) {
   const fetchMock = vi.fn<typeof fetch>()
   const deps = { fetch: fetchMock as unknown as typeof fetch, now: () => clock.t }
   const ctx: RequestContext = { origin: 'https://lumos0107.github.io', startedAt }
-  const call = (extra: { timeoutMs?: number; budgetMs?: number; maxOutputTokens?: number } = {}) =>
-    callGemini({ key: KEY, parts: PARTS, schema: SCHEMA, deps, ctx, ...extra })
+  const call = (
+    extra: { key?: string | undefined; timeoutMs?: number; budgetMs?: number; maxOutputTokens?: number } = {},
+  ) => callGemini({ key: KEY, parts: PARTS, schema: SCHEMA, deps, ctx, ...extra })
   return { clock, fetchMock, call }
 }
 
@@ -146,11 +147,41 @@ describe('Gemini 호출', () => {
   })
 
   // plan: does not retry on 429
-  it('429는 다시 부르지 않아요', async () => {
+  // PRD v0.38(판정 R38-P6)이 기대값을 바꿨다: 429는 그대로 다시 부르지 않지만 이유를 'limited'로 알린다 (AC60·AC75)
+  it('AC75: 429는 다시 부르지 않고 제한으로 알려요', async () => {
     const { fetchMock, call } = setup()
     fetchMock.mockImplementation(async () => status(429))
-    expect(await call()).toEqual({ ok: false })
+    expect(await call()).toEqual({ ok: false, reason: 'limited' })
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('AC75: 503 뒤 429가 오면 제한으로 알리고 세 번째는 부르지 않아요', async () => {
+    const { fetchMock, call } = setup()
+    fetchMock
+      .mockResolvedValueOnce(status(503))
+      .mockResolvedValueOnce(status(429))
+      .mockImplementation(async () => ok('{"name":"우유"}'))
+    expect(await call()).toEqual({ ok: false, reason: 'limited' })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('AC75: 키가 없거나 빈 글자·공백뿐이면 Gemini를 부르지 않고 키 없음으로 알려요', async () => {
+    for (const key of [undefined, '', '  ']) {
+      const { fetchMock, call } = setup()
+      fetchMock.mockImplementation(async () => ok('{"name":"우유"}'))
+      expect(await call({ key }), JSON.stringify(key)).toEqual({ ok: false, reason: 'no_key' })
+      expect(fetchMock).not.toHaveBeenCalled()
+    }
+  })
+
+  // 제한·키 없음 말고는 이유를 붙이지 않는다: 호출하는 쪽이 그 밖의 실패를 502 upstream으로 묶는다
+  it('AC75: 5xx·모양이 다른 응답은 이유 없이 실패로만 알려요', async () => {
+    const { fetchMock, call } = setup()
+    for (const response of [status(500), status(503), ok('이건 JSON이 아니에요')]) {
+      fetchMock.mockImplementation(async () => response.clone())
+      const result = await call()
+      expect(result, String(response.status)).toStrictEqual({ ok: false })
+    }
   })
 
   it('503이 아닌 다른 오류 상태도 다시 부르지 않아요', async () => {

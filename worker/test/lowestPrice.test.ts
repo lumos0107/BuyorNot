@@ -28,6 +28,8 @@ const env: Env = {
   AI_ENABLED: 'true',
   DANAWA_ENABLED: 'true',
 }
+// 배포에서 비밀 변수를 빠뜨린 환경(다나와 조회는 켠 상태)
+const withoutKey: Env = { ALLOWED_ORIGINS: ORIGIN, AI_ENABLED: 'true', DANAWA_ENABLED: 'true' }
 const ctx: RequestContext = { origin: ORIGIN, startedAt: 0 }
 
 // 고정 자료에서 뽑는 네 줄: 800원(1개) · 4,900원(6개) · 24,120원(30개) · 8,180원(묶음 표시 없음)
@@ -288,6 +290,44 @@ describe('온라인 가격 확인 요청', () => {
     expect(body.status).toBe('not_confirmed')
     expect(body.matches).toEqual([])
     expect(body.candidates).toEqual(ROWS.slice(0, 3))
+  })
+
+  it('AC75: 다나와를 켠 상태에서 Gemini가 429를 주면 지금처럼 not_confirmed예요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    route(fetchMock, html200(), new Response('{}', { status: 429 }))
+    const { res, body } = await run(REQUEST, deps)
+    expect(res.status).toBe(200)
+    expect(body.status).toBe('not_confirmed')
+    expect(body.matches).toEqual([])
+    expect(body.candidates).toEqual(ROWS.slice(0, 3))
+    expect(fetchMock.mock.calls.filter(([input]) => input === GEMINI_URL)).toHaveLength(1)
+  })
+
+  it('AC75: 다나와를 켠 상태에서 키가 없으면 Gemini를 부르지 않고 not_confirmed예요', async () => {
+    for (const noKey of [withoutKey, { ...env, GEMINI_API_KEY: '' }]) {
+      const { deps, fetchMock } = makeDeps()
+      route(fetchMock, html200(), geminiOk({ rows: [1], reason: '' }))
+      const { res, body } = await run(REQUEST, deps, noKey)
+      expect(res.status, JSON.stringify(noKey.GEMINI_API_KEY)).toBe(200)
+      expect(body.status).toBe('not_confirmed')
+      expect(body.matches).toEqual([])
+      expect(body.candidates).toEqual(ROWS.slice(0, 3))
+      expect(fetchMock.mock.calls.length).toBeGreaterThan(0)
+      expect(fetchMock.mock.calls.every(([url]) => String(url).startsWith('https://search.danawa.com/'))).toBe(true)
+    }
+  })
+
+  it('AC75: 다나와를 끈 상태에서는 키가 없어도 off이고 바깥으로 요청하지 않아요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    const { res, body } = await run(REQUEST, deps, { ...withoutKey, DANAWA_ENABLED: 'false' })
+    expect(res.status).toBe(200)
+    expect(body).toEqual({
+      status: 'off',
+      searchUrl: danawaSearchUrl('농심 오징어짬뽕 소컵'),
+      matches: [],
+      candidates: [],
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   // plan: unavailable when Danawa fails or there are no rows

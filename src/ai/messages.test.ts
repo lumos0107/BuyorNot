@@ -24,4 +24,8 @@ describe('AI 공통 문구', () => {
     expect(aiFailureMessage('disabled')).toBe('AI 기능을 잠시 멈췄어요. 직접 입력해 주세요.')
     expect(aiFailureMessage('failed')).toBe('지금은 읽지 못했어요. 직접 입력해 주세요.')
   })
+
+  it('AC76: Gemini 제한 문구가 PRD 문장 그대로다', () => {
+    expect(aiFailureMessage('upstream_limited')).toBe('AI 사용이 제한됐어요. 나중에 다시 시도하거나 직접 입력해 주세요.')
+  })
 })

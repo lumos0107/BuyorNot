@@ -152,6 +152,66 @@ describe('postJson', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  // 서버가 Gemini의 제한을 429 upstream_limited로 돌려주면 앱은 우리 서버의 제한(rate_limited)과 다른 문구를 보인다(PRD 10장 실패 문구)
+  it('AC76: 429 본문이 upstream_limited면 upstream_limited이고 다시 보내지 않는다', async () => {
+    vi.stubEnv('VITE_AI_SERVER_URL', SERVER)
+    const fetchMock = stubFetch(async () => jsonResponse({ error: 'upstream_limited' }, 429))
+
+    expect(await postJson(READ_TAG_PATH, {}, { timeoutMs: PHOTO_TIMEOUT_MS, guard: anyObject })).toEqual({
+      ok: false,
+      error: 'upstream_limited',
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('AC76: 429 본문이 rate_limited이거나 JSON이 아니면 rate_limited다', async () => {
+    vi.stubEnv('VITE_AI_SERVER_URL', SERVER)
+    const fetchMock = stubFetch(async () => jsonResponse({}))
+    const opts = { timeoutMs: PHOTO_TIMEOUT_MS, guard: anyObject }
+    const replies: [string, () => Response][] = [
+      ['rate_limited 본문', () => jsonResponse({ error: 'rate_limited' }, 429)],
+      ['JSON이 아닌 본문', () => new Response('not json', { status: 429 })],
+      ['빈 본문', () => new Response(null, { status: 429 })],
+      ['error가 없는 객체', () => jsonResponse({}, 429)],
+      ['객체가 아닌 JSON', () => jsonResponse(null, 429)],
+    ]
+
+    for (const [name, reply] of replies) {
+      fetchMock.mockImplementation(async () => reply())
+      expect(await postJson(READ_TAG_PATH, {}, opts), name).toEqual({ ok: false, error: 'rate_limited' })
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(replies.length)
+  })
+
+  it('AC76: 429 본문을 읽는 중에 취소하면 cancelled다', async () => {
+    vi.stubEnv('VITE_AI_SERVER_URL', SERVER)
+    let bodyRequested = false
+    // 헤더(429)는 왔지만 본문은 신호가 끊길 때만 끝나는 응답
+    const fetchMock = stubFetch(
+      async (_url, init) =>
+        ({
+          ok: false,
+          status: 429,
+          json: () => {
+            bodyRequested = true
+            return new Promise<unknown>((_resolve, reject) => {
+              init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
+            })
+          },
+        }) as unknown as Response,
+    )
+    const caller = new AbortController()
+
+    const pending = postJson(READ_TAG_PATH, {}, { timeoutMs: PHOTO_TIMEOUT_MS, signal: caller.signal, guard: anyObject })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(bodyRequested).toBe(true)
+    caller.abort()
+
+    expect(await pending).toEqual({ ok: false, error: 'cancelled' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][1]?.signal?.aborted).toBe(true)
+  })
+
   // plan: returns failed on network error, 500 and timeout
   it('네트워크 오류는 failed이고 다시 보내지 않는다', async () => {
     vi.stubEnv('VITE_AI_SERVER_URL', SERVER)

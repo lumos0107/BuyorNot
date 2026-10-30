@@ -43,6 +43,7 @@ const INTERRUPTED = '녹음이 중간에 멈췄어요. 다시 말해 주세요.'
 const BUSY = '지금은 사용이 많아요. 잠시 뒤 다시 해 주세요.'
 const PAUSED = 'AI 기능을 잠시 멈췄어요. 직접 입력해 주세요.'
 const UNREADABLE = '지금은 읽지 못했어요. 직접 입력해 주세요.'
+const GEMINI_LIMITED = 'AI 사용이 제한됐어요. 나중에 다시 시도하거나 직접 입력해 주세요.'
 
 // ---------------------------------------------------------------- 응답 견본 (서버가 돌려주는 모양: 칸이 모두 있다)
 
@@ -743,6 +744,22 @@ describe('받아쓰기가 실패하면 (10장 앱 공통 실패 문구)', () => 
     expect(values()).toEqual(before)
     expectNoVoiceStatus()
     expect(startButton()).toHaveFocus()
+    await advance(120_000)
+    expect(s.server.callsTo(VOICE)).toHaveLength(1)
+  })
+
+  it('AC76: 말로 담기에 서버가 429 upstream_limited면 Gemini 제한 문구를 보인다', async () => {
+    const s = setup()
+    s.server.on(VOICE, aiReply.status(429, { error: 'upstream_limited' }))
+    fireEvent.change(nameField(), { target: { value: '매트' } })
+    const before = values()
+
+    await record()
+
+    expect(form().getByRole('alert')).toHaveTextContent(GEMINI_LIMITED)
+    expect(form().queryByText(BUSY)).not.toBeInTheDocument()
+    expect(form().queryByText(TRANSCRIBING)).not.toBeInTheDocument()
+    expect(values()).toEqual(before)
     await advance(120_000)
     expect(s.server.callsTo(VOICE)).toHaveLength(1)
   })

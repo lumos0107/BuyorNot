@@ -84,7 +84,7 @@ main(async () => {
         ctx: { origin: ORIGIN, startedAt },
       })
       const ms = Date.now() - startedAt
-      // 다나와 직접 호출: 성공 200, Gemini 실패·모양이 다른 응답 502(asDanawaPicks)
+      // 다나와 직접 호출: 성공 200, Gemini 429 → 429(제한으로 셈), 그 밖의 Gemini 실패·모양이 다른 응답 502(asDanawaPicks)
       const { httpStatus, picked } = asDanawaPicks(rows, result)
       raw.push({ id: c.id, ok: result.ok, ms, value: result.ok ? result.value : null, rows })
       const one = scoreDanawaCase(c.id, c.expected, { httpStatus, ms, picked, prices: rows.map((row) => row.price) })

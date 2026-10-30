@@ -16,7 +16,7 @@ import {
   selectCases,
   wavSeconds,
 } from './lib.ts'
-import { keywordMatch, scoreDanawaCase, tally } from './score.ts'
+import { keywordMatch, scoreDanawaCase, scoreTagCase, tally } from './score.ts'
 
 function tagCase(id: string, set: '조정용' | '평가용', over: Record<string, unknown> = {}) {
   return {
@@ -189,6 +189,16 @@ describe('응답 시간 초 표기', () => {
   })
 })
 
+describe('제한으로 받지 못한 요청의 출력', () => {
+  // 서버를 거치는 평가 셋은 서버가 429 upstream_limited를 돌려주면 이 경로로 센다(채점기는 429·503을 모두 제한·꺼짐으로 본다)
+  it('AC76: 평가 결과의 한 사례가 429면 칸을 채점하지 않고 출력 첫 줄에 제한 수를 함께 보인다', () => {
+    const expected = [{ nameKeywords: '보리차', price: 4550, priceCondition: null, size: 1.5, unit: 'L', count: 50 }]
+    const scored = scoreTagCase('rt01', expected, { httpStatus: 429, ms: 100, items: null })
+    expect(scored.fields).toEqual([])
+    expect(formatTally(tally([scored]))[0]).toBe('사례 1개 · 요청 0번 중 실패 0번 · 제한·꺼짐으로 받지 못한 요청 1번')
+  })
+})
+
 describe('치수 읽기 정답 파일', () => {
   // 파일을 읽는 일은 사례 안에서 한다(파일이 없거나 틀리면 이 describe의 사례만 실패하도록)
   const raw = () => JSON.parse(readFileSync('eval/cases/read-size.json', 'utf8')) as unknown
@@ -357,6 +367,19 @@ describe('asDanawaPicks', () => {
     expect(asDanawaPicks(rows, { ok: true, value: null })).toEqual(failed)
     expect(asDanawaPicks(rows, { ok: true, value: { reason: 'rows 없음' } })).toEqual(failed)
     expect(asDanawaPicks(rows, { ok: true, value: { rows: 2, reason: '' } })).toEqual(failed)
+  })
+
+  it('AC76: 다나와 고르기 평가에서 Gemini가 제한이면 429로 적고 제한으로 센다', () => {
+    const wanted = { name: '두부 부침용 300g' }
+    const limited = asDanawaPicks(rows, { ok: false, reason: 'limited' })
+    expect(limited).toEqual({ httpStatus: 429, picked: null })
+    const scored = scoreDanawaCase('dn98', { wanted, accepted: [2] }, { ...limited, ms: 5000, prices: rows.map((r) => r.price) })
+    expect(scored.fields).toEqual([])
+    const counted = tally([scored])
+    expect(counted.limited).toBe(1)
+    expect(counted.failed).toBe(0)
+    // 제한이 아닌 실패는 지금처럼 502다(키 없음은 평가 스크립트가 키를 먼저 읽어 오지 않지만 제한으로 세지 않는다)
+    expect(asDanawaPicks(rows, { ok: false, reason: 'no_key' })).toEqual({ httpStatus: 502, picked: null })
   })
 
   it('모양이 다른 응답은 허용 줄이 없어도 맞음이 아니라 채점하지 않음, 허용 줄이 있으면 못 읽음이에요', () => {

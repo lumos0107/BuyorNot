@@ -6,6 +6,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, 
 import { resolve } from 'node:path'
 import { seconds } from '../src/ai/evalSummary.ts'
 import type { DanawaRow, LowestPriceRequest, TagUnit, VoiceFillResponse } from '../src/ai/types.ts'
+import type { GeminiFailure } from '../worker/src/gemini.ts'
 import { pickRows } from '../worker/src/lowestPrice.ts'
 import { tally } from './score.ts'
 import type {
@@ -553,11 +554,13 @@ export function main(run: () => Promise<void>): void {
 }
 
 // 다나와 직접 호출의 Gemini 결과를 고른 줄 번호(1부터)로 바꾼다. 서버(lowestPrice.ts)처럼 pickRows로 1~n 정수만 남기고
-// 중복을 뺀다. Gemini 실패와 모양이 다른 응답(객체가 아님·rows가 배열이 아님)은 실패(502, picked null)로 센다(F43).
+// 중복을 뺀다. Gemini가 429를 주면 제한(429, picked null)이라 채점하지 않고 제한·꺼짐으로 센다(판정 R38-P6).
+// 그 밖의 Gemini 실패와 모양이 다른 응답(객체가 아님·rows가 배열이 아님)은 실패(502, picked null)로 센다(F43).
 export function asDanawaPicks(
   rows: DanawaRow[],
-  result: { ok: true; value: unknown } | { ok: false },
-): { httpStatus: 200 | 502; picked: number[] | null } {
+  result: { ok: true; value: unknown } | GeminiFailure,
+): { httpStatus: 200 | 429 | 502; picked: number[] | null } {
+  if (!result.ok && result.reason === 'limited') return { httpStatus: 429, picked: null }
   if (!result.ok || !isRec(result.value) || !Array.isArray(result.value.rows)) return { httpStatus: 502, picked: null }
   return { httpStatus: 200, picked: pickRows(rows, result.value.rows).map((row) => rows.indexOf(row) + 1) }
 }

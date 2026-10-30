@@ -4,9 +4,10 @@
 import { aiServerUrl } from './config'
 import type { DanawaRow, LowestPriceResponse, ReadSizeResponse, ReadTagResponse, SizeCandidate, TagItem, VoiceFillResponse } from './types'
 
-// rate_limited: 서버 제한(429) · disabled: 서버가 꺼 둠(503) · cancelled: 호출한 쪽이 끊음
+// rate_limited: 서버 제한(429) · upstream_limited: Gemini 자체 제한(서버 429, 본문 error가 upstream_limited)
+// disabled: 서버가 꺼 둠(503) · cancelled: 호출한 쪽이 끊음
 // failed: 그 밖의 모든 실패(네트워크·시간 초과·서버 오류·모양이 다른 응답·서버 주소 없음)
-export type AiFailure = 'rate_limited' | 'disabled' | 'failed' | 'cancelled'
+export type AiFailure = 'rate_limited' | 'upstream_limited' | 'disabled' | 'failed' | 'cancelled'
 export type AiResult<T> = { ok: true; data: T } | { ok: false; error: AiFailure }
 
 type AiPath = '/api/read-tag' | '/api/lowest-price' | '/api/voice-fill' | '/api/read-size'
@@ -54,13 +55,24 @@ async function send<T>(
       body: JSON.stringify(body),
       signal,
     })
-    if (response.status === 429) return fail('rate_limited')
+    if (response.status === 429) return fail(await limitKind(response))
     if (response.status === 503) return fail('disabled')
     if (!response.ok) return fail('failed')
     const data: unknown = await response.json()
     return guard(data) ? { ok: true, data } : fail('failed')
   } catch {
     return fail('failed')
+  }
+}
+
+// 429의 본문 error가 upstream_limited일 때만 Gemini 제한이다. 본문이 다르거나 JSON이 아니면 서버 제한(rate_limited)으로 본다.
+// 본문을 읽는 도중 요청이 끊기면 읽기가 실패해 rate_limited로 돌아가지만, 부른 쪽(postJson)이 신호를 보고 cancelled로 바꾼다.
+async function limitKind(response: Response): Promise<'rate_limited' | 'upstream_limited'> {
+  try {
+    const body: unknown = await response.json()
+    return isRecord(body) && body.error === 'upstream_limited' ? 'upstream_limited' : 'rate_limited'
+  } catch {
+    return 'rate_limited'
   }
 }
 

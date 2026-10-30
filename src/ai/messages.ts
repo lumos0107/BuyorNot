@@ -15,6 +15,8 @@ export function aiFailureMessage(error: Exclude<AiFailure, 'cancelled'>): string
   switch (error) {
     case 'rate_limited':
       return '지금은 사용이 많아요. 잠시 뒤 다시 해 주세요.'
+    case 'upstream_limited':
+      return 'AI 사용이 제한됐어요. 나중에 다시 시도하거나 직접 입력해 주세요.'
     case 'disabled':
       return 'AI 기능을 잠시 멈췄어요. 직접 입력해 주세요.'
     case 'failed':

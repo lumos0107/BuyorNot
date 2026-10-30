@@ -1,7 +1,7 @@
 import type { ReadTagResponse, TagItem, TagUnit } from '../../src/ai/types.ts'
 import type { Deps, Env, RequestContext } from './env.ts'
 import { callGemini } from './gemini.ts'
-import { json } from './http.ts'
+import { geminiFailed, json } from './http.ts'
 import { matchesMime } from './magic.ts'
 
 export const READ_TAG_PROMPT = `한국 매장에서 찍은 사진이다. 사진에 보이는 상품과 가격표를 읽어라.
@@ -181,6 +181,6 @@ export async function readTag(
     ctx,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
   })
-  if (!result.ok) return json(502, { error: 'upstream' }, ctx)
+  if (!result.ok) return geminiFailed(result, ctx)
   return json(200, normalizeTagResult(result.value), ctx)
 }

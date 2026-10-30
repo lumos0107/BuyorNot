@@ -12,7 +12,11 @@ const RETRY_MIN_REMAINING_MS = 15_000
 // 약 11초에 잘라 502로 빨리 끝낼 뿐 반복 자체를 막지는 않는다. 더 긴 정상 응답이 필요한 기능은 옵션으로 늘린다.
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096
 
-type Attempt = { kind: 'ok'; envelope: unknown } | { kind: 'busy' } | { kind: 'fail' }
+// limited: Gemini가 429를 줌(다시 부르지 않는다). busy는 503이고 남은 시간이 있으면 한 번 더 부른다
+type Attempt = { kind: 'ok'; envelope: unknown } | { kind: 'busy' } | { kind: 'limited' } | { kind: 'fail' }
+
+// 실패. reason은 Gemini의 429(limited)와 키 없음(no_key)에만 붙고, 그 밖의 실패(시간 초과·5xx·모양이 다른 응답)에는 붙이지 않는다
+export type GeminiFailure = { ok: false; reason?: 'limited' | 'no_key' }
 
 // 한 번의 시도. fetch와 본문 json()을 같은 상한 안에서 기다린다.
 async function attemptOnce(
@@ -32,6 +36,7 @@ async function attemptOnce(
     const run = async (): Promise<Attempt> => {
       const res = await fetchFn(url, { ...init, signal: controller.signal })
       if (res.status === 503) return { kind: 'busy' }
+      if (res.status === 429) return { kind: 'limited' }
       if (!res.ok) return { kind: 'fail' }
       return { kind: 'ok', envelope: await res.json() }
     }
@@ -67,7 +72,7 @@ function joinText(envelope: unknown): string | null {
 }
 
 export async function callGemini(opts: {
-  key: string
+  key: string | undefined
   parts: GeminiPart[]
   schema: object
   deps: Pick<Deps, 'fetch' | 'now'>
@@ -75,8 +80,10 @@ export async function callGemini(opts: {
   timeoutMs?: number
   budgetMs?: number
   maxOutputTokens?: number
-}): Promise<{ ok: true; value: unknown } | { ok: false }> {
+}): Promise<{ ok: true; value: unknown } | GeminiFailure> {
   const { key, parts, schema, deps, ctx } = opts
+  // 키가 없거나 비면 Gemini를 부르지 않는다(배포에서 비밀 변수를 빠뜨려도 호출 없이 알 수 있게)
+  if (!key?.trim()) return { ok: false, reason: 'no_key' }
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const budgetMs = opts.budgetMs ?? DEFAULT_BUDGET_MS
   const remaining = () => ctx.startedAt + budgetMs - deps.now()
@@ -105,6 +112,7 @@ export async function callGemini(opts: {
     if (result.kind === 'busy' && remaining() >= RETRY_MIN_REMAINING_MS) continue
     break
   }
+  if (result.kind === 'limited') return { ok: false, reason: 'limited' }
   if (result.kind !== 'ok') return { ok: false }
 
   const text = joinText(result.envelope)

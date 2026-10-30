@@ -1,10 +1,12 @@
 import type { Deps, Env, RequestContext } from './env.ts'
+import type { GeminiFailure } from './gemini.ts'
 
 export type ErrorCode =
   | 'forbidden'
   | 'not_found'
   | 'disabled'
   | 'rate_limited'
+  | 'upstream_limited'
   | 'too_large'
   | 'bad_request'
   | 'upstream'
@@ -28,6 +30,14 @@ export function json(status: number, body: unknown, ctx: RequestContext): Respon
 
 function fail(status: number, error: ErrorCode, ctx: RequestContext): Response {
   return json(status, { error }, ctx)
+}
+
+// Gemini 호출이 실패했을 때의 응답. Gemini의 429는 우리 서버의 IP 제한(rate_limited)과 달리 upstream_limited,
+// 키 없음은 disabled(Gemini 요청 없이), 그 밖(시간 초과·5xx·모양이 다른 응답)은 upstream이다
+export function geminiFailed(failure: GeminiFailure, ctx: RequestContext): Response {
+  if (failure.reason === 'limited') return fail(429, 'upstream_limited', ctx)
+  if (failure.reason === 'no_key') return fail(503, 'disabled', ctx)
+  return fail(502, 'upstream', ctx)
 }
 
 // 허용하지 않은 출처에는 CORS 헤더를 주지 않는다

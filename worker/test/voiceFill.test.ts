@@ -13,6 +13,8 @@ const env: Env = {
   AI_ENABLED: 'true',
   DANAWA_ENABLED: 'false',
 }
+// 배포에서 비밀 변수를 빠뜨린 환경
+const withoutKey: Env = { ALLOWED_ORIGINS: ORIGIN, AI_ENABLED: 'true', DANAWA_ENABLED: 'false' }
 const ctx: RequestContext = { origin: ORIGIN, startedAt: 0 }
 
 function makeDeps() {
@@ -275,6 +277,29 @@ describe('녹음 읽기 요청', () => {
     expect(await res.json()).toEqual({ error: 'upstream' })
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN)
     expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+
+  it('AC75: Gemini가 429를 주면 429 upstream_limited로 답하고 다시 부르지 않아요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    fetchMock.mockImplementation(async () => new Response('{}', { status: 429 }))
+    const res = await voiceFill({ audio: WEBM, mimeType: 'audio/webm' }, env, deps, ctx)
+    expect(res.status).toBe(429)
+    expect(await res.json()).toEqual({ error: 'upstream_limited' })
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('AC75: 키가 없으면 Gemini를 부르지 않고 503 disabled로 답해요', async () => {
+    for (const noKey of [withoutKey, { ...env, GEMINI_API_KEY: '' }]) {
+      const { deps, fetchMock } = makeDeps()
+      const res = await voiceFill({ audio: WEBM, mimeType: 'audio/webm' }, noKey, deps, ctx)
+      expect(res.status, JSON.stringify(noKey.GEMINI_API_KEY)).toBe(503)
+      expect(await res.json()).toEqual({ error: 'disabled' })
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN)
+      expect(res.headers.get('Cache-Control')).toBe('no-store')
+      expect(fetchMock).not.toHaveBeenCalled()
+    }
   })
 
   it('Gemini 결과에 받아쓰기가 없거나 객체가 아니면 502예요', async () => {

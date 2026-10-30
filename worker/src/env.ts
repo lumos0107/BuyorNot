@@ -1,7 +1,8 @@
 import type { RateLimiter } from './rateLimit.ts'
 
 export type Env = {
-  GEMINI_API_KEY: string
+  // 배포에서 비밀 변수를 빠뜨리면 undefined다
+  GEMINI_API_KEY?: string
   ALLOWED_ORIGINS: string
   AI_ENABLED: string
   DANAWA_ENABLED: string
