@@ -125,7 +125,7 @@ describe('단가 가격표와 모두 모르는 경우 (AC56)', () => {
     expect(result).not.toHaveProperty('partial')
   })
 
-  it('AC56: 단가 기준이 1kg이면 문장 앞에 읽은 기준을 그대로 넣는다', () => {
+  it('AC56: 단가 기준이 1kg이면 문장의 기준 자리에 읽은 값을 그대로 넣는다', () => {
     // PRD F32: 문장의 "100g" 자리는 읽은 값(priceBasis)이다
     const result = tagToBundle({ ...ITEM, priceBasis: '1kg' })
 

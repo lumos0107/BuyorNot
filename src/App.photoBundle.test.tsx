@@ -518,7 +518,7 @@ describe('읽은 값을 확인 상자에서 확인하고 채운다 (AC55)', () =
 
 describe('단가 가격표, 모두 모르는 값, 상품 여러 개 (AC56)', () => {
   // plan: AC56 세 경우
-  it('AC56: 단가 가격표(100g)를 읽으면 칸은 그대로이고 "100g당 가격표라 묶음 비교에 넣지 않았어요…"를 보이며 채울 수 없다', async () => {
+  it('AC56·AC73: 단가 가격표(100g)를 읽으면 칸은 그대로이고 "AI가 이 가격을 100g당 가격으로 읽었어요…"를 보이며 채우기가 없다', async () => {
     const s = setup()
     s.server.on(READ, readTag(ITEM_UNIT_PRICE))
     openBundle()
