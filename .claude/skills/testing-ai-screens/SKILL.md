@@ -1,6 +1,6 @@
 ---
 name: testing-ai-screens
-description: Use when writing or reviewing 살까말까 (BuyorNot) screen tests for features that call the AI server — 가격표 사진, 사진으로 채우기, 말로 담기, 캡처 치수 읽기 — 모의 서버 응답, 늦은 응답, 취소, 숨은 화면 포커스, 미리보기 주소 해제, 60초 상한, fake timers hang.
+description: Use when writing or reviewing 살까말까 (BuyorNot) screen tests for features that call the AI server — 가격표 사진, 사진으로 채우기, 말로 담기, 캡처 치수 읽기 — 모의 서버 응답, 늦은 응답, 취소, 숨은 화면 포커스, 미리보기 주소 해제, 60초 상한, fake timers hang; also when checking those screens in a real browser with Playwright — page.route/context.route 모의 응답, 남은 모의 응답, 실제 호출을 서버(wrangler dev) 로그로 세기.
 ---
 
 # AI 화면 테스트
@@ -37,8 +37,18 @@ AI 화면 테스트의 어려운 곳은 문구가 아니라 비동기 동작이�
 6. **60초 상한**: `postJson`의 상한은 `src/ai/client.test.ts`가 이미 본다. 화면에서는 경로마다 한 번: 59,999ms에는 문구 없음, 60,000ms에 `role=alert`. 가짜 타이머는 `vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })`만 쓰고, 이때 `userEvent`·`waitFor`·`findBy`는 멈추므로 `fireEvent`와 `await act(async () => { vi.advanceTimersByTime(n) })`로 진행한다.
 7. **찾기**: 역할·이름으로. PRD·계획에 없는 라벨이 필요하면 계획 Interfaces의 이름을 쓰고, 그래도 없으면 `// 가정: …` 주석.
 
+## 브라우저로 확인할 때(Playwright)
+
+화면 테스트가 아니라 실제 브라우저(Playwright MCP 등)로 AI 화면을 볼 때의 규칙이다. 2026-10-31 사고: 15-8 화면 확인이 공유 브라우저에 `/api/read-size` 모의 응답을 걸고 풀지 않아, 뒤의 평가 두 번이 그 모의 응답을 실제 AI 결과로 적었다.
+
+1. **모의 응답은 새 컨텍스트에서만.** `const ctx = await page.context().browser().newContext()`로 만들고 그 안의 `ctx.route(...)`·`ctx.newPage()`만 쓴다. 공유 컨텍스트(`page.context()`)나 MCP가 연 `page`에 `route`를 걸지 않는다.
+2. **`finally`에서 풀고 닫는다.** `finally { await ctx.unrouteAll({ behavior: 'ignoreErrors' }); await ctx.close() }`. MCP `browser_close`는 탭(`page.close()`)만 닫고 컨텍스트에 건 `route`는 남는다 — 닫으면 사라진다고 가정하지 않는다.
+3. **실제 호출은 서버 로그로 센다.** 화면에 AI 결과가 나와도 서버(wrangler dev) 로그에 그 `POST /api/...` 줄이 없으면 실제 결과가 아니다. 보고서에는 '실제 호출 n번(로그 기준)'과 '모의 응답'을 따로 적고, 확인이 끝난 뒤 컨텍스트를 닫았는지 적는다.
+4. **실제 호출 전에 남은 모의 응답이 없는지 본다.** AI 호출이 생기지 않는 빈 요청(예: 본문 `{}`)을 보내 서버의 400이 오는지 확인한다. 모의 응답이 오면 멈추고 보고한다.
+
 ## 자주 하는 실수
 
 - 보류 응답이 취소 신호에 끊기게 만든다 → 늦은 응답 방어(요청 번호)를 시험하지 못한다. 늦은 응답은 신호를 무시하는 보류로.
 - 실제 60초를 기다리거나 `userEvent`를 가짜 타이머와 함께 쓴다 → 테스트가 멈춘다.
 - 컴포넌트 내부 상태·클래스 이름으로 단언한다 → 보이는 글과 역할로.
+- 브라우저 확인에서 공유 컨텍스트에 모의 응답을 걸고 `browser_close`로 정리됐다고 여긴다 → 다음 에이전트의 "실제" 결과가 모의 응답이 된다. 새 컨텍스트 + `finally`에서 닫기.
