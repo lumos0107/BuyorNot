@@ -74,6 +74,7 @@ export default function App() {
             onReconsider={wishlist.reconsider}
             onCheckDesire={wishlist.checkDesire}
             onAnswer={wishlist.answer}
+            onSetFit={wishlist.setFit}
             hourlyWage={settings.hourlyWage}
             draft={draft}
             onDraftUsed={() => setDraft(null)}

@@ -1,4 +1,5 @@
 import { DESIRE_RESTORE_MAX } from './desire'
+import { isFit } from './fit'
 import { MAX_WON } from './number'
 import { parseDay } from './subscriptions'
 import { NAME_MAX, NOTE_MAX, REASON_MAX, type WishItem } from './wishlist'
@@ -90,6 +91,8 @@ function hasValidOptionalFields(o: Record<string, unknown>): boolean {
   // 담을 때 고른 날은 실제 날짜이고, 담을 때 정도와 함께만 있다
   if (o.desireStartDay !== undefined && (o.desireStart === undefined || !isString(o.desireStartDay) || parseDay(o.desireStartDay) === null)) return false
   if (o.desireChecks !== undefined && !isDesireChecks(o.desireChecks)) return false
+  // 놓을 자리 확인 (F44): 결정한 물건에도 남는다
+  if (o.fit !== undefined && !isFit(o.fit)) return false
   if (o.answers !== undefined) {
     if (typeof o.answers !== 'object' || o.answers === null || Array.isArray(o.answers)) return false
     const a = o.answers as Record<string, unknown>

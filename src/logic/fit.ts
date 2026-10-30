@@ -1,3 +1,5 @@
+import type { WishItem } from './wishlist'
+
 // PRD F44 놓을 자리 확인: 입력한 치수만 비교하고, 사라·말라는 말하지 않는다.
 // 치수는 mm 정수로 저장·계산한다(입력 cm × 10). 부동소수 뺄셈으로 판정하지 않는다.
 
@@ -131,4 +133,22 @@ export function isFit(v: unknown): v is Fit {
   if (!isDims(o.space) || !isDims(o.item)) return false
   if (o.basis !== undefined && !(typeof o.basis === 'string' && o.basis.length >= 1 && o.basis.length <= BASIS_MAX)) return false
   return typeof o.savedAt === 'string' && Number.isFinite(Date.parse(o.savedAt))
+}
+
+/** 물건 기록에 놓을 자리 확인을 저장하거나(fit) 지운다(null). 다른 필드는 그대로 두고 수정 시각만 지금으로 (answerItem과 같다) */
+export function setItemFit(item: WishItem, fit: Fit | null, now: Date): WishItem {
+  const next: WishItem = { ...item, updatedAt: now.toISOString() }
+  if (fit) next.fit = fit
+  else delete next.fit
+  return next
+}
+
+/** 처음 열 때 미리 채울 놓을 곳: exceptId가 아닌 물건 중 fit.savedAt이 가장 늦은 것(표기가 아니라 실제 시각으로 비교). 없으면 null */
+export function latestPlace(items: readonly WishItem[], exceptId: string): { place: string; space: Dims } | null {
+  let latest: Fit | null = null
+  for (const item of items) {
+    if (item.id === exceptId || !item.fit) continue
+    if (latest === null || Date.parse(item.fit.savedAt) > Date.parse(latest.savedAt)) latest = item.fit
+  }
+  return latest ? { place: latest.place, space: latest.space } : null
 }

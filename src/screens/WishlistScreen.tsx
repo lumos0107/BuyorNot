@@ -5,6 +5,7 @@ import { buildIcs, googleCalendarUrl, icsFileName } from '../logic/calendar'
 import { formatDate } from '../logic/dates'
 import { DESIRE_LEVELS, DESIRE_TEXT, desireDueToday, desireTrend } from '../logic/desire'
 import { mergePhotoDraft, photoDraftNotice, type DraftMerge, type FormDraft } from '../logic/draft'
+import type { Fit } from '../logic/fit'
 import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
 import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, hasAnswer, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
@@ -38,6 +39,7 @@ import { ExampleBar } from '../ui/ExampleBar'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
 import { VoiceFillButton, type VoiceMessage } from './ai/VoiceFillButton'
+import { FitCheck } from './FitCheck'
 
 // PRD F01 상품 등록·관리, F02 고민 기간과 결정, F07 연장, F08 결정 메모, F15 사기 전에 한 번 더, F22 고민 노트
 type Decision = 'purchased' | 'skipped'
@@ -68,6 +70,8 @@ type Props = {
   onCheckDesire?: (id: string, level: DesireLevel) => boolean
   /** 카드에서 답하기, 값 없이 부르면 다시 답하기 (F22). 반영됐는지 돌려준다 */
   onAnswer?: (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => boolean
+  /** 놓을 자리 확인 저장·지우기(null) (F44). 반영됐는지 돌려준다 */
+  onSetFit?: (id: string, fit: Fit | null) => boolean
 }
 
 const NOT_APPLIED = () => false
@@ -89,6 +93,7 @@ export function WishlistScreen({
   onDraftUsed,
   onCheckDesire = NOT_APPLIED,
   onAnswer = NOT_APPLIED,
+  onSetFit = NOT_APPLIED,
 }: Props) {
   const considering = sortConsidering(items, now)
   const exampleCount = items.filter((item) => isExample(item.name)).length
@@ -124,6 +129,7 @@ export function WishlistScreen({
   }
   const checkDesire = (id: string, level: DesireLevel) => watch(onCheckDesire(id, level))
   const answer = (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => watch(onAnswer(id, key, value))
+  const setFit = (id: string, fit: Fit | null) => watch(onSetFit(id, fit))
   // 예시 물건 넣기는 예시 카드와 함께 담기 폼을 체크리스트까지 채운다 (F28). 늘어날 때마다 폼이 한 번 채운다
   const [exampleFill, setExampleFill] = useState(0)
   return (
@@ -196,6 +202,7 @@ export function WishlistScreen({
               onRemove={remove}
               onCheckDesire={checkDesire}
               onAnswer={answer}
+              onSetFit={setFit}
             />
           ))}
         </section>
@@ -605,13 +612,14 @@ type CardProps = {
   onRemove: (id: string) => void
   onCheckDesire: (id: string, level: DesireLevel) => boolean
   onAnswer: (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => boolean
+  onSetFit: (id: string, fit: Fit | null) => boolean
 }
 
 type CardMode = 'view' | 'edit' | 'confirm-delete' | 'extend' | 'decide-purchased' | 'decide-skipped'
 
 type Trigger = 'purchased' | 'skipped' | 'extend' | 'edit' | 'delete'
 
-function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, onRemove, onCheckDesire, onAnswer }: CardProps) {
+function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, onRemove, onCheckDesire, onAnswer, onSetFit }: CardProps) {
   const [mode, setMode] = useState<CardMode>('view')
   // 답하거나 다시 답하기가 반영되면 오늘의 고민에서 지금 보이는 질문(없으면 제목)으로 포커스를 옮긴다 (F22)
   const [noteFocus, setNoteFocus] = useState(0)
@@ -677,6 +685,8 @@ function WishCard({ item, items, now, hourlyWage, onEdit, onDecide, onExtend, on
       </p>
       <p>처음 적은 이유: {item.reason}</p>
       <GominNote item={item} now={now} focusTick={noteFocus} onCheckDesire={(level) => onCheckDesire(item.id, level)} onAnswer={answerAndFocus} />
+      {/* 놓을 자리 확인 (F44): 1단계(직접 입력)는 서버 주소와 상관없이 보인다 */}
+      <FitCheck item={item} items={items} onSave={onSetFit} />
       <CompareLinks name={item.name} />
 
       {mode === 'confirm-delete' ? (

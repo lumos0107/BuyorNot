@@ -1,4 +1,5 @@
 import { formatDate } from './dates'
+import type { Fit } from './fit'
 import { MAX_WON, parseInteger } from './number'
 
 // PRD F01 상품 등록·관리, F02 고민 기간과 결정, F03 결정 기록, #6 데이터 초안
@@ -61,6 +62,9 @@ export type WishItem = {
   desireStartDay?: string
   /** 고민하는 동안 날마다 기록한 정도 (같은 날은 하나) */
   desireChecks?: DesireCheck[]
+  // 2단계 선택 필드 (F44). schemaVersion 1 그대로
+  /** 놓을 자리 확인에 저장한 놓을 곳·물건 치수(mm). 판정은 저장하지 않고 볼 때마다 계산한다 */
+  fit?: Fit
 }
 
 export const NOTE_MAX = 200

@@ -9,11 +9,14 @@ import {
   fitSummary,
   formatCm,
   isFit,
+  latestPlace,
   parseCm,
+  setItemFit,
   validatePlace,
   type Dims,
   type Fit,
 } from './fit'
+import type { WishItem } from './wishlist'
 
 // PRD F44 놓을 자리 확인 / AC64(계산) · AC65(입력 검사와 저장 형식 중 로직 부분)
 // 치수는 mm 정수다(입력 cm × 10). 아래 숫자는 모두 mm이고, 주석의 cm는 AC64에 적힌 값이다.
@@ -359,5 +362,77 @@ describe('저장 형식 검사 (F44, AC65)', () => {
     for (const bad of [null, undefined, 'fit', 7, [], [valid()]]) {
       expect(isFit(bad)).toBe(false)
     }
+  })
+})
+
+describe('물건에 저장하기와 최근 놓을 곳 (F44, AC65)', () => {
+  const ITEM: Dims = { w: 320, d: 250, h: 470 }
+  const fitAt = (savedAt: string, place = PLACE, space: Dims = SPACE): Fit => ({ place, space, item: ITEM, savedAt })
+  const wish = (id: string, over: Partial<WishItem> = {}): WishItem => ({
+    id,
+    name: `물건 ${id}`,
+    priceKrw: 10000,
+    reason: '이유',
+    url: null,
+    createdAt: '2026-10-20T00:00:00.000Z',
+    updatedAt: '2026-10-20T00:00:00.000Z',
+    reviewAt: '2026-10-23T00:00:00.000Z',
+    status: 'considering',
+    decidedAt: null,
+    ...over,
+  })
+  const DESK: Dims = { w: 600, d: 500, h: 700 }
+  const DOOR: Dims = { w: 800, d: 400, h: 1200 }
+
+  // plan: latestPlace picks the latest savedAt and skips the item itself
+  it('최근 놓을 곳은 이 물건을 빼고 저장 시각이 가장 늦은 물건의 놓을 곳이에요', () => {
+    const items = [
+      wish('a', { fit: fitAt('2026-10-28T09:00:00.000Z', '책상 아래', DESK) }),
+      wish('b', { fit: fitAt('2026-10-30T09:00:00.000Z', PLACE, SPACE) }),
+      wish('c'),
+      wish('self', { fit: fitAt('2026-10-31T09:00:00.000Z', '현관', DOOR) }),
+    ]
+    expect(latestPlace(items, 'self')).toEqual({ place: PLACE, space: SPACE })
+    expect(latestPlace(items, 'b')).toEqual({ place: '현관', space: DOOR })
+    expect(latestPlace(items, 'c')).toEqual({ place: '현관', space: DOOR })
+  })
+
+  it('저장한 다른 물건이 없으면 최근 놓을 곳이 없어요', () => {
+    expect(latestPlace([], 'a')).toBeNull()
+    expect(latestPlace([wish('a', { fit: fitAt('2026-10-30T09:00:00.000Z') }), wish('b')], 'a')).toBeNull()
+  })
+
+  it('저장 시각은 표기가 아니라 실제 시각으로 비교해요', () => {
+    // 2026-10-30T18:00+09:00 = 09:00Z라서 08:00Z보다 늦다
+    const items = [
+      wish('a', { fit: fitAt('2026-10-30T08:00:00.000Z', '책상 아래', DESK) }),
+      wish('b', { fit: fitAt('2026-10-30T18:00:00+09:00', '현관', DOOR) }),
+    ]
+    expect(latestPlace(items, 'x')).toEqual({ place: '현관', space: DOOR })
+  })
+
+  it('결정한 물건에 저장한 놓을 곳도 가져와요', () => {
+    // 가정: PRD는 "가장 최근에 저장한 다른 물건"이라고만 하므로 결정 여부로 거르지 않는다
+    const decided = wish('a', { status: 'purchased', decidedAt: '2026-10-29T00:00:00.000Z', fit: fitAt('2026-10-28T09:00:00.000Z') })
+    expect(latestPlace([decided, wish('b')], 'b')).toEqual({ place: PLACE, space: SPACE })
+  })
+
+  it('저장하면 fit을 넣고 수정 시각을 지금으로 바꾸며 다른 필드는 그대로예요', () => {
+    const before = wish('a', { answers: { spaceTime: 'yes' }, desireStart: 3, desireStartDay: '2026-10-20' })
+    const fit = fitAt('2026-10-30T09:00:00.000Z')
+    const now = new Date('2026-10-30T09:00:00.000Z')
+    expect(setItemFit(before, fit, now)).toEqual({ ...before, fit, updatedAt: now.toISOString() })
+    expect(before.fit).toBeUndefined()
+  })
+
+  // plan: setItemFit(null) removes the field
+  it('지우면 fit 필드가 없어지고 수정 시각은 지금, 다른 필드는 그대로예요', () => {
+    const before = wish('a', { answers: { spaceTime: 'yes' }, fit: fitAt('2026-10-29T09:00:00.000Z') })
+    const now = new Date('2026-10-30T09:00:00.000Z')
+    const after = setItemFit(before, null, now)
+    expect('fit' in after).toBe(false)
+    const { fit: _removed, ...rest } = before
+    expect(after).toEqual({ ...rest, updatedAt: now.toISOString() })
+    expect(before.fit).toBeDefined()
   })
 })

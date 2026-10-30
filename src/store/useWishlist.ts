@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { STORAGE_KEY, getLocalStorage, readStore, saveStore, type LoadResult, type WishStore } from '../logic/storage'
 import { checkDesire } from '../logic/desire'
+import { setItemFit, type Fit } from '../logic/fit'
 import { answerItem, type QuestionKey } from '../logic/questions'
 import { nextRetroDelay, review } from '../logic/summary'
 import {
@@ -172,6 +173,8 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
     /** 카드에서 답하기·다시 답하기(값 없음) (F22). 반영됐는지 돌려준다 */
     answer: <K extends QuestionKey>(id: string, key: K, value: Answers[K] | undefined): boolean =>
       updateConsidering(id, (item, now) => answerItem(item, key, value, now)),
+    /** 놓을 자리 확인 저장·지우기(null) (F44). 고민 중인 물건에만 하고, 반영됐는지 돌려준다 */
+    setFit: (id: string, fit: Fit | null): boolean => updateConsidering(id, (item, now) => setItemFit(item, fit, now)),
     /** 결정을 되돌려 다시 고민 중으로 (F18) */
     reconsider: (id: string) =>
       commit(items.map((item) => (item.id === id ? reconsiderItem(item, new Date()) : item))),
