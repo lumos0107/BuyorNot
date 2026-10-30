@@ -8,9 +8,9 @@ import { readFileSync } from 'node:fs'
 import type { DanawaRow } from '../src/ai/types.ts'
 import { parseDanawaRows } from '../worker/src/danawa.ts'
 import { callGemini } from '../worker/src/gemini.ts'
-import { buildPickPrompt, normalizeRequest, PICK_PROMPT, PICK_SCHEMA, pickRows } from '../worker/src/lowestPrice.ts'
-import { isRecord } from '../worker/src/readTag.ts'
+import { buildPickPrompt, normalizeRequest, PICK_PROMPT, PICK_SCHEMA } from '../worker/src/lowestPrice.ts'
 import {
+  asDanawaPicks,
   caseLine,
   checkDanawaExpected,
   dataPath,
@@ -84,18 +84,10 @@ main(async () => {
         ctx: { origin: ORIGIN, startedAt },
       })
       const ms = Date.now() - startedAt
-      // 서버(lowestPrice.ts)와 같이 pickRows로 1~n 정수만 남기고 중복을 뺀 뒤 줄 번호로 되돌린다
-      const picked = result.ok
-        ? pickRows(rows, isRecord(result.value) ? result.value.rows : null).map((row) => rows.indexOf(row) + 1)
-        : null
+      // 다나와 직접 호출: 성공 200, Gemini 실패·모양이 다른 응답 502(asDanawaPicks)
+      const { httpStatus, picked } = asDanawaPicks(rows, result)
       raw.push({ id: c.id, ok: result.ok, ms, value: result.ok ? result.value : null, rows })
-      // 다나와 직접 호출: 성공 200, Gemini 실패 502
-      const one = scoreDanawaCase(c.id, c.expected, {
-        httpStatus: result.ok ? 200 : 502,
-        ms,
-        picked,
-        prices: rows.map((row) => row.price),
-      })
+      const one = scoreDanawaCase(c.id, c.expected, { httpStatus, ms, picked, prices: rows.map((row) => row.price) })
       console.log(caseLine(one))
       return one
     })

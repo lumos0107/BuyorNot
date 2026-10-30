@@ -90,7 +90,7 @@ export function scoreDanawa(accepted: number[], picked: number[], prices: number
   if (picked.length === 0) return 'missed'
   if (picked.some((n) => !accepted.includes(n))) return 'wrong'
   const lowest = Math.min(...accepted.map((n) => prices[n - 1]))
-  // 가장 낮은 가격의 허용 줄이 여럿이면 그중 하나만 골라도 된다(앱에 보이는 가장 낮은 가격이 같다)
+  // 판정 R15: 가장 낮은 가격의 허용 줄이 여럿이면 그중 하나만 골라도 된다(앱에 보이는 가장 낮은 가격이 같다)
   return picked.some((n) => prices[n - 1] === lowest) ? 'correct' : 'wrong'
 }
 

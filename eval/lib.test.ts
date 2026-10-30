@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import type { DanawaRow } from '../src/ai/types.ts'
 import {
+  asDanawaPicks,
   checkDanawaExpected,
   checkTagExpected,
   checkVoiceExpected,
@@ -9,6 +11,7 @@ import {
   selectCases,
   wavSeconds,
 } from './lib.ts'
+import { scoreDanawaCase } from './score.ts'
 
 function tagCase(id: string, set: '조정용' | '평가용', over: Record<string, unknown> = {}) {
   return {
@@ -153,5 +156,43 @@ describe('파일 머리 읽기', () => {
     dv.setUint32(40, 64000, true)
     expect(wavSeconds(new Uint8Array(buf))).toBe(2)
     expect(wavSeconds(new Uint8Array([1, 2, 3]))).toBeNull()
+  })
+})
+
+describe('asDanawaPicks', () => {
+  const row = (name: string, price: number): DanawaRow => ({ name, packCount: 1, price, unitPriceText: null, malls: '1' })
+  const rows = [row('가', 5000), row('나', 4000), row('다', 4500)]
+
+  it('서버처럼 1~n 정수만 남기고 중복을 뺀 줄 번호를 고른 차례대로 돌려줘요', () => {
+    const value = { rows: [2, 0, 9, 2, 3, '1', 1.5], reason: '같은 상품' }
+    expect(asDanawaPicks(rows, { ok: true, value })).toEqual({ httpStatus: 200, picked: [2, 3] })
+  })
+
+  it('rows가 빈 배열이면 성공(200)이고 고른 줄이 없어요', () => {
+    expect(asDanawaPicks(rows, { ok: true, value: { rows: [], reason: '없음' } })).toEqual({ httpStatus: 200, picked: [] })
+  })
+
+  it('Gemini 실패나 모양이 다른 응답(객체가 아님·rows가 배열이 아님)은 실패(502)예요', () => {
+    const failed = { httpStatus: 502, picked: null }
+    expect(asDanawaPicks(rows, { ok: false })).toEqual(failed)
+    expect(asDanawaPicks(rows, { ok: true, value: [1, 2] })).toEqual(failed)
+    expect(asDanawaPicks(rows, { ok: true, value: '2' })).toEqual(failed)
+    expect(asDanawaPicks(rows, { ok: true, value: null })).toEqual(failed)
+    expect(asDanawaPicks(rows, { ok: true, value: { reason: 'rows 없음' } })).toEqual(failed)
+    expect(asDanawaPicks(rows, { ok: true, value: { rows: 2, reason: '' } })).toEqual(failed)
+  })
+
+  it('모양이 다른 응답은 허용 줄이 없어도 맞음이 아니라 채점하지 않음, 허용 줄이 있으면 못 읽음이에요', () => {
+    const wanted = { name: '두부 부침용 300g' }
+    const malformed = asDanawaPicks(rows, { ok: true, value: { reason: 'rows 없음' } })
+    const reply = { ...malformed, ms: 5000, prices: rows.map((r) => r.price) }
+    expect(scoreDanawaCase('dn99', { wanted, accepted: [] }, reply)).toEqual({
+      id: 'dn99',
+      httpStatus: 502,
+      ms: 5000,
+      fields: [{ field: '고른 줄', expected: null, got: null, outcome: 'unscored' }],
+      extra: [],
+    })
+    expect(scoreDanawaCase('dn99', { wanted, accepted: [2] }, reply).fields[0].outcome).toBe('missed')
   })
 })
