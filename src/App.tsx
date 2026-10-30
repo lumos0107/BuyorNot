@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react'
+import { aiServerUrl } from './ai/config'
+import evalSummaryJson from './ai/evalSummary.json'
 import type { FormDraft } from './logic/draft'
+import { EvalReport } from './screens/ai/EvalReport'
 import { BackupSection } from './screens/BackupSection'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
@@ -132,6 +135,7 @@ export default function App() {
           return failed
         }}
       />
+      {aiServerUrl() ? <EvalReport summary={evalSummaryJson} /> : null}
 
       <footer className="app-footer">
         기록은 이 브라우저에만 저장돼요. 브라우저 데이터를 지우거나 다른 기기에서 열면 보이지 않아요.
