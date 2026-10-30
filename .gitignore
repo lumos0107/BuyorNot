@@ -26,3 +26,7 @@ dist-ssr
 # Private notes, API key file and evaluation data (never commit)
 /_개인기록/
 /PRD_1주안.md
+
+# Cloudflare Workers local secrets and cache
+worker/.dev.vars
+.wrangler/
