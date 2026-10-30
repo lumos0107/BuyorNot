@@ -300,6 +300,28 @@ describe('치수 읽기 요청', () => {
     expect(sent.generationConfig.responseSchema).toEqual(READ_SIZE_SCHEMA)
   })
 
+  // 실제 호출에서 상한 없는 요청이 40초를 넘겨 502였다(2026-10-31). 숫자 칸이 반복되는 식으로 생성이 길어지면
+  // 상한(4096)에서 잘린 닫히지 않은 JSON이 오고, 이것은 다시 부르지 않고 바로 502로 끝낸다.
+  it('출력 토큰 상한을 실어 보내고, 숫자 칸이 이어지다 상한에서 잘린 응답은 다시 부르지 않고 502예요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    const cut = '{"candidates":[{"text":"76 x 10 x 95cm","kind":"package","axes":"order","d":10.' + '0'.repeat(500)
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: cut }] }, finishReason: 'MAX_TOKENS' }],
+        }),
+        { status: 200 },
+      ),
+    )
+    const res = await readSize({ image: JPEG, mimeType: 'image/jpeg' }, env, deps, ctx)
+    expect(res.status).toBe(502)
+    expect(await res.json()).toEqual({ error: 'upstream' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [, init] = fetchMock.mock.calls[0]
+    const sent = JSON.parse(init?.body as string) as { generationConfig: Record<string, unknown> }
+    expect(sent.generationConfig.maxOutputTokens).toBe(4096)
+  })
+
   it('jpeg·png·webp는 모두 받아요', async () => {
     const { deps, fetchMock } = makeDeps()
     fetchMock.mockImplementation(() => Promise.resolve(geminiOk({ candidates: [] })))
