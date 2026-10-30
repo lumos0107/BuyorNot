@@ -23,12 +23,14 @@ import { aiReply, mockAiServer, mockImagePipeline, mockObjectUrls, nextTask, typ
 //
 // PRD·계획에 글이 없어 정한 이름·값(가정):
 // - 가정: 확인 상자는 접근 가능한 이름이 PRD가 부르는 이름 그대로 "확인 상자"인 묶음(role=group)이고, 문장은 그 안의 알림 칸(role=status)에
-//   적힌 내용 · 제품/포장 · 적힌 순서 · 넣을 값 · 지울 칸 차례로 한 줄씩 있다. F32와 같다.
+//   AI가 읽은 내용 · 제품/포장 · 적힌 순서 · 넣을 값 · 지울 칸 차례로 한 줄씩 있다. F32와 같다.
 // - 가정: 진행 문구는 "읽는 중"(role=status), 표기를 하나도 못 찾았을 때 문장은 알림 칸(role=status)이다. F31·F32와 같다.
-// - 가정: 표기가 여러 개면 라디오 이름은 그 표기의 "적힌 내용" 줄(PRD 문장)이다.
+// - 가정: 표기가 여러 개면 라디오 이름은 그 표기의 "AI가 읽은 내용" 줄에서 끝의 " · 사진과 같은지 확인해 주세요"를 뺀 것(PRD 문장, 판정 R29-I1)이다.
 // - 가정: 읽기가 끝나 확인 상자가 나타나면 확인 상자로 포커스를 옮긴다(보이는 화면이고 포커스가 이 자리에 있거나 어디에도 없을 때만). F32와 같다.
 // - 가정: 확인 상자의 '취소'는 상자를 닫고 "상품 페이지 캡처에서 치수 읽기"로 포커스를 돌린다. F32와 같다.
 // - 가정: AC67이 적지 않은 놓을 곳은 AC64 첫 사례('싱크대 옆 칸' 40×30×50), 물건 칸의 처음 글자는 결과를 가르지 않는 40·40·40이다.
+// - 가정: "캡처 크게 보기"는 고른 캡처의 작은 미리보기 바로 아래 접이식(<summary>)이고, 펼치면 대체 글 "고른 캡처"인 큰 사진이 보인다.
+//   접힌 큰 사진은 DOM에 있든 없든 상관없이 "보이지 않는다"만 단언한다(expectLargeHidden).
 
 // ---------------------------------------------------------------- PRD 문장 (글자 그대로)
 
@@ -41,7 +43,7 @@ const PAUSED = 'AI 기능을 잠시 멈췄어요. 직접 입력해 주세요.'
 const UNREADABLE = '지금은 읽지 못했어요. 직접 입력해 주세요.'
 
 const READ_TEXT = '제품 크기: 가로 32 x 깊이 25 x 높이 47cm'
-const READ_LINE = '적힌 내용: ‘제품 크기: 가로 32 x 깊이 25 x 높이 47cm’'
+const READ_LINE = 'AI가 읽은 내용: ‘제품 크기: 가로 32 x 깊이 25 x 높이 47cm’ · 사진과 같은지 확인해 주세요'
 const PRODUCT = '제품 치수예요.'
 const PACKAGE = '포장 치수예요. 실제 쓰는 상태의 크기와 다를 수 있어요.'
 const UNKNOWN_KIND = '제품 치수인지 포장 치수인지 적혀 있지 않아요. 확인해 주세요.'
@@ -55,6 +57,8 @@ const NOT_CM = 'cm로 적어 주세요(예: 40 또는 40.5)'
 // 가정한 이름 (위 목록)
 const READING = '읽는 중'
 const BOX = '확인 상자'
+const ENLARGE = '캡처 크게 보기'
+const LARGE = '고른 캡처'
 
 // ---------------------------------------------------------------- 응답 견본 (서버가 돌려주는 모양: 칸이 모두 있다)
 
@@ -222,6 +226,18 @@ function expectPreviewUrlsHealthy(urls: Setup['urls']) {
   expect(urls.revoked.filter((url) => !urls.created.includes(url)), '만들지 않은 주소를 해제했어요').toEqual([])
 }
 
+// 캡처 크게 보기: 접이식을 누르고(toggle 이벤트는 jsdom 작업으로 온다) 큰 사진을 찾는다
+async function toggleEnlarge() {
+  fireEvent.click(panel().getByText(ENLARGE, { selector: 'summary' }))
+  await settle()
+}
+const largeImage = () => panel().getByRole('img', { name: LARGE })
+// 접혔거나 아직 없으면 큰 사진은 보이지 않는다(접힌 안의 요소를 DOM에 두든 두지 않든 같다)
+function expectLargeHidden() {
+  const large = panel().queryByRole('img', { name: LARGE, hidden: true })
+  if (large !== null) expect(large).not.toBeVisible()
+}
+
 // 숨은 패널은 접근 가능한 이름으로 찾을 수 없어 탭의 aria-controls로 찾는다
 function panelOf(tab: string): HTMLElement {
   const id = screen.getByRole('tab', { name: tab }).getAttribute('aria-controls')
@@ -317,7 +333,7 @@ describe('캡처에서 치수 읽기 버튼과 전송 안내 (F44 2단계, 10장
 
 describe('읽은 치수를 확인 상자에서 확인하고 넣는다 (F44 2단계, AC67)', () => {
   // plan: AC67 열여덟 경우
-  it("AC67: 표기 1개(제품·축 이름 분명·cm)면 적힌 내용·제품 치수·넣을 값을 보이고, 넣기를 누르면 물건 칸이 32·25·47이 되어 '확인하고 저장'에 포커스가 가며 아직 저장하지 않는다", async () => {
+  it("AC67: 표기 1개(제품·축 이름 분명·cm)면 AI가 읽은 내용·제품 치수·넣을 값을 보이고, 넣기를 누르면 물건 칸이 32·25·47이 되어 '확인하고 저장'에 포커스가 가며 아직 저장하지 않는다", async () => {
     await openBox([FIRST])
 
     expect(box().queryAllByRole('radio')).toHaveLength(0)
@@ -334,21 +350,21 @@ describe('읽은 치수를 확인 상자에서 확인하고 넣는다 (F44 2단�
     expect(previews()).toEqual([])
   })
 
-  it("AC67: 표기 2개(label '접었을 때'·'펼쳤을 때')면 라디오 2개를 보이고 고르기 전에는 넣기가 막히며, 고르면 '접었을 때 · '가 붙은 적힌 내용과 함께 넣을 수 있다", async () => {
+  it("AC67: 표기 2개(label '접었을 때'·'펼쳤을 때')면 라디오 2개를 보이고 고르기 전에는 넣기가 막히며, 고르면 '접었을 때 · '가 붙은 AI가 읽은 내용과 함께 넣을 수 있다", async () => {
     const folded = size({ label: '접었을 때', text: '접었을 때 30 x 20 x 10cm', w: 30, d: 20, h: 10 })
     const unfolded = size({ label: '펼쳤을 때', text: '펼쳤을 때 60 x 40 x 10cm', w: 60, d: 40, h: 10 })
     await openBox([folded, unfolded])
 
     const radios = box().getAllByRole('radio')
     expect(radios).toHaveLength(2)
-    expect(radios[0]).toHaveAccessibleName('접었을 때 · 적힌 내용: ‘접었을 때 30 x 20 x 10cm’')
-    expect(radios[1]).toHaveAccessibleName('펼쳤을 때 · 적힌 내용: ‘펼쳤을 때 60 x 40 x 10cm’')
+    expect(radios[0]).toHaveAccessibleName('접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’')
+    expect(radios[1]).toHaveAccessibleName('펼쳤을 때 · AI가 읽은 내용: ‘펼쳤을 때 60 x 40 x 10cm’')
     expect(box().getByRole('button', { name: '넣기' })).toBeDisabled()
     expect(boxLines()).toEqual([])
 
     fireEvent.click(radios[0])
 
-    expect(boxLines()).toEqual(['접었을 때 · 적힌 내용: ‘접었을 때 30 x 20 x 10cm’', PRODUCT, '넣을 값: 가로 30 · 깊이 20 · 높이 10cm'])
+    expect(boxLines()).toEqual(['접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’ · 사진과 같은지 확인해 주세요', PRODUCT, '넣을 값: 가로 30 · 깊이 20 · 높이 10cm'])
     expect(box().getByRole('button', { name: '넣기' })).toBeEnabled()
 
     fireEvent.click(radios[1])
@@ -404,7 +420,7 @@ describe('읽은 치수를 확인 상자에서 확인하고 넣는다 (F44 2단�
     expect(savedFit()).toMatchObject({ item: { w: 320, d: 250, h: 470 }, basis: '적힌 순서로 넣은 치수' })
   })
 
-  it('AC67: 단위가 mixed면 적힌 내용과 "축마다 단위가 달라…"만 보이고 넣을 값·지울 칸·넣기 버튼은 없다', async () => {
+  it('AC67: 단위가 mixed면 AI가 읽은 내용과 "축마다 단위가 달라…"만 보이고 넣을 값·지울 칸·넣기 버튼은 없다', async () => {
     // 물건 칸이 채워져 있고 모르는 값이 있어도 지울 칸 줄을 보이지 않는다(넣지 않으니까)
     await openBox([size({ unit: 'mixed', axes: 'order', h: null })], { iw: '40', id: '40', ih: '40' })
 
@@ -1007,5 +1023,106 @@ describe('캡처 미리보기 주소 (10장 앱 공통)', () => {
     expect(s.urls.revoked.toSorted()).toEqual(s.urls.created.toSorted())
     held.release(readSize(FIRST))
     await settle()
+  })
+})
+
+// ================================================================ 확인 상자 문장과 캡처 크게 보기 (F44 2단계, AC71)
+
+describe('AI가 읽은 내용을 사진과 대조한다 (F44 2단계, AC71)', () => {
+  it('AC71: 확인 상자 첫 줄은 "AI가 읽은 내용…사진과 같은지 확인해 주세요"이고 "적힌 내용"으로 시작하는 줄은 없다', async () => {
+    await openBox([FIRST])
+
+    expect(boxLines()[0]).toBe('AI가 읽은 내용: ‘제품 크기: 가로 32 x 깊이 25 x 높이 47cm’ · 사진과 같은지 확인해 주세요')
+    expect(boxLines().filter((line) => line?.startsWith('적힌 내용'))).toEqual([])
+    expect(box().queryByText(/^적힌 내용/)).not.toBeInTheDocument()
+  })
+
+  it('AC71: 응답을 받은 뒤 캡처 크게 보기를 누르면 같은 주소의 큰 사진이 보이고 새 주소·요청은 없다', async () => {
+    const s = await openBox([FIRST])
+    expect(s.urls.created).toHaveLength(1)
+    expectLargeHidden()
+
+    await toggleEnlarge()
+
+    const large = largeImage()
+    expect(large).toBeVisible()
+    // previews()는 문서 순서대로 [작은 미리보기, 큰 사진]이다
+    expect(previews()).toEqual([s.urls.created[0], s.urls.created[0]])
+    expect(large).toHaveAttribute('src', s.urls.created[0])
+    expect(s.urls.created).toHaveLength(1)
+    expect(s.urls.revoked).toEqual([])
+    expect(s.server.callsTo(READ)).toHaveLength(1)
+  })
+
+  it('AC71: 다시 누르면 큰 사진이 접힌다', async () => {
+    const s = await openBox([FIRST])
+    await toggleEnlarge()
+    expect(largeImage()).toBeVisible()
+
+    await toggleEnlarge()
+
+    expectLargeHidden()
+    // 작은 미리보기는 그대로 있고 주소도 해제하지 않는다
+    expect(previews()[0]).toBe(s.urls.created[0])
+    expect(s.urls.created).toHaveLength(1)
+    expect(s.urls.revoked).toEqual([])
+    expect(s.server.callsTo(READ)).toHaveLength(1)
+  })
+
+  it('AC71: 크게 본 채로 넣으면 미리보기와 큰 사진이 함께 사라지고 주소가 해제된다', async () => {
+    const s = await openBox([FIRST])
+    await toggleEnlarge()
+    expect(largeImage()).toBeVisible()
+
+    fireEvent.click(box().getByRole('button', { name: '넣기' }))
+    await settle()
+
+    expect(itemValues()).toEqual(['32', '25', '47'])
+    expect(previews()).toEqual([])
+    expect(panel().queryByRole('img', { name: LARGE, hidden: true })).not.toBeInTheDocument()
+    expect(panel().queryByText(ENLARGE, { selector: 'summary' })).not.toBeInTheDocument()
+    expect(s.urls.created).toHaveLength(1)
+    expect(s.urls.revoked).toEqual(s.urls.created)
+  })
+
+  it('AC71: 읽는 중에도 캡처 크게 보기로 큰 사진을 볼 수 있고 요청은 1번이다', async () => {
+    const held = aiReply.hold()
+    const s = setup()
+    s.server.on(READ, held)
+    await openApp()
+    await readPhoto()
+    expect(panel().getByText(READING)).toBeInTheDocument()
+
+    await toggleEnlarge()
+
+    expect(largeImage()).toBeVisible()
+    expect(largeImage()).toHaveAttribute('src', s.urls.created[0])
+    expect(s.urls.created).toHaveLength(1)
+    expect(s.server.callsTo(READ)).toHaveLength(1)
+
+    // 응답이 와도 같은 사진이고 요청은 늘지 않는다
+    held.release(readSize(FIRST))
+    await settle()
+    expect(queryBox()).toBeInTheDocument()
+    expect(largeImage()).toHaveAttribute('src', s.urls.created[0])
+    expect(s.urls.created).toHaveLength(1)
+    expect(s.server.callsTo(READ)).toHaveLength(1)
+  })
+
+  it('AC71: 크게 본 채로 새 캡처를 고르면 앞 주소를 한 번만 해제하고 큰 사진도 새 주소를 쓴다', async () => {
+    const s = setup()
+    s.server.on(READ, readSize(FIRST), readSize(FIRST))
+    await openApp()
+    await readPhoto(1)
+    await toggleEnlarge()
+    expect(largeImage()).toHaveAttribute('src', s.urls.created[0])
+
+    await readPhoto(2)
+
+    expect(s.urls.created).toHaveLength(2)
+    expect(s.urls.revoked).toEqual([s.urls.created[0]])
+    expect(largeImage()).toBeVisible()
+    expect(largeImage()).toHaveAttribute('src', s.urls.created[1])
+    expect(previews()).toEqual([s.urls.created[1], s.urls.created[1]])
   })
 })

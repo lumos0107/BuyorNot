@@ -638,6 +638,15 @@ details > summary {
   border-radius: 8px;
 }
 
+/* 캡처 크게 보기 (F44): 접이식을 펼치면 같은 사진을 화면 폭에 맞춰 높이 제한 없이 보인다 */
+.photo-large {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 /* 읽은 상품이 여러 개일 때 상품마다 고르는 라디오 */
 .product-choice {
   display: inline-flex;

@@ -21,6 +21,8 @@ const ORDER_TEXT = '축이 분명하지 않아 적힌 순서대로 가로·깊�
 const MIXED_TEXT = '축마다 단위가 달라 자동으로 넣지 않아요. 직접 입력해 주세요.'
 const CHOOSE_UNIT_TEXT = '단위를 고르면 넣을 값을 cm로 보여 드려요.'
 const UNKNOWN = '모름'
+// 읽은 글이 사진에 정말 있는지는 AI가 보증하지 않으므로 사용자에게 대조를 부탁한다 (판정 R29-I1)
+const CHECK_TEXT = '사진과 같은지 확인해 주세요'
 
 const BASIS_SEPARATOR = ' · '
 const BASIS_KIND: Record<SizeCandidate['kind'], string | null> = { product: null, package: '포장 치수', unknown: '제품·포장 표기 없음' }
@@ -28,7 +30,9 @@ const BASIS_ORDER = '적힌 순서로 넣은 치수'
 
 /** 확인 상자에 보일 것. 단위가 mixed면 화면은 read와 notice만 보인다(PRD F44) */
 export type CandidateView = {
-  /** "적힌 내용: ‘{text}’"(label이 있으면 앞에 "{label} · ") */
+  /** "AI가 읽은 내용: ‘{text}’"(label이 있으면 앞에 "{label} · "). 표기가 여러 개일 때 라디오 이름 */
+  choice: string
+  /** 확인 상자 첫 줄: choice 뒤에 " · 사진과 같은지 확인해 주세요" */
   read: string
   /** 제품·포장·표기 없음 문장 */
   kind: string
@@ -86,19 +90,20 @@ function fillLine(fields: SizeFields): string {
  */
 export function candidateView(c: SizeCandidate, unit: SizeUnit | null, current: SizeFields): CandidateView {
   const label = labelOf(c)
-  const read = `${label === null ? '' : `${label} · `}적힌 내용: ‘${c.text}’`
+  const choice = `${label === null ? '' : `${label} · `}AI가 읽은 내용: ‘${c.text}’`
+  const read = `${choice} · ${CHECK_TEXT}`
   const kind = KIND_TEXT[c.kind]
-  if (c.unit === 'mixed') return { read, kind, axes: null, fill: null, clears: null, notice: MIXED_TEXT, applyLabel: null }
+  if (c.unit === 'mixed') return { choice, read, kind, axes: null, fill: null, clears: null, notice: MIXED_TEXT, applyLabel: null }
 
   const axes = c.axes === 'order' ? ORDER_TEXT : null
   const applyLabel = c.axes === 'order' ? '적힌 순서대로 넣기' : '넣기'
   const used = unitFor(c, unit)
-  if (used === null) return { read, kind, axes, fill: CHOOSE_UNIT_TEXT, clears: null, notice: null, applyLabel }
+  if (used === null) return { choice, read, kind, axes, fill: CHOOSE_UNIT_TEXT, clears: null, notice: null, applyLabel }
 
   const fields = candidateToFields(c, used)
   const cleared = AXES.filter((axis) => fields[axis] === '' && current[axis].trim() !== '')
   const clears = cleared.length > 0 ? `모름인 칸은 지금 값을 지워요: ${cleared.map((axis) => AXIS_NAME[axis]).join('·')}` : null
-  return { read, kind, axes, fill: fillLine(fields), clears, notice: null, applyLabel }
+  return { choice, read, kind, axes, fill: fillLine(fields), clears, notice: null, applyLabel }
 }
 
 /** 마지막 글자가 서로게이트 쌍의 앞 반쪽이면 뺀다(잘라서 깨진 글자를 저장하지 않게) */

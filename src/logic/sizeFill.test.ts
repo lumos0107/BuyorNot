@@ -10,7 +10,8 @@ import { candidateBasis, candidateToFields, candidateView, toCmText } from './si
 //
 // PRD·계획에 값이 없어 정한 것(가정):
 // - 가정: AC67이 적지 않은 축의 값은 결과를 가르지 않는 첫 사례 값(32·25·47cm, mm면 320·250·470)이다.
-// - 가정: "적힌 내용: ‘{text}’"(label이 있으면 앞에 "{label} · ")의 '앞'은 문장 앞이다 → "접었을 때 · 적힌 내용: ‘…’".
+// - 가정: "AI가 읽은 내용: ‘{text}’ · 사진과 같은지 확인해 주세요"(label이 있으면 앞에 "{label} · ")의 '앞'은 문장 앞이다
+//   → "접었을 때 · AI가 읽은 내용: ‘…’ · 사진과 같은지 확인해 주세요" (PRD v0.36 판정 R29-I1, 10/31에 "적힌 내용: ‘…’"에서 바꿈).
 // - 가정: "넣을 값: 가로 {a} · 깊이 {b} · 높이 {c}cm"에서 높이를 모르면 F32의 "가격 모름"(R8 무렵 정한 방식)처럼 값과 단위를 함께
 //   '모름'으로 바꿔 "높이 모름"이다("모름cm"이 되지 않게).
 // - 가정: 지울 칸 이름이 둘 이상이면 F31·F33의 칸 이름 목록처럼 '·'로 잇는다.
@@ -34,7 +35,8 @@ const EMPTY = { w: '', d: '', h: '' }
 const FILLED = { w: '32', d: '25', h: '47' }
 
 // ---------------------------------------------------------------- PRD 문장 (글자 그대로)
-const READ_LINE = '적힌 내용: ‘제품 크기: 가로 32 x 깊이 25 x 높이 47cm’'
+const CHOICE_LINE = 'AI가 읽은 내용: ‘제품 크기: 가로 32 x 깊이 25 x 높이 47cm’'
+const READ_LINE = 'AI가 읽은 내용: ‘제품 크기: 가로 32 x 깊이 25 x 높이 47cm’ · 사진과 같은지 확인해 주세요'
 const PRODUCT = '제품 치수예요.'
 const PACKAGE = '포장 치수예요. 실제 쓰는 상태의 크기와 다를 수 있어요.'
 const UNKNOWN_KIND = '제품 치수인지 포장 치수인지 적혀 있지 않아요. 확인해 주세요.'
@@ -138,8 +140,9 @@ describe('읽은 표기를 물건 세 칸 글자로 바꾼다 (F44 넣기, AC67)
 })
 
 describe('확인 상자 문장 (F44 2단계, AC67)', () => {
-  it('AC67: 표기 1개(제품·축 이름 분명·cm)는 적힌 내용·제품 치수·넣을 값 세 줄이고 버튼은 넣기예요', () => {
+  it('AC67: 표기 1개(제품·축 이름 분명·cm)는 AI가 읽은 내용·제품 치수·넣을 값 세 줄이고 버튼은 넣기예요', () => {
     expect(candidateView(candidate(), null, EMPTY)).toEqual({
+      choice: CHOICE_LINE,
       read: READ_LINE,
       kind: PRODUCT,
       axes: null,
@@ -150,7 +153,7 @@ describe('확인 상자 문장 (F44 2단계, AC67)', () => {
     })
   })
 
-  it("AC67: label이 있으면 적힌 내용 앞에 '접었을 때 · '를 붙여요", () => {
+  it("AC67: label이 있으면 AI가 읽은 내용 앞에 '접었을 때 · '를 붙여요", () => {
     expect(candidateView(candidate({ label: '접었을 때' }), null, EMPTY).read).toBe(`접었을 때 · ${READ_LINE}`)
     expect(candidateView(candidate({ label: '펼쳤을 때' }), null, EMPTY).read).toBe(`펼쳤을 때 · ${READ_LINE}`)
   })
@@ -158,6 +161,24 @@ describe('확인 상자 문장 (F44 2단계, AC67)', () => {
   it('label이 빈 글자나 공백뿐이면 붙이지 않아요', () => {
     expect(candidateView(candidate({ label: '' }), null, EMPTY).read).toBe(READ_LINE)
     expect(candidateView(candidate({ label: '  ' }), null, EMPTY).read).toBe(READ_LINE)
+  })
+
+  it('AC71: 라디오 이름은 확인 요청 없이 label과 AI가 읽은 내용만이에요', () => {
+    expect(candidateView(candidate(), null, EMPTY).choice).toBe(CHOICE_LINE)
+    const folded = candidate({ label: '접었을 때', text: '접었을 때 30 x 20 x 10cm' })
+    expect(candidateView(folded, null, EMPTY).choice).toBe('접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’')
+  })
+
+  it('AC71: 확인 상자 첫 줄은 AI가 읽은 내용 뒤에 사진과 같은지 확인해 달라고 붙여요', () => {
+    const view = candidateView(candidate(), null, EMPTY)
+    expect(view.read).toBe(READ_LINE)
+    // "적힌 내용"으로 시작하는 줄은 어디에도 없다
+    expect(Object.values(view).filter((line) => typeof line === 'string' && line.startsWith('적힌 내용'))).toEqual([])
+
+    const folded = candidate({ label: '접었을 때', text: '접었을 때 30 x 20 x 10cm' })
+    expect(candidateView(folded, null, EMPTY).read).toBe('접었을 때 · AI가 읽은 내용: ‘접었을 때 30 x 20 x 10cm’ · 사진과 같은지 확인해 주세요')
+    // 단위가 mixed일 때도 첫 줄은 같다
+    expect(candidateView(candidate({ unit: 'mixed' }), null, EMPTY).read).toBe(READ_LINE)
   })
 
   it('AC67: 축이 분명하지 않으면(order) 적힌 순서 문장을 보이고 버튼 이름이 적힌 순서대로 넣기예요', () => {
@@ -212,7 +233,7 @@ describe('확인 상자 문장 (F44 2단계, AC67)', () => {
   })
 
   // plan: mixed units hide the apply button
-  it('AC67: 단위가 mixed면 적힌 내용과 단위 문장만 있고 넣을 값·지울 칸·넣기 버튼은 없어요', () => {
+  it('AC67: 단위가 mixed면 AI가 읽은 내용과 단위 문장만 있고 넣을 값·지울 칸·넣기 버튼은 없어요', () => {
     const view = candidateView(candidate({ unit: 'mixed', h: null }), 'cm', FILLED)
     expect(view.read).toBe(READ_LINE)
     expect(view.notice).toBe(MIXED)

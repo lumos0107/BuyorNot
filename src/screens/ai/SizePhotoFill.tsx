@@ -172,7 +172,7 @@ function SizeReadFlow({ current, onApply }: FlowProps) {
   const mixed = chosen?.unit === 'mixed'
   const needsUnit = chosen !== null && chosen.unit === null
   const usedUnit: SizeUnit | null = chosen === null || chosen.unit === 'mixed' ? null : (chosen.unit ?? chosenUnit)
-  // 단위가 mixed면 적힌 내용과 단위 문장만 보인다(PRD F44)
+  // 단위가 mixed면 AI가 읽은 내용과 단위 문장만 보인다(PRD F44)
   const lines = view === null ? [] : mixed ? [view.read, view.notice] : [view.read, view.kind, view.axes, view.fill, view.clears]
 
   // 포커스는 FitCheck가 옮긴다(첫 빈 물건 칸, 없으면 '확인하고 저장'). 여기서는 상자만 닫는다
@@ -186,7 +186,7 @@ function SizeReadFlow({ current, onApply }: FlowProps) {
     <div ref={root} className="stack">
       <PhotoPicker label="상품 페이지 캡처에서 치수 읽기" inputRef={picker} onPick={(file) => void pick(file)} />
       <p className="note">{PHOTO_NOTICE}</p>
-      {photo ? <PhotoPreview file={photo} /> : null}
+      {photo ? <PhotoPreview file={photo} enlarge={{ label: '캡처 크게 보기', alt: '고른 캡처' }} /> : null}
       {phase === 'reading' ? <Progress text="읽는 중" onCancel={close} /> : null}
       {error ? (
         <p className="field-error" role="alert">
@@ -206,7 +206,7 @@ function SizeReadFlow({ current, onApply }: FlowProps) {
               {candidates.map((candidate, index) => (
                 <label key={index} className="product-choice">
                   <input type="radio" name={radioName} checked={selected === index} onChange={() => choose(index)} onKeyDown={blockEnter} />
-                  {candidateView(candidate, null, current).read}
+                  {candidateView(candidate, null, current).choice}
                 </label>
               ))}
             </div>
