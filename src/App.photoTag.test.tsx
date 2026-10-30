@@ -31,6 +31,8 @@ const UNREADABLE = '지금은 읽지 못했어요. 직접 입력해 주세요.'
 const NOT_FOUND = '상품이나 가격표를 찾지 못했어요. 다시 찍거나 직접 입력해 주세요.'
 const PRICE_UNREAD = '가격을 읽지 못했어요'
 const NEED_PRICE = '매장 가격을 적어 주세요'
+// 최종 리뷰 F6: PRD에 없던 문장이라 총괄이 PRD F31에 'Claude 결정, 제작자 확인 전'으로 적는다
+const NEED_NAME = '상품명을 적어 주세요'
 const TOP_NOTE = '가격 차이는 필요 여부를 판단해 주지 않아요.'
 const FOUND_HEAD = 'AI가 같은 상품으로 고른 다나와 상품'
 const NOT_CONFIRMED_HEAD = '다나와 검색 결과 · 같은 상품인지 확인하지 못했어요'
@@ -377,6 +379,34 @@ describe('읽은 상품 (AC51)', () => {
     expect(panel().queryByText(NEED_PRICE)).not.toBeInTheDocument()
   })
 
+  // 최종 리뷰 F6: 서버는 1~80자 상품명만 받는다. 매장 가격이 비었을 때와 같은 방식으로 막는다
+  it('상품명이 비면 확인 버튼을 막고 "상품명을 적어 주세요"를 보이며, 상품명 칸은 80자까지만 받는다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag(ITEM))
+    openPhotoTab()
+    await readPhoto()
+
+    expect(field('상품명')).toHaveAttribute('maxlength', '80')
+
+    edit('상품명', '   ')
+
+    expect(checkButton()).toBeDisabled()
+    expect(panel().getByText(NEED_NAME)).toBeInTheDocument()
+    expect(checkButton()).toHaveAccessibleDescription(NEED_NAME)
+
+    // 매장 가격도 비면 두 안내를 함께 보인다
+    edit('가격', '')
+
+    expect(checkButton()).toHaveAccessibleDescription(`${NEED_NAME} ${NEED_PRICE}`)
+
+    edit('가격', '3980')
+    edit('상품명', '오징어짬뽕')
+
+    expect(checkButton()).toBeEnabled()
+    expect(panel().queryByText(NEED_NAME)).not.toBeInTheDocument()
+    expect(s.server.callsTo(LOWEST)).toHaveLength(0)
+  })
+
   it('AC51: 가격 조건이 회원가로 읽히면 가격 조건 칸에 회원가를 둔다', async () => {
     const s = setup()
     s.server.on(READ, readTag({ ...ITEM, priceCondition: '회원가' }))
@@ -708,6 +738,18 @@ describe('온라인 가격 확인 결과와 실패 (AC53)', () => {
     expect(s.server.callsTo(LOWEST)).toHaveLength(1)
   })
 
+  // applying-ai-results 규칙 6(F32·F33과 같다): 사라지는 '취소' 대신 그 흐름을 시작한 버튼으로 포커스를 돌린다
+  it('확인 중에 취소하면 "온라인 가격 확인" 버튼으로 포커스를 돌린다', async () => {
+    await readAndCheck([ITEM], aiReply.hold())
+    const cancelButton = panel().getByRole('button', { name: '취소' })
+    cancelButton.focus()
+
+    fireEvent.click(cancelButton)
+    await settle()
+
+    expect(checkButton()).toHaveFocus()
+  })
+
   it('AC53: 취소하고 다시 확인한 뒤 앞 요청의 늦은 응답이 와도 새 결과가 그대로다', async () => {
     const late = aiReply.hold()
     const s = setup()
@@ -900,6 +942,21 @@ describe('늦은 응답 (10장 앱 공통 · F31)', () => {
     expect(panel().queryByRole('alert')).not.toBeInTheDocument()
     expect(panel().queryByText(READING)).not.toBeInTheDocument()
     expect(s.server.callsTo(READ)).toHaveLength(1)
+  })
+
+  // applying-ai-results 규칙 6(F32·F33과 같다): 사라지는 '취소' 대신 그 흐름을 시작한 사진 고르기로 포커스를 돌린다
+  it('읽는 중에 취소하면 사진 고르기(가격표 사진 찍기)로 포커스를 돌린다', async () => {
+    const s = setup()
+    s.server.on(READ, aiReply.hold())
+    openPhotoTab()
+    await readPhoto()
+    const cancelButton = panel().getByRole('button', { name: '취소' })
+    cancelButton.focus()
+
+    fireEvent.click(cancelButton)
+    await settle()
+
+    expect(photoInput()).toHaveFocus()
   })
 
   it.each([
@@ -1150,6 +1207,19 @@ describe('결과에서 고민 목록에 담기 (AC54)', () => {
     expect(wishForm().getByLabelText('링크 (선택)')).toHaveValue(SEARCH_URL)
     expect(wishForm().getByText(`${DRAFT_GUIDE} 이미 적은 칸은 그대로 뒀어요: 상품명·가격`)).toBeInTheDocument()
     expect(wishForm().getByLabelText('사고 싶은 이유')).toHaveFocus()
+  })
+
+  // 최종 리뷰 F8: 링크 칸은 접힌 '상품 링크 (선택)' 안이라, 채운 링크가 보이게 펼친다
+  it('사진 결과가 링크를 채우면 접혀 있던 상품 링크 영역을 펼친다', async () => {
+    start()
+    const linkArea = () => wishForm().getByLabelText('링크 (선택)').closest('details')
+    expect(linkArea()).not.toHaveAttribute('open')
+    await reachResult()
+
+    fireEvent.click(result().getByRole('button', { name: '고민 목록에 담기' }))
+
+    expect(wishForm().getByLabelText('링크 (선택)')).toHaveValue(SEARCH_URL)
+    expect(linkArea()).toHaveAttribute('open')
   })
 
   it('AC54: 이유를 비운 채 담아 두면 "사고 싶은 이유를 적어 주세요"가 나오고 담기지 않는다', async () => {

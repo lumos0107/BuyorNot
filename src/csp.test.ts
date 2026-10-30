@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCsp } from './csp'
+import { buildCsp, productionAiUrlProblem } from './csp'
 
 // 배포본이 지금까지 넣던 지시문(이 순서). 이번에 바뀌는 것은 img-src(blob: 추가)와 서버 주소가 있을 때의 connect-src뿐이다.
 const EXISTING_DIRECTIVES = [
@@ -74,5 +74,31 @@ describe('buildCsp', () => {
     for (const url of ['not a url', 'ftp://ai.example.com', 'https://a.com;script-src *', 'https://a"b.com', 'https://[::1]:8787']) {
       expect(directives(buildCsp(url))).toEqual(EXISTING_DIRECTIVES)
     }
+  })
+})
+
+// 운영 빌드에 https가 아닌 서버 주소가 들어가면 AI 버튼은 보이는데 CSP가 모든 요청을 막는다. vite.config.ts가 이 판단으로 빌드를 멈춘다(최종 리뷰 F4)
+describe('productionAiUrlProblem', () => {
+  it('서버 주소가 없거나 비어 있으면 AI 기능 없는 빌드라 문제없다', () => {
+    for (const url of [undefined, '', '   ']) expect(productionAiUrlProblem(url), String(url)).toBeNull()
+  })
+
+  it('https 서버 주소는 문제없다', () => {
+    expect(productionAiUrlProblem('https://buyornot-ai.example.workers.dev')).toBeNull()
+    expect(productionAiUrlProblem('https://ai.example.com:8443/x/')).toBeNull()
+  })
+
+  it('https가 아닌 주소(localhost 포함)나 주소가 아닌 값이면 변수 이름과 이유를 적은 문장을 돌려준다', () => {
+    for (const url of ['http://localhost:8787', 'http://ai.example.com', 'ftp://ai.example.com', 'not a url']) {
+      const problem = productionAiUrlProblem(url)
+      expect(problem, url).not.toBeNull()
+      expect(problem, url).toContain('VITE_AI_SERVER_URL')
+      expect(problem, url).toContain('https')
+      expect(problem, url).toContain(url)
+    }
+  })
+
+  it('https여도 CSP에 넣을 수 없는 주소면 같은 이유로 문제다', () => {
+    expect(productionAiUrlProblem('https://[::1]:8787')).not.toBeNull()
   })
 })

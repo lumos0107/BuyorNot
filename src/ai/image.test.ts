@@ -47,6 +47,16 @@ describe('shrinkImage', () => {
     expect(pipeline.closed()).toBe(1)
   })
 
+  // JPEG에는 투명이 없어 그냥 그리면 투명 PNG의 빈 곳이 검은색이 된다
+  it('그리기 전에 캔버스 전체를 흰색으로 채운다', async () => {
+    const pipeline = mockImagePipeline({ decode: 'ok', toBlob: 'ok' })
+
+    await shrinkImage(new Blob(['photo'], { type: 'image/png' }))
+
+    expect(pipeline.fills).toEqual([{ fillStyle: '#ffffff', args: [0, 0, 1600, 1200] }])
+    expect(pipeline.steps).toEqual(['fillRect', 'drawImage'])
+  })
+
   it('큰 변과 품질을 바꿔 줄 수 있고, 작은 사진은 크기를 그대로 그린다', async () => {
     const pipeline = mockImagePipeline({ decode: 'ok', toBlob: 'ok', width: 800, height: 600 })
 

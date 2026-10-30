@@ -22,6 +22,9 @@ export async function shrinkImage(file: Blob, max = 1600, quality = 0.85): Promi
     canvas.height = height
     const context = canvas.getContext('2d')
     if (context === null) throw new Error('canvas 2d context unavailable')
+    // JPEG에는 투명이 없어 투명 PNG의 빈 곳이 검게 되므로 먼저 흰색으로 채운다
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, width, height)
     context.drawImage(bitmap, 0, 0, width, height)
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(

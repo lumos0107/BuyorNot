@@ -316,6 +316,8 @@ function AddForm({
   // 새 값은 그리는 중에 알아차려 폼에 넣고(이전 값 기억), 포커스 이동과 알림은 그린 뒤에 한다
   const [draftNotice, setDraftNotice] = useState<string | null>(null)
   const [draftFocus, setDraftFocus] = useState<DraftFocus>('name')
+  // 가격표 사진 결과가 빈 링크 칸을 채웠는가. 채웠으면 그린 뒤 접힌 링크 영역을 펼쳐 채운 값이 보이게 한다
+  const [draftFilledLink, setDraftFilledLink] = useState(false)
   const [appliedDraft, setAppliedDraft] = useState<FormDraft | null>(null)
   if (draft && draft !== appliedDraft) {
     setAppliedDraft(draft)
@@ -323,19 +325,22 @@ function AddForm({
       setRaw((r) => ({ ...r, price: String(draft.value.price), reason: draft.value.reason }))
       setDraftNotice('가격 비교에서 가격과 이유를 가져왔어요. 상품명을 적고 담아 두세요.')
       setDraftFocus('name')
+      setDraftFilledLink(false)
     } else {
       const merged = mergePhotoDraft(raw, draft.value)
       setRaw((r) => ({ ...r, name: merged.name, price: merged.price, url: merged.url }))
       setDraftNotice(photoDraftNotice(merged.kept))
       setDraftFocus(firstEmptyField(merged))
+      setDraftFilledLink(merged.url !== '' && merged.url !== raw.url)
     }
     setAttempted(false)
   }
   useEffect(() => {
     if (!draft) return
+    if (draftFilledLink && linkRef.current) linkRef.current.open = true
     focusField(formRef.current, draftFocus)
     onDraftUsed?.()
-  }, [draft, draftFocus, onDraftUsed, formRef])
+  }, [draft, draftFocus, draftFilledLink, onDraftUsed, formRef])
   // 예시 채우기 (F28): 새 요청은 그리는 중에 알아차려 값을 넣고, 체크리스트 펼치기와 포커스 이동은 그린 뒤에 한다
   const [fromExample, setFromExample] = useState(false)
   const [appliedFill, setAppliedFill] = useState(exampleFill)

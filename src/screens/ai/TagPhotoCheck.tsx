@@ -47,6 +47,9 @@ type Product = {
 
 const asText = (value: string | number | null) => (value === null ? '' : String(value))
 
+// 상품명 칸의 글자 수 상한. 서버도 온라인 가격 확인에서 1~80자 상품명만 받는다 (PRD 10장 /api/lowest-price)
+const MAX_NAME = 80
+
 function fromTag(item: TagItem): Product {
   return {
     form: {
@@ -143,9 +146,13 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
 
   const productsTitleId = useId()
   const radioName = useId()
+  const needNameId = useId()
   const needPriceId = useId()
   const productsHeading = useRef<HTMLHeadingElement>(null)
   const resultHeading = useRef<HTMLHeadingElement>(null)
+  // 취소한 뒤 포커스를 돌릴 곳: 읽는 중이면 사진 고르기, 확인 중이면 '온라인 가격 확인' (applying-ai-results 규칙 6)
+  const pickerInput = useRef<HTMLInputElement>(null)
+  const checkButton = useRef<HTMLButtonElement>(null)
 
   // 요청 번호와 지금 요청의 취소. 번호가 바뀐 뒤 온 응답은 늦은 응답이다
   const requestId = useRef(0)
@@ -248,13 +255,16 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
     setFocusTo({ target: 'result' })
   }
 
+  // '취소'는 사라지므로 그 흐름을 시작한 곳으로 포커스를 돌린다. 둘 다 취소 뒤에도 그대로 보이는 요소다
   const cancel = () => {
     stopRequest()
     if (phase === 'reading') {
       setPhoto(null)
       setPhase('idle')
+      pickerInput.current?.focus()
     } else if (phase === 'checking') {
       setPhase('read')
+      checkButton.current?.focus()
     }
   }
 
@@ -289,13 +299,16 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
   // 매장 가격이 비면 확인 버튼이 막히고 칸을 고치면 결과가 지워지므로, 결과가 있으면 storePrice도 있다
   const lines = sameSpec && spec?.kind === 'confirm' && row && current && storePrice !== null ? compareLines(storePrice, row, current.form.priceCondition) : null
   const link = online ? httpsUrl(online.searchUrl) : null
+  // 상품명이나 매장 가격이 비면 확인을 막고 무엇을 적을지 알린다 (PRD F31)
+  const needName = current !== null && current.form.name.trim() === ''
   const needPrice = current !== null && storePrice === null
+  const needDescribedBy = [needName ? needNameId : '', needPrice ? needPriceId : ''].filter(Boolean).join(' ') || undefined
 
   return (
     <div className="stack">
       <h3 className="section-title">가격표 사진</h3>
       <div className="card stack">
-        <PhotoPicker label="가격표 사진 찍기" onPick={(file) => void pick(file)} />
+        <PhotoPicker label="가격표 사진 찍기" inputRef={pickerInput} onPick={(file) => void pick(file)} />
         <p className="note">{PHOTO_NOTICE}</p>
         {photo ? <PhotoPreview file={photo} /> : null}
         {phase === 'reading' ? <Progress text="읽는 중" onCancel={cancel} /> : null}
@@ -332,10 +345,15 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
           ) : (
             <>
               <div className="btn-row">
-                <Button disabled={storePrice === null} aria-describedby={needPrice ? needPriceId : undefined} onClick={() => void check()}>
+                <Button ref={checkButton} disabled={storePrice === null || needName} aria-describedby={needDescribedBy} onClick={() => void check()}>
                   온라인 가격 확인
                 </Button>
               </div>
+              {needName ? (
+                <p className="note" id={needNameId}>
+                  상품명을 적어 주세요
+                </p>
+              ) : null}
               {needPrice ? (
                 <p className="note" id={needPriceId}>
                   매장 가격을 적어 주세요
@@ -422,6 +440,7 @@ function ProductFields({ product, onEdit }: { product: Product; onEdit: (key: Fi
           key={key}
           label={label}
           inputMode={numeric ? 'numeric' : undefined}
+          maxLength={key === 'name' ? MAX_NAME : undefined}
           hint={key === 'price' && product.priceUnread ? '가격을 읽지 못했어요' : undefined}
           value={product.form[key]}
           onChange={(event) => onEdit(key, event.target.value)}

@@ -30,3 +30,16 @@ export function buildCsp(aiServerUrl?: string): string {
     "form-action 'self'",
   ].join('; ')
 }
+
+// 운영 빌드에 넣을 AI 서버 주소를 검사한다. 비어 있으면 AI 기능 없는 빌드라 문제없다.
+// 값이 있는데 connect-src에 더할 수 있는 https 주소가 아니면, 화면에는 AI 버튼이 보이는데 CSP가 서버 요청을 모두 막는다.
+// 그때 빌드를 멈출 이유(문장)를 돌려준다. vite.config.ts가 운영 빌드에서만 쓴다.
+export function productionAiUrlProblem(aiServerUrl?: string): string | null {
+  if (aiServerUrl === undefined || aiServerUrl.trim() === '') return null
+  if (httpsOrigin(aiServerUrl) !== null) return null
+  return (
+    `운영 빌드의 VITE_AI_SERVER_URL은 https 주소여야 해요(지금 값: ${aiServerUrl}). ` +
+    '배포판 CSP의 connect-src에는 https 출처만 넣어서, 이대로 빌드하면 AI 버튼은 보이지만 서버 요청이 모두 막혀요. ' +
+    'AI 기능 없이 빌드하려면 값을 비워 두세요.'
+  )
+}

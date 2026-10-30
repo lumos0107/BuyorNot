@@ -12,6 +12,12 @@ export type DrawCall = {
   canvasHeight: number
 }
 
+export type FillCall = {
+  // fillRect를 부른 순간의 fillStyle
+  fillStyle: string
+  args: number[]
+}
+
 export type ImagePipelineOptions = {
   decode: 'ok' | 'fail'
   toBlob: 'ok' | 'null'
@@ -20,13 +26,16 @@ export type ImagePipelineOptions = {
   height?: number
 }
 
-// createImageBitmap과 canvas(getContext('2d')·drawImage·toBlob)를 가짜로 바꾼다.
+// createImageBitmap과 canvas(getContext('2d')·fillStyle·fillRect·drawImage·toBlob)를 가짜로 바꾼다.
 // decode 'fail'이면 createImageBitmap이 거절하고, toBlob 'null'이면 toBlob이 null을 준다.
 export function mockImagePipeline(opts: ImagePipelineOptions) {
   const { decode, toBlob, width = 4032, height = 3024 } = opts
   let closeCount = 0
   const decodeCalls: { file: unknown; options: unknown }[] = []
   const draws: DrawCall[] = []
+  const fills: FillCall[] = []
+  // 2d 컨텍스트에 그린 차례
+  const steps: ('fillRect' | 'drawImage')[] = []
   const toBlobCalls: { type: string | undefined; quality: number | undefined }[] = []
 
   vi.stubGlobal(
@@ -48,12 +57,20 @@ export function mockImagePipeline(opts: ImagePipelineOptions) {
     .spyOn(HTMLCanvasElement.prototype, 'getContext')
     .mockImplementation(function (this: HTMLCanvasElement, contextId: string) {
       if (contextId !== '2d') return null
-      return {
+      const context = {
+        // 실제 2d 컨텍스트의 처음 값
+        fillStyle: '#000000',
+        fillRect: (...args: number[]) => {
+          fills.push({ fillStyle: context.fillStyle, args })
+          steps.push('fillRect')
+        },
         // 화살표 함수라 this는 getContext를 부른 canvas다
         drawImage: (image: unknown, ...args: number[]) => {
           draws.push({ image, args, canvasWidth: this.width, canvasHeight: this.height })
+          steps.push('drawImage')
         },
       }
+      return context
     } as never)
 
   const toBlobSpy = vi
@@ -75,6 +92,8 @@ export function mockImagePipeline(opts: ImagePipelineOptions) {
     closed: () => closeCount,
     decodeCalls,
     draws,
+    fills,
+    steps,
     toBlobCalls,
   }
 }
