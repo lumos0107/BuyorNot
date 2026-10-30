@@ -564,6 +564,24 @@ describe('녹음이 안 되거나 받아쓴 내용이 없을 때 (AC58)', () => 
     expect(form().queryByRole('timer')).not.toBeInTheDocument()
   })
 
+  // PRD F33 '안 될 때': 사용자가 멈추지 않았는데 녹음이 끊김(화면 꺼짐) → "녹음이 중간에 멈췄어요…"(보내지 않음)
+  it('녹음 중 화면이 숨겨지면 "녹음이 중간에 멈췄어요…"를 알리고 보내지 않으며 트랙을 모두 멈춘다', async () => {
+    const s = setup({ trackCount: 2 })
+    await pressStart()
+    await advance(3000)
+
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await advance(60_000)
+
+    expect(form().getByRole('alert')).toHaveTextContent(INTERRUPTED)
+    expect(s.server.calls).toEqual([])
+    expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
+    expect(form().queryByRole('timer')).not.toBeInTheDocument()
+  })
+
   it('AC58: 녹음 중 다른 메뉴로 옮기면 녹음을 버리고 트랙을 멈추며 보내지 않는다', async () => {
     const s = setup({ trackCount: 2 })
     await pressStart()

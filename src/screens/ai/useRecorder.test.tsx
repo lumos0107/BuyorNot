@@ -78,6 +78,9 @@ const discardTriggers: [name: string, trigger: (s: Setup) => void][] = [
   ['화면이 숨겨지면', () => hideDocument()],
   ['화면이 사라지면', (s) => s.unmount()],
 ]
+// 녹음 중에 화면이 숨겨지면 버리되 결과는 cancelled가 아니라 interrupted다(PRD F33 '안 될 때'의 화면 꺼짐 "녹음이 중간에 멈췄어요…").
+// 그래서 녹음 중에 cancelled로 끝나는 일은 나머지 셋이다. 권한을 기다리는 중에는 넷 모두 cancelled다
+const recordingCancelTriggers = discardTriggers.filter(([name]) => name !== '화면이 숨겨지면')
 
 describe('useRecorder 시작 전', () => {
   // plan: reports unsupported without MediaRecorder
@@ -408,7 +411,7 @@ describe('useRecorder 끊김', () => {
 
 describe('useRecorder 취소와 정리', () => {
   // plan: stops every track and sends nothing when cancelled, hidden or interrupted, including during the permission prompt
-  describe.each(discardTriggers)('녹음 중 %s', (_name, trigger) => {
+  describe.each(recordingCancelTriggers)('녹음 중 %s', (_name, trigger) => {
     it('cancelled로 한 번 알리고 녹음기를 멈추고 트랙을 모두 멈추며 아무것도 보내지 않는다', async () => {
       const s = setup({ trackCount: 2 })
       await startRecording(s)
@@ -424,6 +427,40 @@ describe('useRecorder 취소와 정리', () => {
       expect(s.onStopped).toHaveBeenCalledTimes(1)
       expectNothingSent(s)
     })
+  })
+
+  // 명세 변경(최종 리뷰 F2): 전에는 cancelled였다. PRD F33 '안 될 때'는 화면 꺼짐을 "녹음이 중간에 멈췄어요…"(interrupted)로 정한다
+  it('녹음 중 화면이 숨겨지면 interrupted로 한 번 알리고 녹음기를 멈추고 트랙을 모두 멈추며 아무것도 보내지 않는다', async () => {
+    const s = setup({ trackCount: 2 })
+    await startRecording(s)
+    advance(5000)
+
+    hideDocument()
+
+    expect(s.onStopped).toHaveBeenCalledTimes(1)
+    expect(s.onStopped).toHaveBeenCalledWith({ ok: false, reason: 'interrupted' })
+    expect(s.mic.recorders[0].state).toBe('inactive')
+    expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
+    expect(s.result.current.state).toBe('idle')
+    advance(60_000)
+    expect(s.onStopped).toHaveBeenCalledTimes(1)
+    expectNothingSent(s)
+  })
+
+  it('손으로 멈춘 뒤 녹음기가 끝나기를 기다리는 동안 화면이 숨겨지면 소리를 알리지 않고 interrupted로 알린다', async () => {
+    const s = setup()
+    await startRecording(s)
+    advance(5000)
+    vi.spyOn(s.mic.recorders[0], 'stop').mockImplementation(() => {})
+
+    act(() => s.result.current.stop())
+    hideDocument()
+    advance(3000)
+
+    expect(s.onStopped).toHaveBeenCalledTimes(1)
+    expect(s.onStopped).toHaveBeenCalledWith({ ok: false, reason: 'interrupted' })
+    expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1])
+    expectNothingSent(s)
   })
 
   describe.each(discardTriggers)('권한을 기다리는 중 %s', (_name, trigger) => {
@@ -550,12 +587,12 @@ describe('useRecorder 취소와 정리', () => {
     vi.spyOn(s.mic.recorders[0], 'stop').mockImplementation(() => {})
 
     act(() => s.result.current.cancel())
-    // 녹음기가 끝나기를 기다리는 동안은 트랙을 멈추지 않는다
-    advance(500)
+    // 녹음기가 끝나기를 기다리는 동안(3초, 느린 기기에서 정상 녹음을 버리지 않게)은 트랙을 멈추지 않는다
+    advance(2999)
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([0, 0])
     expect(s.onStopped).not.toHaveBeenCalled()
 
-    advance(2000)
+    advance(1)
 
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
     expect(s.onStopped).toHaveBeenCalledTimes(1)
@@ -571,7 +608,7 @@ describe('useRecorder 취소와 정리', () => {
 
     act(() => s.result.current.stop())
     act(() => s.result.current.cancel())
-    advance(2000)
+    advance(3000)
 
     expect(s.onStopped).toHaveBeenCalledTimes(1)
     expect(s.onStopped).toHaveBeenCalledWith({ ok: false, reason: 'cancelled' })

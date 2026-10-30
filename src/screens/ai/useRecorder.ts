@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 //
 // 결과를 알리는 곳:
 // - start()의 약속: 녹음을 시작하지 못한 경우('unsupported'·'denied')와 권한을 기다리다 취소된 경우('cancelled'). 이때 onStopped는 부르지 않는다.
-// - onStopped: 녹음이 시작된 뒤의 모든 끝. 손으로 멈춤·20초 자동 멈춤(소리 또는 too-short), 사용자가 멈추지 않았는데 끊김(interrupted), 버려짐(cancelled).
+// - onStopped: 녹음이 시작된 뒤의 모든 끝. 손으로 멈춤·20초 자동 멈춤(소리 또는 too-short), 사용자가 멈추지 않았는데 끊김(interrupted, 화면 숨김 포함), 버려짐(cancelled).
 // 어떤 끝이든 마이크 트랙은 모두 멈춘다. 정리 순서는 녹음기 stop() → stop 이벤트 → 모든 트랙 stop().
 export type RecordingResult = { ok: true; blob: Blob; mimeType: string } | { ok: false; reason: 'too-short' | 'interrupted' | 'cancelled' }
 export type RecorderState = 'idle' | 'asking' | 'recording'
@@ -15,8 +15,9 @@ const MAX_SECONDS = 20
 const MAX_MS = MAX_SECONDS * 1000
 // 1초 미만 녹음은 서버로 보내지 않는다
 const MIN_MS = 1000
-// 녹음기에 stop()을 불렀는데 stop 이벤트가 오지 않아도 마이크가 계속 켜져 있지 않게, 이만큼 기다린 뒤 트랙을 멈춘다
-const STOP_EVENT_WAIT_MS = 1000
+// 녹음기에 stop()을 불렀는데 stop 이벤트가 오지 않아도 마이크가 계속 켜져 있지 않게, 이만큼 기다린 뒤 트랙을 멈춘다.
+// 느린 기기에서 늦게 오는 stop 이벤트 때문에 정상 녹음이 '중간에 멈췄어요'로 버려지지 않게 넉넉히 둔다
+const STOP_EVENT_WAIT_MS = 3000
 
 // 녹음이 어떻게 끝나는가: 사용자가 멈춤·20초 자동 멈춤(finished), 사용자가 멈추지 않았는데 끊김(interrupted), 버려짐(cancelled)
 type Ending = 'finished' | 'interrupted' | 'cancelled'
@@ -228,17 +229,31 @@ export function useRecorder(options: { active: boolean; onStopped: (result: Reco
     end(session, 'cancelled')
   }, [end, release])
 
-  // 다른 메뉴로 옮겨 active가 false가 되거나 화면이 숨겨지거나 화면이 사라지면 녹음을 버린다
+  // 화면이 숨겨지면 녹음을 버린다. 권한을 기다리는 중이면 녹음이 시작되지 않았으니 취소(cancelled)이고,
+  // 녹음 중(손으로 멈춘 뒤 stop 이벤트를 기다리는 중 포함)이면 사용자가 멈추지 않은 끊김(interrupted)이다.
+  // 어느 쪽이든 소리는 알리지 않는다 (PRD F33 '안 될 때'의 화면 꺼짐, 10장 앱 공통)
+  const hide = useCallback(() => {
+    const session = current.current
+    if (!session) return
+    if (session.recorder === null) {
+      cancel()
+      return
+    }
+    if (session.ending === 'finished') session.ending = 'interrupted'
+    else end(session, 'interrupted')
+  }, [cancel, end])
+
+  // 다른 메뉴로 옮겨 active가 false가 되거나 화면이 사라지면 녹음을 버린다(cancelled)
   useEffect(() => {
     if (!active) cancel()
   }, [active, cancel])
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') cancel()
+      if (document.visibilityState === 'hidden') hide()
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
-  }, [cancel])
+  }, [hide])
   useEffect(() => cancel, [cancel])
 
   return { state, secondsLeft, start, stop, cancel }
