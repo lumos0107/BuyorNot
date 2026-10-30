@@ -356,6 +356,8 @@ function AddForm({
   // 말로 담기 (F33): 채운 뒤 옮길 포커스(채운 칸이 없으면 field null = "말로 담기" 버튼)
   const voiceButton = useRef<HTMLButtonElement>(null)
   const [voiceFocus, setVoiceFocus] = useState<{ field: VoiceField | null } | null>(null)
+  // 물건을 담으면 올린다: 진행 중인 녹음·받아쓰기를 끊어 늦은 응답이 비운 폼을 다시 채우지 않게 한다(판정 R13)
+  const [voiceCancel, setVoiceCancel] = useState(0)
   // 응답이 온 순간의 폼 값에 합친다: 빈 칸만 채우고 적어 둔 칸(받아쓰는 동안 적은 칸 포함)은 그대로 둔다. 저장은 하지 않는다
   const fillFromVoice = (fill: VoiceFillResponse) => {
     const target = { name: raw.name, price: raw.price, reason: raw.reason, desire, preset: raw.preset, customDays: raw.customDays }
@@ -412,6 +414,7 @@ function AddForm({
     setAttempted(false)
     setDraftNotice(null)
     setVoiceMessage(null)
+    setVoiceCancel((n) => n + 1)
     setFromExample(false)
   }
 
@@ -441,6 +444,7 @@ function AddForm({
             onFill={fillFromVoice}
             onMessage={(message) => setVoiceMessage(message.lines.length > 0 ? message : null)}
             buttonRef={voiceButton}
+            cancelKey={voiceCancel}
           />
           {voiceMessage ? (
             <div className={voiceMessage.kind === 'alert' ? 'field-error' : 'note'} role={voiceMessage.kind}>

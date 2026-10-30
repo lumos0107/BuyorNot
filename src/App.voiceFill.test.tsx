@@ -326,6 +326,75 @@ describe('말로 담기 흐름 (F33)', () => {
     expect(screen.getByRole('region', { name: '고민 중인 물건 목록' })).toBeInTheDocument()
     expectNoVoiceStatus()
   })
+
+  // 판정 R13: 물건을 담아 폼이 비면 결과가 들어갈 곳이 없어지므로 취소와 같은 길로 끊는다
+  it('R13: 받아쓰는 중에 칸을 직접 채워 담아 두기를 누르면 물건은 담기고, 요청을 끊어 늦게 온 응답이 비운 폼을 다시 채우지 않는다', async () => {
+    const s = setup()
+    const held = aiReply.hold()
+    s.server.on(VOICE, held)
+    await record()
+    fireEvent.change(nameField(), { target: { value: '폼롤러' } })
+    fireEvent.change(priceField(), { target: { value: '12000' } })
+    fireEvent.change(reasonField(), { target: { value: '운동 끝나고 쓰려고' } })
+
+    fireEvent.click(form().getByRole('button', { name: '담아 두기' }))
+    await settle()
+
+    expect(screen.getByRole('region', { name: '고민 중인 물건 목록' })).toHaveTextContent('폼롤러')
+    expect(held.signal?.aborted).toBe(true)
+    expect(form().queryByText(TRANSCRIBING)).not.toBeInTheDocument()
+    expect(startButton()).toBeEnabled()
+    // 취소 버튼을 누른 것이 아니라서 "말로 담기"로 포커스를 옮기지 않는다
+    expect(startButton()).not.toHaveFocus()
+
+    held.release(yoga())
+    await settle()
+
+    expect(values()).toEqual(EMPTY_FORM)
+    expectNoVoiceStatus()
+    expect(form().queryByRole('alert')).not.toBeInTheDocument()
+    expect(s.server.callsTo(VOICE)).toHaveLength(1)
+  })
+
+  it('R13: 녹음 중에 담아 두기를 누르면 같은 길로 녹음을 버리고 트랙을 멈추며 보내지 않는다', async () => {
+    const s = setup({ trackCount: 2 })
+    await pressStart()
+    await advance(3000)
+    fireEvent.change(nameField(), { target: { value: '폼롤러' } })
+    fireEvent.change(priceField(), { target: { value: '12000' } })
+    fireEvent.change(reasonField(), { target: { value: '운동 끝나고 쓰려고' } })
+
+    fireEvent.click(form().getByRole('button', { name: '담아 두기' }))
+    await settle()
+    await advance(60_000)
+
+    expect(screen.getByRole('region', { name: '고민 중인 물건 목록' })).toHaveTextContent('폼롤러')
+    expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
+    expect(form().queryByRole('timer')).not.toBeInTheDocument()
+    expect(s.server.calls).toEqual([])
+    expect(values()).toEqual(EMPTY_FORM)
+    expectNoVoiceStatus()
+  })
+
+  it('R13: 빈 칸 오류로 담지 못한 담아 두기는 받아쓰기를 끊지 않는다(폼이 비지 않음)', async () => {
+    const s = setup()
+    const held = aiReply.hold()
+    s.server.on(VOICE, held)
+    await record()
+
+    fireEvent.click(form().getByRole('button', { name: '담아 두기' }))
+    await settle()
+
+    expect(screen.queryByRole('region', { name: '고민 중인 물건 목록' })).not.toBeInTheDocument()
+    expect(held.signal?.aborted).toBe(false)
+    expect(form().getByText(TRANSCRIBING)).toBeInTheDocument()
+
+    held.release(yoga())
+    await settle()
+
+    expect(values().name).toBe('요가 매트')
+    expect(s.server.callsTo(VOICE)).toHaveLength(1)
+  })
 })
 
 // ================================================================ AC57 받아쓴 내용을 담기 폼에 넣기

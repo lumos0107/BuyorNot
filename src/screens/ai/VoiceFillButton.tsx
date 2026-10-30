@@ -12,7 +12,7 @@ import { useRecorder, type RecordingResult } from './useRecorder'
 // 흐름: "말로 담기" → (마이크 권한 대기: 버튼을 누를 수 없음) → "듣는 중 · {n}초 남음"("멈추기"·"취소") → "AI가 받아쓰는 중이에요"("취소") → onFill.
 // 칸에 넣기·결과 안내·채운 뒤 포커스는 폼이 한다(그 순간의 폼 값이 필요해서). 이 컴포넌트는 녹음과 요청, 실패 문구와 취소 뒤 포커스를 맡는다.
 //
-// 흐름 번호: 말로 담기를 누를 때마다 새 번호를 받는다. 취소·화면이 사라짐이면 번호를 올려, 그 뒤에 오는 녹음 결과·응답은 버린다(applying-ai-results 규칙 1).
+// 흐름 번호: 말로 담기를 누를 때마다 새 번호를 받는다. 취소·물건을 담음(cancelKey)·화면이 사라짐이면 번호를 올려, 그 뒤에 오는 녹음 결과·응답은 버린다(applying-ai-results 규칙 1).
 // 녹음은 권한을 기다리는 중이든 녹음 중이든 다른 메뉴로 옮기면 버리고(훅이 멈춤), 녹음이 끝나 받아쓰는 중이면 요청은 이어진다(PRD 10장 앱 공통).
 
 // PRD F33 "안 될 때"
@@ -29,6 +29,7 @@ export function VoiceFillButton({
   onFill,
   onMessage,
   buttonRef,
+  cancelKey = 0,
 }: {
   /** 이 화면(고민 목록 메뉴)이 보이는가. false가 되면 녹음과 권한 대기를 버린다 */
   active: boolean
@@ -36,6 +37,8 @@ export function VoiceFillButton({
   onMessage: (message: VoiceMessage) => void
   /** "말로 담기" 버튼. 채울 칸이 없을 때 폼이 이 버튼으로 포커스를 옮긴다 */
   buttonRef?: RefObject<HTMLButtonElement | null>
+  /** 바뀌면 진행 중인 녹음·받아쓰기를 취소와 같은 길로 끊는다. 폼이 물건을 담아 비워질 때 올린다(판정 R13) */
+  cancelKey?: number
 }) {
   const [transcribing, setTranscribing] = useState(false)
   // 그린 뒤 옮길 포커스. 새 객체로 바꿔야 같은 곳으로 다시 옮긴다
@@ -146,27 +149,32 @@ export function VoiceFillButton({
     else if (started === 'denied') fail(DENIED)
   }
 
-  // 녹음 중 취소: 녹음을 버린다(트랙은 훅이 멈춘다)
-  const cancelRecording = () => {
+  // 무효화 경로 하나: 녹음은 버리고(트랙은 훅이 멈춘다) 받아쓰기 요청은 끊는다. 폼은 그대로 둔다
+  const discard = () => {
     flow.current += 1
     recordingFlow.current = null
     recorder.cancel()
-    setFocusTo({ target: 'start' })
-  }
-
-  // 받아쓰는 중 취소: 요청을 끊고 폼은 그대로 둔다
-  const cancelTranscribing = () => {
-    flow.current += 1
     inFlight.current?.abort()
     inFlight.current = null
     setTranscribing(false)
+  }
+  // 녹음 중·받아쓰는 중의 "취소"
+  const cancel = () => {
+    discard()
     setFocusTo({ target: 'start' })
   }
+  // 폼이 물건을 담아 비워지면 결과가 들어갈 곳이 없어졌으므로 끊는다. 포커스는 옮기지 않는다(판정 R13)
+  const seenCancelKey = useRef(cancelKey)
+  useEffect(() => {
+    if (cancelKey === seenCancelKey.current) return
+    seenCancelKey.current = cancelKey
+    discard()
+  })
 
   return (
     <div ref={root} className="stack">
       {transcribing ? (
-        <Progress text="AI가 받아쓰는 중이에요" onCancel={cancelTranscribing} />
+        <Progress text="AI가 받아쓰는 중이에요" onCancel={cancel} />
       ) : recorder.state === 'recording' ? (
         <div className="stack">
           {/* 남은 초는 1초마다 바뀌어 읽어 주면 녹음에 섞이므로 timer(기본으로 읽지 않음)로 둔다 */}
@@ -175,7 +183,7 @@ export function VoiceFillButton({
             <Button ref={stopRef} onClick={recorder.stop}>
               멈추기
             </Button>
-            <Button onClick={cancelRecording}>취소</Button>
+            <Button onClick={cancel}>취소</Button>
           </div>
         </div>
       ) : (
