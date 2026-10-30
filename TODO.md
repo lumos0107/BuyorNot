@@ -423,7 +423,7 @@
 - [x] **15-1** F43 요약 스크립트와 AI 성적표 카드 (PRD F43 · AC62·AC63) (계획 ai-stage1-plus T1) — `99922d8`
 - [x] **15-2** F44 계산 로직: cm 검사·두 방향·문장 (PRD F44 · AC64) (계획 ai-stage1-plus T2) — `a074e25`
 - [x] **15-3** F44 저장과 카드의 "놓을 자리 확인" (PRD F44 · AC65) (계획 ai-stage1-plus T3) — `353f798`
-- [ ] **15-4** F15에 놓을 자리 결과 잇기 (PRD F44 · AC66) (계획 ai-stage1-plus T4)
+- [x] **15-4** F15에 놓을 자리 결과 잇기 (PRD F44 · AC66) (계획 ai-stage1-plus T4) — `76d17cb`
 - [ ] **15-5** `/api/read-size` 치수 읽기 서버 (PRD F44 · AC68) (계획 ai-stage1-plus T5)
 - [ ] **15-6** 캡처에서 치수 읽어 넣기 (PRD F44 · AC67) (계획 ai-stage1-plus T6)
 - [ ] **15-7** 치수 읽기 평가와 성적표 갱신. 실제 자료는 (제작자) 확인 뒤 (PRD F43·F44) (계획 ai-stage1-plus T7)
