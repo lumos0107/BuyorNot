@@ -508,3 +508,19 @@ describe('놓을 자리 확인의 AI 자리 (F44 2단계 준비, 판정 R18)', (
     expect(container).toBeEmptyDOMElement()
   })
 })
+
+describe('놓을 자리 확인 결과가 사기 전에 한 번 더에 보여요 (F44·F15, AC66)', () => {
+  it("AC66: 치수를 넣어 '안 들어가요'를 저장하고 구매함을 누르면 걸리는 점 목록에 그 문장이 하나 보여요", async () => {
+    // 고민 기간이 끝난 물건이라 다른 걸리는 점은 없다. 놓을 곳 40×30×50, 물건 45×25×47(방향 1 가로·방향 2 깊이가 넘침)
+    const { user } = setup(thing({ reviewAt: at(-1) }))
+    await open(user, POT)
+    await fill(user, POT, { ...SINK, iw: '45', id: '25', ih: '47' })
+    await user.click(saveButton(POT))
+    expect(result(POT)).toHaveTextContent('입력 치수상 싱크대 옆 칸에 안 들어가요.')
+    await user.click(card(POT).getByRole('button', { name: '구매함' }))
+    const check = within(card(POT).getByRole('region', { name: '사기 전 점검' }))
+    expect(check.getByText('사기 전에 한 번 더 · 걸리는 점 1개')).toBeInTheDocument()
+    const concerns = within(check.getByRole('list', { name: '걸리는 점' }))
+    expect(concerns.getAllByRole('listitem').map((li) => li.textContent)).toEqual(["입력한 치수로는 '싱크대 옆 칸'에 안 들어가요"])
+  })
+})

@@ -1,3 +1,4 @@
+import { fitSignal } from './fit'
 import { formatFixed, josa } from './number'
 import { QUESTION_ORDER, QUESTION_TEXT, hasAnswer } from './questions'
 import { userWrittenReason } from './draft'
@@ -14,6 +15,8 @@ export type ImpulseSignal = {
   key: string
   text: string
 }
+
+const SPACE_TIME_ANSWER = "'놓을 곳이나 쓸 시간이 없어요'라고 답했어요"
 
 /** 사고 싶은 이유에 이런 말이 있으면 할인 때문에 사려는 것일 수 있다 */
 const SALE_WORDS = ['세일', '할인', '특가', '한정', '마감', '쿠폰', '타임딜', '핫딜', '반값', '최저가', '1+1']
@@ -33,7 +36,10 @@ export function impulseSignals(item: WishItem, items: readonly WishItem[], now: 
   const sale = saleWordIn(item.reason)
   if (answers?.saleDriven === 'yes') push('sale', "'할인·한정 때문'이라고 답했어요. 할인이 없어도 살까요?")
   else if (answers?.saleDriven !== 'no' && sale) push('sale', `사고 싶은 이유에 '${sale}'${josa(sale, '이/가')} 있어요. 할인이 없어도 살까요?`)
-  if (answers?.spaceTime === 'no') push('space-time', "'놓을 곳이나 쓸 시간이 없어요'라고 답했어요")
+  // 놓을 곳·시간: 질문 ⑤의 답과 저장한 치수 확인 결과(F44)는 같은 범주라 한 번만 센다. 결과는 저장한 값(item.fit)만 본다
+  const fitText = item.fit ? fitSignal(item.fit) : null
+  if (answers?.spaceTime === 'no') push('space-time', fitText ? `${SPACE_TIME_ANSWER} · ${fitText}` : SPACE_TIME_ANSWER)
+  else if (fitText) push('space-time', fitText)
   if (answers?.alternative === 'yes') push('alternative', "'빌리거나 중고로 대신할 수 있어요'라고 답했어요")
   const state = reviewState(item.reviewAt, now)
   if (state.phase === 'cooling') push('early', `고민 기간이 ${formatRemaining(state.remainingMs).replace(/ 남음$/, '')} 남았어요`)
