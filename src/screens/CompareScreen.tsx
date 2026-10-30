@@ -608,7 +608,7 @@ function ExampleIntro({
         <IntroSide title={sides[1][0]} lines={sides[1][1]} />
       </div>
       <p className="intro-conclusion">{conclusion}</p>
-      <p className="note">‘예시 넣기’를 누르면 아래 칸이 채워져요. 비교할 금액과 조건으로 바꿔 보세요. ‘초기화’를 누르면 입력칸을 비워요.</p>
+      <p className="note">처음에는 예시 값이 들어 있어요. 비교할 금액과 조건으로 바꿔 보세요. ‘초기화’를 누르면 입력칸을 비우고, ‘예시 넣기’를 누르면 예시 값을 다시 넣어요.</p>
       <div className="btn-row">
         <Button onClick={onExample}>예시 넣기</Button>
         <Button onClick={onReset}>초기화</Button>

@@ -16,6 +16,15 @@ async function openCompare() {
 }
 const panel = (name: string) => within(screen.getByRole('tabpanel', { name }))
 
+// 이럴 때 써요 안내 (PRD F06, 판정 R29-I2, AC74): 칸이 처음부터 채워져 있다는 사실과 맞는 문장
+const INTRO_NOTE =
+  '처음에는 예시 값이 들어 있어요. 비교할 금액과 조건으로 바꿔 보세요. ‘초기화’를 누르면 입력칸을 비우고, ‘예시 넣기’를 누르면 예시 값을 다시 넣어요.'
+const OLD_INTRO_NOTE = '‘예시 넣기’를 누르면 아래 칸이 채워져요.'
+const introBox = (tab: string) => panel(tab).getByRole('region', { name: '이럴 때 써요' })
+// 예시 값을 확인하는 칸: 할인 비교는 A안의 상품 금액(80000), 묶음상품 비교는 상품 A의 가격(18900)
+const discountPrice = () => within(panel('할인 비교').getByRole('group', { name: 'A안' })).getByLabelText('상품 금액')
+const bundlePrice = () => within(panel('묶음상품 비교').getByRole('group', { name: '상품 A' })).getByLabelText('가격')
+
 describe('가격 비교는 예시가 채워진 채로 열린다', () => {
   it('할인 비교: 이럴 때 써요 카드와 예시 결과가 바로 보인다', async () => {
     await openCompare()
@@ -40,6 +49,42 @@ describe('가격 비교는 예시가 채워진 채로 열린다', () => {
     expect(within(panel('할인 비교').getByRole('group', { name: 'A안' })).getByLabelText('상품 금액')).toHaveValue('')
     await user.click(panel('할인 비교').getByRole('button', { name: '예시 넣기' }))
     expect(screen.getByRole('region', { name: '할인 비교 결과' })).toBeInTheDocument()
+  })
+})
+
+describe('이럴 때 써요 안내는 처음부터 채워진 칸과 맞다 (AC74)', () => {
+  it('AC74: 할인 비교와 묶음상품 비교의 이럴 때 써요 안내가 처음부터 채워진 칸과 맞다', async () => {
+    const user = await openCompare()
+
+    // 할인 비교(처음 엶): 새 문장, 예전 문장 없음, 칸에 예시 값
+    expect(within(introBox('할인 비교')).getByText(INTRO_NOTE)).toBeInTheDocument()
+    expect(introBox('할인 비교')).not.toHaveTextContent(OLD_INTRO_NOTE)
+    expect(discountPrice()).toHaveValue('80000')
+
+    await user.click(screen.getByRole('tab', { name: '묶음상품 비교' }))
+
+    expect(within(introBox('묶음상품 비교')).getByText(INTRO_NOTE)).toBeInTheDocument()
+    expect(introBox('묶음상품 비교')).not.toHaveTextContent(OLD_INTRO_NOTE)
+    expect(bundlePrice()).toHaveValue('18900')
+  })
+
+  it('AC74: 초기화 뒤와 예시 넣기 뒤에도 같은 안내다', async () => {
+    const user = await openCompare()
+
+    await user.click(panel('할인 비교').getByRole('button', { name: '초기화' }))
+    expect(within(introBox('할인 비교')).getByText(INTRO_NOTE)).toBeInTheDocument()
+    expect(discountPrice()).toHaveValue('')
+    await user.click(panel('할인 비교').getByRole('button', { name: '예시 넣기' }))
+    expect(within(introBox('할인 비교')).getByText(INTRO_NOTE)).toBeInTheDocument()
+    expect(discountPrice()).toHaveValue('80000')
+
+    await user.click(screen.getByRole('tab', { name: '묶음상품 비교' }))
+    await user.click(panel('묶음상품 비교').getByRole('button', { name: '초기화' }))
+    expect(within(introBox('묶음상품 비교')).getByText(INTRO_NOTE)).toBeInTheDocument()
+    expect(bundlePrice()).toHaveValue('')
+    await user.click(panel('묶음상품 비교').getByRole('button', { name: '예시 넣기' }))
+    expect(within(introBox('묶음상품 비교')).getByText(INTRO_NOTE)).toBeInTheDocument()
+    expect(bundlePrice()).toHaveValue('18900')
   })
 })
 

@@ -33,7 +33,10 @@ const PRICE_UNREAD = '가격을 읽지 못했어요'
 const NEED_PRICE = '매장 가격을 적어 주세요'
 // 최종 리뷰 F6: PRD에 없던 문장이라 총괄이 PRD F31에 'Claude 결정, 제작자 확인 전'으로 적는다
 const NEED_NAME = '상품명을 적어 주세요'
-const TOP_NOTE = '가격 차이는 필요 여부를 판단해 주지 않아요.'
+// PRD F31 결과 맨 위 줄 (판정 R29-I2, AC72). TOP_NOTE는 found·not_confirmed의 첫 줄이고, OLD_TOP_NOTE는 사라진 전 문장이다
+const TOP_NOTE = '가격 차이로는 필요한 물건인지 알 수 없어요.'
+const OLD_TOP_NOTE = '가격 차이는 필요 여부를 판단해 주지 않아요.'
+const DANAWA_OFF_NOTE = '지금은 다나와 가격을 자동으로 가져오지 않아요. 가격은 다나와에서 직접 확인해 주세요.'
 const FOUND_HEAD = 'AI가 같은 상품으로 고른 다나와 상품'
 const NOT_CONFIRMED_HEAD = '다나와 검색 결과 · 같은 상품인지 확인하지 못했어요'
 const DANAWA_FAILED = '다나와 결과를 가져오지 못했어요.'
@@ -804,10 +807,46 @@ describe('온라인 가격 확인 결과 영역 (F31)', () => {
     async (searchUrl) => {
       await readAndCheck([ITEM], aiReply.ok({ status: 'off', searchUrl, matches: [], candidates: [] }))
 
-      expect(result().getByText(TOP_NOTE)).toBeInTheDocument()
+      expect(result().getByText(DANAWA_OFF_NOTE)).toBeInTheDocument()
       expect(result().queryByRole('link')).not.toBeInTheDocument()
     },
   )
+
+  // 결과 맨 위(제목 바로 아래) 줄은 제목 h4의 다음 형제 요소의 글로 본다 (PRD F31 "결과 맨 위(제목 바로 아래)")
+  const firstLine = () => result().getByRole('heading', { name: RESULT }).nextElementSibling?.textContent
+
+  it.each([
+    ['found', lowest('found', [ROW_FOUND])],
+    ['not_confirmed', lowest('not_confirmed', [], [ROW_FOUND])],
+  ])('AC72: found·not_confirmed면 제목 다음 첫 줄이 가격 차이 문장이다 (%s)', async (_status, reply) => {
+    await readAndCheck([ITEM], reply)
+
+    expect(firstLine()).toBe(TOP_NOTE)
+    expect(result().queryByText(OLD_TOP_NOTE)).not.toBeInTheDocument()
+    expect(result().queryByText(DANAWA_OFF_NOTE)).not.toBeInTheDocument()
+    // 제목과 포커스는 그대로
+    expect(result().getByRole('heading', { name: RESULT })).toHaveFocus()
+  })
+
+  it('AC72: off면 첫 줄이 자동으로 가져오지 않는다는 문장이고 가격 차이 문장은 없으며 다나와에서 직접 보기 링크가 있다', async () => {
+    await readAndCheck([ITEM], lowest('off', []))
+
+    expect(firstLine()).toBe(DANAWA_OFF_NOTE)
+    expect(result().queryByText(TOP_NOTE)).not.toBeInTheDocument()
+    expect(result().queryByText(OLD_TOP_NOTE)).not.toBeInTheDocument()
+    expect(result().getByRole('link', { name: DIRECT_LINK })).toHaveAttribute('href', SEARCH_URL)
+    expect(result().getByRole('heading', { name: RESULT })).toHaveFocus()
+  })
+
+  it('AC72: unavailable이면 첫 줄이 다나와 결과를 가져오지 못했어요이고 가격 차이 문장은 없다', async () => {
+    await readAndCheck([ITEM], lowest('unavailable', []))
+
+    expect(firstLine()).toBe(DANAWA_FAILED)
+    expect(result().queryByText(TOP_NOTE)).not.toBeInTheDocument()
+    expect(result().queryByText(OLD_TOP_NOTE)).not.toBeInTheDocument()
+    expect(result().queryByText(DANAWA_OFF_NOTE)).not.toBeInTheDocument()
+    expect(result().getByRole('heading', { name: RESULT })).toHaveFocus()
+  })
 
   it('온라인 가격 확인에는 사용자가 고친 상품명·개수를 보낸다', async () => {
     const s = setup()

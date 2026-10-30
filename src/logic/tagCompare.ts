@@ -1,6 +1,6 @@
 // 가격표 사진 탭의 규격 확인과 비교 문장. (PRD F31)
 // 다나와 줄을 눌렀을 때 먼저 같은 규격인지 확인하고, 확인한 뒤에만 비교 문장을 만든다.
-import type { DanawaRow } from '../ai/types'
+import type { DanawaRow, LowestPriceResponse } from '../ai/types'
 import { formatWon } from './number'
 
 /** 어느 한쪽 개수를 모를 때 '규격이 같아요' 버튼 위에 붙이는 안내(PRD F31) */
@@ -59,4 +59,26 @@ export function compareLines(storePrice: number, row: DanawaRow, priceCondition:
 /** 단가 가격표(100g당 등)는 온라인 가격과 비교하지 않는다. basis 자리에는 읽은 값('100g')이 온다. */
 export function unitPriceNotice(basis: string): string {
   return `${basis}당 가격처럼 단위 가격이라 온라인 가격과 비교하지 않아요.`
+}
+
+/** 다나와 검색 결과를 읽었을 때(found·not_confirmed) 결과 맨 위 줄 (PRD F31, 판정 R29-I2) */
+export const PRICE_GAP_NOTE = '가격 차이로는 필요한 물건인지 알 수 없어요.'
+
+/** 다나와 조회를 꺼 두었을 때(off) 결과 맨 위 줄. 가격 칸이 없는 이유와 할 일을 말한다 (PRD F31, 판정 R29-I2) */
+export const DANAWA_OFF_NOTE = '지금은 다나와 가격을 자동으로 가져오지 않아요. 가격은 다나와에서 직접 확인해 주세요.'
+
+/**
+ * 결과 제목 바로 아래 줄. 다나와를 못 읽었으면(unavailable) 따로 없어서 null이고,
+ * 화면의 "다나와 결과를 가져오지 못했어요."가 맨 위 줄이 된다.
+ */
+export function resultTopLine(status: LowestPriceResponse['status']): string | null {
+  switch (status) {
+    case 'found':
+    case 'not_confirmed':
+      return PRICE_GAP_NOTE
+    case 'off':
+      return DANAWA_OFF_NOTE
+    case 'unavailable':
+      return null
+  }
 }

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { DanawaRow } from '../ai/types'
-import { compareLines, packLabel, rowLine, specCheck, UNKNOWN_COUNT_NOTICE, unitPriceNotice } from './tagCompare'
+import { compareLines, packLabel, resultTopLine, rowLine, specCheck, UNKNOWN_COUNT_NOTICE, unitPriceNotice } from './tagCompare'
 
-// PRD F31 규격 확인·비교 문장, 검증 사례 AC52(문장 부분), AC53(단가 가격표)
+// PRD F31 규격 확인·비교 문장, 검증 사례 AC52(문장 부분), AC53(단가 가격표), AC72(결과 맨 위 줄)
 const row: DanawaRow = { name: '농심 오징어짬뽕컵 67g', packCount: 6, price: 4900, unitPriceText: null, malls: '573' }
 const store = { name: '농심 오징어짬뽕 소컵 6입', sizeText: '67g×6', count: 6 as number | null }
 const FORBIDDEN = ['최저가', '싸요', '이득']
@@ -163,5 +163,15 @@ describe('단가 가격표 안내', () => {
 
   it('읽은 단위를 그대로 앞에 넣는다', () => {
     expect(unitPriceNotice('100mL')).toBe('100mL당 가격처럼 단위 가격이라 온라인 가격과 비교하지 않아요.')
+  })
+})
+
+describe('결과 맨 위 줄', () => {
+  it('AC72: 결과 맨 위 줄은 다나와 상태마다 정해진 문장이고 못 읽었으면 없어요', () => {
+    expect(resultTopLine('found')).toBe('가격 차이로는 필요한 물건인지 알 수 없어요.')
+    expect(resultTopLine('not_confirmed')).toBe('가격 차이로는 필요한 물건인지 알 수 없어요.')
+    expect(resultTopLine('off')).toBe('지금은 다나와 가격을 자동으로 가져오지 않아요. 가격은 다나와에서 직접 확인해 주세요.')
+    // 못 읽었으면(unavailable) 맨 위 줄이 따로 없고, 화면의 "다나와 결과를 가져오지 못했어요."가 맨 위가 된다
+    expect(resultTopLine('unavailable')).toBeNull()
   })
 })

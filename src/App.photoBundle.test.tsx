@@ -30,7 +30,9 @@ const DECODE_FAILED = '이 사진을 열 수 없어요. 다른 사진을 고르�
 const BUSY = '지금은 사용이 많아요. 잠시 뒤 다시 해 주세요.'
 const PAUSED = 'AI 기능을 잠시 멈췄어요. 직접 입력해 주세요.'
 const UNREADABLE = '지금은 읽지 못했어요. 직접 입력해 주세요.'
-const UNIT_PRICE = '100g당 가격표라 묶음 비교에 넣지 않았어요. 산 양의 총가격과 실제 수량·용량을 확인해 주세요.'
+// PRD F32 단가 거절 (판정 R29-I2, AC73). 문장의 '100g'·'100mL' 자리는 읽은 priceBasis다
+const UNIT_PRICE = 'AI가 이 가격을 100g당 가격으로 읽었어요. 묶음 전체 가격이 아니라서 채우지 않았어요. 사려는 묶음의 전체 가격과 용량·개수를 직접 입력해 주세요.'
+const UNIT_PRICE_ML = 'AI가 이 가격을 100mL당 가격으로 읽었어요. 묶음 전체 가격이 아니라서 채우지 않았어요. 사려는 묶음의 전체 가격과 용량·개수를 직접 입력해 주세요.'
 const NOT_FOUND = '상품이나 가격표를 찾지 못했어요. 다시 찍거나 직접 입력해 주세요.'
 const FILL_BUTTON = '사진으로 채우기'
 
@@ -67,6 +69,8 @@ const ITEM_EA = item({ price: 4500, size: null, unit: 'ea', count: 6, sizeText: 
 const ITEM_NO_UNIT = item({ price: 4500, size: 900, unit: null, count: null, sizeText: '900' })
 // AC56 사례 1: 단가 가격표('100g')
 const ITEM_UNIT_PRICE = item({ name: '세제 단가표', price: 430, priceBasis: '100g' })
+// AC73 사례 1: 단가 가격표(가격 6480, priceBasis '100mL', 355mL·6개). 가정: 포장 표기 '355mL×6'은 결과를 가르지 않는다
+const ITEM_UNIT_PRICE_ML = item({ price: 6480, priceBasis: '100mL', size: 355, unit: 'mL', count: 6, sizeText: '355mL×6' })
 
 const readTag = (...items: TagItem[]) => aiReply.ok({ items, note: null })
 
@@ -527,11 +531,48 @@ describe('단가 가격표, 모두 모르는 값, 상품 여러 개 (AC56)', () 
     // 채울 값을 만들지 않는다
     expect(box(B).queryByText(/^채울 값:/)).not.toBeInTheDocument()
     expect(box(B).queryByText(/^읽은 내용:/)).not.toBeInTheDocument()
-    expect(confirmButton(B)).toBeDisabled()
+    expect(box(B).queryByRole('button', { name: '채우기' })).toBeNull()
     expect(values(B)).toEqual(before)
 
     fireEvent.click(box(B).getByRole('button', { name: '취소' }))
 
+    expect(values(B)).toEqual(before)
+    expect(photoInput(B)).toHaveFocus()
+    expect(s.server.callsTo(READ)).toHaveLength(1)
+  })
+
+  it('AC73: 100mL당 단가 가격표(6480원·355mL·6개)면 새 문장과 취소만 보이고 칸은 그대로다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag(ITEM_UNIT_PRICE_ML))
+    openBundle()
+    enter(B, { unit: 'kg', price: '1234', size: '4', count: '3' })
+    const before = values(B)
+
+    await readPhoto(B)
+
+    // 문장의 '100mL' 자리는 응답의 priceBasis다
+    expect(box(B).getByText(UNIT_PRICE_ML)).toBeInTheDocument()
+    expect(box(B).queryByText(UNIT_PRICE)).not.toBeInTheDocument()
+    // 상자의 버튼은 '취소'뿐이다('채우기' 없음). 채울 값 줄도 없다
+    expect(box(B).getAllByRole('button').map((button) => button.textContent)).toEqual(['취소'])
+    expect(box(B).queryByRole('button', { name: '채우기' })).toBeNull()
+    expect(box(B).queryByText(/^채울 값:/)).not.toBeInTheDocument()
+    expect(values(B)).toEqual(before)
+    // 옛 문장은 없다
+    expect(card(B).queryByText(/가격표라 묶음 비교에 넣지 않았어요/)).not.toBeInTheDocument()
+  })
+
+  it('AC73: 그 상자에서 취소하면 사진으로 채우기로 포커스가 돌아간다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag(ITEM_UNIT_PRICE_ML))
+    openBundle()
+    enter(B, { unit: 'kg', price: '1234', size: '4', count: '3' })
+    const before = values(B)
+    await readPhoto(B)
+
+    fireEvent.click(box(B).getByRole('button', { name: '취소' }))
+
+    expect(queryBox(B)).not.toBeInTheDocument()
     expect(values(B)).toEqual(before)
     expect(photoInput(B)).toHaveFocus()
     expect(s.server.callsTo(READ)).toHaveLength(1)
@@ -606,16 +647,18 @@ describe('단가 가격표, 모두 모르는 값, 상품 여러 개 (AC56)', () 
     expect(values(B)).toEqual({ price: '4500', unit: 'g', size: '1.5', count: '50' })
   })
 
-  it('AC56: 고른 상품이 단가 가격표이면 채우기가 막히고, 채울 수 있는 상품으로 바꾸면 풀린다', async () => {
+  it('AC56·AC73: 고른 상품이 단가 가격표이면 채우기가 없고, 채울 수 있는 상품으로 바꾸면 다시 보인다', async () => {
     await openBox(B, ITEM_UNIT_PRICE, ITEM_L)
 
     fireEvent.click(box(B).getByRole('radio', { name: ITEM_UNIT_PRICE.name }))
     expect(box(B).getByText(UNIT_PRICE)).toBeInTheDocument()
-    expect(confirmButton(B)).toBeDisabled()
+    expect(box(B).queryByRole('button', { name: '채우기' })).toBeNull()
 
     fireEvent.click(box(B).getByRole('radio', { name: ITEM_L.name }))
     expect(box(B).queryByText(UNIT_PRICE)).not.toBeInTheDocument()
     expect(confirmButton(B)).toBeEnabled()
+    // AC73: 채울 수 있는 상품으로 바꾸면 "채울 값:"으로 시작하는 줄도 다시 보인다
+    expect(box(B).getByText(/^채울 값:/)).toBeInTheDocument()
   })
 
   it('상품을 하나도 못 찾으면 "상품이나 가격표를 찾지 못했어요…"를 보이고 확인 상자도 칸 변경도 없다', async () => {

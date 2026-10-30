@@ -211,9 +211,12 @@ export function BundlePhotoFill({ cardName, onApply }: { cardName: string; onApp
             </SelectField>
           ) : null}
           <div className="btn-row">
-            <Button variant="primary" disabled={!canApply} onClick={apply}>
-              채우기
-            </Button>
+            {/* 단가 가격표처럼 거절한 상품에는 눌리지 않는 '채우기'를 두지 않고 '취소'만 둔다 (판정 R29-I2, AC73) */}
+            {fill?.ok === false ? null : (
+              <Button variant="primary" disabled={!canApply} onClick={apply}>
+                채우기
+              </Button>
+            )}
             <Button onClick={close}>취소</Button>
           </div>
         </div>

@@ -6,7 +6,7 @@ import { aiFailureMessage, PHOTO_DECODE_FAILED, PHOTO_NOTICE } from '../../ai/me
 import type { DanawaRow, LowestPriceRequest, LowestPriceResponse, TagItem, TagUnit } from '../../ai/types'
 import type { PhotoDraft } from '../../logic/draft'
 import { MAX_WON, parseInteger } from '../../logic/number'
-import { compareLines, rowLine, specCheck, unitPriceNotice, UNKNOWN_COUNT_NOTICE } from '../../logic/tagCompare'
+import { compareLines, resultTopLine, rowLine, specCheck, unitPriceNotice, UNKNOWN_COUNT_NOTICE } from '../../logic/tagCompare'
 import { Button } from '../../ui/Button'
 import { TextField } from '../../ui/Field'
 import { PhotoPicker } from './PhotoPicker'
@@ -299,6 +299,8 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
   // 매장 가격이 비면 확인 버튼이 막히고 칸을 고치면 결과가 지워지므로, 결과가 있으면 storePrice도 있다
   const lines = sameSpec && spec?.kind === 'confirm' && row && current && storePrice !== null ? compareLines(storePrice, row, current.form.priceCondition) : null
   const link = online ? httpsUrl(online.searchUrl) : null
+  // 결과 제목 바로 아래 줄. 다나와를 못 읽었으면 없고, 아래의 "다나와 결과를 가져오지 못했어요."가 맨 위 줄이 된다
+  const topLine = online ? resultTopLine(online.status) : null
   // 상품명이나 매장 가격이 비면 확인을 막고 무엇을 적을지 알린다 (PRD F31)
   const needName = current !== null && current.form.name.trim() === ''
   const needPrice = current !== null && storePrice === null
@@ -375,7 +377,7 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
           <h4 className="card-title" tabIndex={-1} ref={resultHeading}>
             온라인 가격 확인 결과
           </h4>
-          <p>가격 차이는 필요 여부를 판단해 주지 않아요.</p>
+          {topLine ? <p>{topLine}</p> : null}
           {view ? (
             <>
               <p className="field-label">{view.heading}</p>
