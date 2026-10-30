@@ -15,11 +15,11 @@ export const READ_SIZE_PROMPT = `상품 상세 페이지를 캡처한 사진이�
 - 축 이름이 가로·폭·W면 w, 깊이·D면 d, 높이·H면 h에 적고 axes를 labeled로 한다.
 - 축 이름이 없거나, '세로'처럼 깊이인지 높이인지 분명하지 않은 이름이 하나라도 있으면 적힌 순서대로 w, d, h에 적고 axes를 order로 한다.
 - 지름처럼 가로·깊이·높이가 아닌 값은 적지 않고 해당 칸을 null로 둔다.
+- w, d, h는 적힌 숫자를 단위 없이 글자로 적는다(예: "32", "47.5"). 읽을 수 없으면 null이다.
 - unit은 적힌 단위(mm, cm, m)다. 축마다 단위가 다르면 mixed, 단위가 적혀 있지 않으면 null이다. 숫자를 다른 단위로 바꾸지 않는다.
 - 치수 표기가 없으면 candidates를 빈 목록으로 둔다.`
 
 const nullableString = { type: 'STRING', nullable: true }
-const nullableNumber = { type: 'NUMBER', nullable: true }
 
 export const READ_SIZE_SCHEMA = {
   type: 'OBJECT',
@@ -33,12 +33,15 @@ export const READ_SIZE_SCHEMA = {
           label: nullableString,
           kind: { type: 'STRING', enum: ['product', 'package', 'unknown'] },
           axes: { type: 'STRING', enum: ['labeled', 'order'] },
-          w: nullableNumber,
-          d: nullableNumber,
-          h: nullableNumber,
+          // 가로·깊이·높이는 글자로 받는다. NUMBER로 받으면 모델이 "22.0000…"처럼 숫자를 끝없이
+          // 이어 쓰는 일이 잦았다(2026-10-31 실제 호출, 판정 R26). 숫자로는 normalizeCandidate가 바꾼다.
+          w: nullableString,
+          d: nullableString,
+          h: nullableString,
           unit: nullableString,
         },
-        required: ['text', 'kind', 'axes'],
+        // 가로·깊이·높이도 필수(값이 없으면 null). 선택 칸이면 모델이 "w"만 적고 "d"·"h"를 빼고 끝낸 일이 있었다(판정 R27).
+        required: ['text', 'kind', 'axes', 'w', 'd', 'h'],
       },
     },
     note: nullableString,
@@ -63,6 +66,18 @@ function unitOf(v: unknown): SizeCandidate['unit'] {
   return unit === 'mm' || unit === 'cm' || unit === 'm' || unit === 'mixed' ? unit : null
 }
 
+const AXIS_TEXT = /^\d+(\.\d+)?$/
+
+// 가로·깊이·높이 한 칸. 앞뒤 공백을 지운 글자가 숫자와 소수점만이면 숫자로 바꾼다(쉼표·단위·전각 숫자는 null).
+// 스키마를 글자로 바꾸기 전 모양(JSON 숫자)도 받는다. 둘 다 0 초과 MAX_AXIS 이하만 남긴다.
+function axisOf(v: unknown): number | null {
+  if (typeof v === 'string') {
+    const text = v.trim()
+    return AXIS_TEXT.test(text) ? positiveNumberUpTo(Number(text), MAX_AXIS) : null
+  }
+  return positiveNumberUpTo(v, MAX_AXIS)
+}
+
 function normalizeCandidate(raw: unknown): SizeCandidate | null {
   if (!isRecord(raw)) return null
   const text = cleanText(raw.text, 80)
@@ -72,9 +87,9 @@ function normalizeCandidate(raw: unknown): SizeCandidate | null {
     label: cleanText(raw.label, 20),
     kind: kindOf(raw.kind),
     axes: axesOf(raw.axes),
-    w: positiveNumberUpTo(raw.w, MAX_AXIS),
-    d: positiveNumberUpTo(raw.d, MAX_AXIS),
-    h: positiveNumberUpTo(raw.h, MAX_AXIS),
+    w: axisOf(raw.w),
+    d: axisOf(raw.d),
+    h: axisOf(raw.h),
     unit: unitOf(raw.unit),
   }
 }

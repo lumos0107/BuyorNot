@@ -93,10 +93,32 @@ describe('치수 읽기 결과 정규화', () => {
   it('AC68: 가로가 "320mm"처럼 글이거나 -1이면 null로 바꿔요', () => {
     expect(one({ w: '320mm' }).w).toBeNull()
     expect(one({ w: -1 }).w).toBeNull()
-    // 세 축 모두 같은 규칙
-    expect(one({ d: '250', h: -1 })).toMatchObject({ w: 32, d: null, h: null })
+    // 세 축 모두 같은 규칙('250'처럼 숫자만인 글자는 판정 R26부터 숫자로 받으므로 단위가 붙은 글로 확인)
+    expect(one({ d: '250mm', h: -1 })).toMatchObject({ w: 32, d: null, h: null })
   })
 
+  // 판정 R26: 스키마가 가로·깊이·높이를 글자로 받는다(숫자 칸이 "22.0000…"처럼 끝없이 이어지는 반복을 피하려고).
+  // 앞뒤 공백을 지운 글자가 숫자와 소수점만일 때 숫자로 바꾸고 범위 규칙(0 초과 1,000,000 이하)을 적용한다.
+  it('가로·깊이·높이 글자는 숫자와 소수점만일 때 숫자로 바꾸고 그 밖에는 null이에요', () => {
+    const w = (v: unknown) => one({ w: v }).w
+    expect(w('32')).toBe(32)
+    expect(w('47.5')).toBe(47.5)
+    expect(w(' 32 ')).toBe(32)
+    expect(w('1000000')).toBe(1_000_000)
+    expect(w('320mm')).toBeNull()
+    expect(w('3,200')).toBeNull()
+    expect(w('４０')).toBeNull()
+    expect(w('')).toBeNull()
+    expect(w('-1')).toBeNull()
+    expect(w('0')).toBeNull()
+    expect(w('1000001')).toBeNull()
+    for (const v of ['.5', '32.', '1e3', '+32', '0x20', '32 cm', '3 2']) expect(w(v), v).toBeNull()
+    // 세 축 모두 같은 규칙
+    expect(one({ w: '32', d: '25.5', h: '47' })).toMatchObject({ w: 32, d: 25.5, h: 47 })
+    expect(one({ w: '32cm', d: '2,5', h: '４７' })).toMatchObject({ w: null, d: null, h: null })
+  })
+
+  // 스키마를 글자로 바꾸기 전 모양(JSON 숫자)도 같은 범위 규칙으로 받는다(판정 R26의 하위 호환)
   it('가로·깊이·높이는 0 초과 1,000,000 이하의 숫자만 남기고 반올림하지 않아요', () => {
     const w = (v: unknown) => one({ w: v }).w
     expect(w(470.5)).toBe(470.5)
@@ -322,6 +344,18 @@ describe('치수 읽기 요청', () => {
     expect(sent.generationConfig.maxOutputTokens).toBe(4096)
   })
 
+  it('Gemini가 가로·깊이·높이를 글자로 돌려주면 숫자로 바꿔 돌려줘요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    fetchMock.mockResolvedValueOnce(
+      geminiOk({ candidates: [rawCandidate({ w: '32', d: '25.5', h: null })], note: null }),
+    )
+    const res = await readSize({ image: JPEG, mimeType: 'image/jpeg' }, env, deps, ctx)
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { candidates: Record<string, unknown>[] }
+    expect(body.candidates).toHaveLength(1)
+    expect(body.candidates[0]).toMatchObject({ w: 32, d: 25.5, h: null, unit: 'cm' })
+  })
+
   it('jpeg·png·webp는 모두 받아요', async () => {
     const { deps, fetchMock } = makeDeps()
     fetchMock.mockImplementation(() => Promise.resolve(geminiOk({ candidates: [] })))
@@ -351,14 +385,22 @@ describe('치수 읽기 요청', () => {
     expect(READ_SIZE_PROMPT).toContain('숫자를 다른 단위로 바꾸지 않는다')
   })
 
-  it('응답 스키마는 표기마다 text·kind·axes가 필수이고 종류와 축 방식을 정해진 값으로 막아요', () => {
+  // 판정 R26: 가로·깊이·높이를 글자로 받으므로 적는 방법을 규칙 한 줄로 알린다
+  it('프롬프트에 가로·깊이·높이는 적힌 숫자를 단위 없이 글자로 적는다는 규칙이 들어 있어요', () => {
+    expect(READ_SIZE_PROMPT).toContain('- w, d, h는 적힌 숫자를 단위 없이 글자로 적는다(예: "32", "47.5"). 읽을 수 없으면 null이다.')
+  })
+
+  // 판정 R27: 가로·깊이·높이도 필수다(nullable이라 값이 없으면 null을 적는다). 선택 칸이면 모델이
+  // "w"만 적고 "d"·"h"를 빼고 끝낸 일이 있었다(2026-10-31 실제 호출).
+  it('응답 스키마는 표기마다 text·kind·axes·w·d·h가 필수이고 종류와 축 방식을 정해진 값으로 막아요', () => {
     expect(READ_SIZE_SCHEMA.required).toEqual(['candidates'])
     const item = READ_SIZE_SCHEMA.properties.candidates.items
-    expect(item.required).toEqual(['text', 'kind', 'axes'])
+    expect(item.required).toEqual(['text', 'kind', 'axes', 'w', 'd', 'h'])
     expect(item.properties.kind).toEqual({ type: 'STRING', enum: ['product', 'package', 'unknown'] })
     expect(item.properties.axes).toEqual({ type: 'STRING', enum: ['labeled', 'order'] })
+    // 판정 R26: 가로·깊이·높이는 NUMBER가 아니라 글자(STRING)로 받는다
     for (const axis of ['w', 'd', 'h'] as const) {
-      expect(item.properties[axis]).toEqual({ type: 'NUMBER', nullable: true })
+      expect(item.properties[axis]).toEqual({ type: 'STRING', nullable: true })
     }
     for (const field of ['label', 'unit'] as const) {
       expect(item.properties[field]).toEqual({ type: 'STRING', nullable: true })
