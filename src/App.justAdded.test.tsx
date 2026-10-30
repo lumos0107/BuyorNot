@@ -147,3 +147,89 @@ describe('담은 직후 새 카드로 포커스 (F24, AC70)', () => {
     expect(card('전기 포트').queryByText(JUST_ADDED)).not.toBeInTheDocument()
   })
 })
+
+// PRD F24 (AC80, 판정 R43): 담은 물건을 바로 결정하거나 지워 고민 목록에서 빠지면 폼 위 담은 직후 안내와 "방금 담았어요."도 사라지고, 되돌려도 다시 보이지 않는다
+describe('담은 물건을 바로 결정하거나 지우면 담은 직후 안내가 사라짐 (F24, AC80)', () => {
+  const ADDED_STATUS = { name: '담은 물건' }
+  const NOTICE = () => within(screen.getByRole('status', { name: '결정 알림' }))
+  const expectAddNoticeGone = () => {
+    expect(screen.queryByText(JUST_ADDED)).not.toBeInTheDocument()
+    expect(form().queryByRole('status', ADDED_STATUS)).not.toBeInTheDocument()
+  }
+
+  async function addThenOpen(user: ReturnType<typeof userEvent.setup>, button: string) {
+    seedTwo()
+    render(<App />)
+    await addItem(user, '나이키 에어포스', 3)
+    // 담은 직후 안내와 "방금 담았어요."가 먼저 보인다
+    expect(screen.getByText(JUST_ADDED)).toBeInTheDocument()
+    expect(form().getByRole('status', ADDED_STATUS)).toHaveTextContent('‘나이키 에어포스’를 담았어요. 3일 뒤에')
+    await user.click(card('나이키 에어포스').getByRole('button', { name: button }))
+  }
+
+  it('AC80: 담은 직후 그 카드를 구매함으로 옮기면 담은 직후 안내와 "방금 담았어요."가 없고 결정 알림은 그대로다', async () => {
+    const user = userEvent.setup()
+    await addThenOpen(user, '구매함')
+    await user.click(card('나이키 에어포스').getByRole('button', { name: '구매함 확인' }))
+
+    expect(screen.queryByRole('article', { name: '나이키 에어포스' })).not.toBeInTheDocument()
+    expectAddNoticeGone()
+    expect(NOTICE().getByText('‘나이키 에어포스’를 구매함으로 옮겼어요.')).toBeInTheDocument()
+  })
+
+  it('AC80: 담은 직후 그 카드를 구매 포기로 옮기면 담은 직후 안내와 "방금 담았어요."가 없고 결정 알림은 그대로다', async () => {
+    const user = userEvent.setup()
+    await addThenOpen(user, '구매 포기')
+    await user.click(card('나이키 에어포스').getByRole('button', { name: '구매 포기 확인' }))
+
+    expect(screen.queryByRole('article', { name: '나이키 에어포스' })).not.toBeInTheDocument()
+    expectAddNoticeGone()
+    expect(NOTICE().getByText('‘나이키 에어포스’를 구매 포기로 옮겼어요.')).toBeInTheDocument()
+  })
+
+  it('AC80: 담은 직후 그 카드를 삭제 확인하면 담은 직후 안내와 "방금 담았어요."가 없다', async () => {
+    const user = userEvent.setup()
+    await addThenOpen(user, '삭제')
+    await user.click(card('나이키 에어포스').getByRole('button', { name: '지우기' }))
+
+    expect(screen.queryByRole('article', { name: '나이키 에어포스' })).not.toBeInTheDocument()
+    expectAddNoticeGone()
+    // 삭제에는 결정 알림이 없다
+    expect(NOTICE().queryByText(/옮겼어요/)).not.toBeInTheDocument()
+  })
+
+  it('AC80: 삭제를 취소하면 그 카드와 담은 직후 안내, "방금 담았어요."가 그대로다', async () => {
+    const user = userEvent.setup()
+    await addThenOpen(user, '삭제')
+    await user.click(card('나이키 에어포스').getByRole('button', { name: '취소' }))
+
+    expect(screen.getByRole('article', { name: '나이키 에어포스' })).toBeInTheDocument()
+    expect(card('나이키 에어포스').getByText(JUST_ADDED)).toBeInTheDocument()
+    expect(form().getByRole('status', ADDED_STATUS)).toBeInTheDocument()
+  })
+
+  it('AC80: 담은 직후 구매함으로 옮겼다가 되돌리면 카드는 돌아오고 담은 직후 안내와 "방금 담았어요."는 다시 보이지 않는다', async () => {
+    const user = userEvent.setup()
+    await addThenOpen(user, '구매함')
+    await user.click(card('나이키 에어포스').getByRole('button', { name: '구매함 확인' }))
+    expectAddNoticeGone()
+
+    await user.click(NOTICE().getByRole('button', { name: '되돌리기' }))
+    expect(screen.getByRole('article', { name: '나이키 에어포스' })).toBeInTheDocument()
+    expectAddNoticeGone()
+    expect(screen.getByRole('article', { name: '나이키 에어포스' })).not.toHaveAccessibleDescription(JUST_ADDED)
+  })
+
+  it('AC80: 담은 직후 다른 물건을 구매 포기로 옮겨도 담은 직후 안내와 "방금 담았어요."는 그대로다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    render(<App />)
+    await addItem(user, '나이키 에어포스', 3)
+    await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
+    await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
+
+    expect(screen.queryByRole('article', { name: '무선 헤드폰' })).not.toBeInTheDocument()
+    expect(card('나이키 에어포스').getByText(JUST_ADDED)).toBeInTheDocument()
+    expect(form().getByRole('status', ADDED_STATUS)).toHaveTextContent('‘나이키 에어포스’를 담았어요. 3일 뒤에')
+  })
+})

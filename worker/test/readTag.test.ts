@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import type { Deps, Env, RequestContext } from '../src/env.ts'
+import worker from '../src/index.ts'
 import { createRateLimiter } from '../src/rateLimit.ts'
 import { normalizeTagResult, READ_TAG_PROMPT, READ_TAG_SCHEMA, readTag } from '../src/readTag.ts'
 
@@ -249,6 +250,24 @@ describe('가격표 읽기 요청', () => {
     expect(res.status).toBe(400)
     expect(await res.json()).toEqual({ error: 'bad_request' })
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('AC75: 키가 없고 본문이 JSON이 아니면 400 bad_request이고 Gemini를 부르지 않아요', async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+    vi.stubGlobal('fetch', fetchMock)
+    try {
+      const request = new Request('https://ai.example/api/read-tag', {
+        method: 'POST',
+        headers: { Origin: ORIGIN, 'CF-Connecting-IP': '198.51.100.31', 'Content-Type': 'application/json' },
+        body: 'not json',
+      })
+      const res = await worker.fetch(request, withoutKey)
+      expect(res.status).toBe(400)
+      expect(await res.json()).toEqual({ error: 'bad_request' })
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   // 상품이 많은 선반 사진(20개, 긴 이름)도 잘리지 않게 공통 상한(4096)보다 크게 둔다(2026-10-31 판정 R25)

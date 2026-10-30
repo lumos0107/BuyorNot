@@ -351,6 +351,8 @@ function AddForm({
   // id는 담은 물건의 id(돌려받지 못했으면 null): 안내가 있는 동안 부모가 그 카드에 "방금 담았어요."를 보인다.
   // 그리는 중에 부모 상태를 바꾸지 않도록 그린 뒤에 알린다
   const [added, setAdded] = useState<{ id: string | null; text: string } | null>(null)
+  // 담은 물건을 결정(구매 포기·구매함)하거나 지워 고민 목록에서 빠지면 안내도 함께 지운다. 상태를 비우므로 되돌려도 다시 보이지 않는다 (F24, AC80)
+  if (added?.id && !items.some((item) => item.id === added.id && item.status === 'considering')) setAdded(null)
   const addedId = added?.id ?? null
   useEffect(() => {
     onJustAdded(addedId)

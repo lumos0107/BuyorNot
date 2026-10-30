@@ -378,8 +378,10 @@ describe('asDanawaPicks', () => {
     const counted = tally([scored])
     expect(counted.limited).toBe(1)
     expect(counted.failed).toBe(0)
-    // 제한이 아닌 실패는 지금처럼 502다(키 없음은 평가 스크립트가 키를 먼저 읽어 오지 않지만 제한으로 세지 않는다)
-    expect(asDanawaPicks(rows, { ok: false, reason: 'no_key' })).toEqual({ httpStatus: 502, picked: null })
+    // 키 없음은 꺼짐과 같이 503으로 적고 제한·꺼짐으로 센다(PRD 10장 R38-P6, 평가 스크립트가 키를 먼저 읽어 거의 오지 않는다)
+    const noKey = asDanawaPicks(rows, { ok: false, reason: 'no_key' })
+    expect(noKey).toEqual({ httpStatus: 503, picked: null })
+    expect(tally([scoreDanawaCase('dn97', { wanted, accepted: [2] }, { ...noKey, ms: 5, prices: rows.map((r) => r.price) })])).toMatchObject({ limited: 1, failed: 0 })
   })
 
   it('모양이 다른 응답은 허용 줄이 없어도 맞음이 아니라 채점하지 않음, 허용 줄이 있으면 못 읽음이에요', () => {

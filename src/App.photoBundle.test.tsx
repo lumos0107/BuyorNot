@@ -530,7 +530,7 @@ describe('단가 가격표, 모두 모르는 값, 상품 여러 개 (AC56)', () 
     expect(box(B).getByText(UNIT_PRICE)).toBeInTheDocument()
     // 채울 값을 만들지 않는다
     expect(box(B).queryByText(/^채울 값:/)).not.toBeInTheDocument()
-    expect(box(B).queryByText(/^읽은 내용:/)).not.toBeInTheDocument()
+    expect(box(B).queryByText(/읽은 내용:/)).not.toBeInTheDocument()
     expect(box(B).queryByRole('button', { name: '채우기' })).toBeNull()
     expect(values(B)).toEqual(before)
 
