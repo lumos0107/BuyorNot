@@ -454,7 +454,7 @@
 
 - [x] **17-1** Gemini 제한과 키 없음을 다른 실패와 나누기, 앱 문구, 다나와 고르기 평가의 제한 세기 (PRD 10장 AI 공통·F43 · AC60·AC75·AC76) (계획 improve-round2 T1) — `0f13a68`
 - [x] **17-2** F32·F44 확인 상자 첫 줄을 상자 설명으로, F32 "AI가 읽은 내용" (PRD F32·F44 · AC77) (계획 improve-round2 T2) — `4dba136`
-- [ ] **17-3** 구매함으로 옮긴 직후 회고 안내 한 줄 (PRD F18 · AC78) (계획 improve-round2 T3)
+- [x] **17-3** 구매함으로 옮긴 직후 회고 안내 한 줄 (PRD F18 · AC78) (계획 improve-round2 T3) — `a87eca0`
 - [ ] **17-4** 고민 중인 물건이 없을 때 서비스 설명 문장을 담기 폼 위로 (PRD F24 · AC79) (계획 improve-round2 T4)
 - [x] **17-5** 총괄이 직접: `testing-ai-screens`에 브라우저 확인 규칙, 규칙 없이·함께 비교 시험 먼저, 평가기준에서 링크 (계획 improve-round2 T5) — `79b00a0`
 - [ ] **17-6** 문서: P1 정정 단락(ai-eval.md)·README 한 문장, 낡은 사실, 배포 계획 Task 17 보정(치수 읽기 경로·무료 한도 빈칸), README 테스트 수 (계획 improve-round2 T6)
