@@ -93,6 +93,90 @@ describe('결정 직후 되돌리기 (F18)', () => {
     await user.click(card('키보드').getByRole('button', { name: '구매함 확인' }))
     expect(within(screen.getByRole('status', { name: '결정 알림' })).getByText('‘키보드’를 구매함으로 옮겼어요.')).toBeInTheDocument()
   })
+
+  // AC78 (F18 구매함 직후 회고 안내): 두 물건을 고민 중으로 두고 '키보드'는 구매함, '마우스'는 구매 포기로 옮긴다
+  const MOVED = '‘키보드’를 구매함으로 옮겼어요.'
+  const RETRO_LINE = '7일 뒤부터 결정 기록에서 잘 샀는지 적을 수 있어요.'
+  const seedTwo = () =>
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: 1,
+        items: [
+          { ...reconsiderItem(bought, T0), name: '키보드' },
+          { ...reconsiderItem(bought, T0), id: 'p2', name: '마우스' },
+        ],
+      }),
+    )
+  const notice = () => within(screen.getByRole('status', { name: '결정 알림' }))
+  async function buy(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(card(name).getByRole('button', { name: '구매함' }))
+    await user.click(card(name).getByRole('button', { name: '구매함 확인' }))
+  }
+
+  it('AC78: 구매함을 확인하면 결정 알림에 옮겼어요 문장과 그 아래 7일 뒤부터 회고를 적을 수 있다는 줄이 함께 보인다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    render(<App />)
+    await buy(user, '키보드')
+
+    const moved = notice().getByText(MOVED)
+    const retro = notice().getByText(RETRO_LINE)
+    expect(moved).not.toBe(retro)
+    expect(moved.compareDocumentPosition(retro) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(notice().getByRole('button', { name: '되돌리기' })).toBeInTheDocument()
+  })
+
+  it('AC78: 구매 포기를 확인하면 회고 줄이 없다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(card('키보드').getByRole('button', { name: '구매 포기' }))
+    await user.click(card('키보드').getByRole('button', { name: '구매 포기 확인' }))
+
+    expect(notice().getByText('‘키보드’를 구매 포기로 옮겼어요.')).toBeInTheDocument()
+    expect(screen.queryByText(RETRO_LINE)).not.toBeInTheDocument()
+  })
+
+  it('AC78: 되돌리기를 누르면 회고 줄도 함께 사라진다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    render(<App />)
+    await buy(user, '키보드')
+    expect(notice().getByText(RETRO_LINE)).toBeInTheDocument()
+    await user.click(notice().getByRole('button', { name: '되돌리기' }))
+
+    expect(screen.queryByText(MOVED)).not.toBeInTheDocument()
+    expect(screen.queryByText(RETRO_LINE)).not.toBeInTheDocument()
+  })
+
+  it('AC78: 구매함 뒤 다른 물건을 구매 포기하면 알림이 바뀌고 회고 줄이 없다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    render(<App />)
+    await buy(user, '키보드')
+    expect(notice().getByText(RETRO_LINE)).toBeInTheDocument()
+    await user.click(card('마우스').getByRole('button', { name: '구매 포기' }))
+    await user.click(card('마우스').getByRole('button', { name: '구매 포기 확인' }))
+
+    expect(notice().getByText('‘마우스’를 구매 포기로 옮겼어요.')).toBeInTheDocument()
+    expect(screen.queryByText(MOVED)).not.toBeInTheDocument()
+    expect(screen.queryByText(RETRO_LINE)).not.toBeInTheDocument()
+  })
+
+  it('AC78: 구매함 뒤 새로고침하면 결정 알림과 회고 줄이 없다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    const first = render(<App />)
+    await buy(user, '키보드')
+    expect(notice().getByText(RETRO_LINE)).toBeInTheDocument()
+    first.unmount()
+
+    render(<App />)
+    expect(screen.queryByText(MOVED)).not.toBeInTheDocument()
+    expect(screen.queryByText(RETRO_LINE)).not.toBeInTheDocument()
+    expect(notice().queryByRole('button', { name: '되돌리기' })).not.toBeInTheDocument()
+  })
 })
 
 describe('결정 기록에서 다시 고민하기 (F18)', () => {

@@ -11,6 +11,7 @@ import { formatWon, josa } from '../logic/number'
 import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, hasAnswer, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
+import { RETRO_NOTICE } from '../logic/summary'
 import { applyVoiceFill, voiceStatusLines, type VoiceField } from '../logic/voiceFill'
 import {
   COOLING_PRESETS,
@@ -147,20 +148,23 @@ export function WishlistScreen({
       </h2>
       <div role="status" aria-label="결정 알림" className={undo && undoActive ? undefined : 'similar-empty'}>
         {undo && undoActive ? (
-          <div className="example-bar">
-            <span className="note">{`‘${undo.name}’${josa(undo.name, '을/를')} ${undo.decision === 'purchased' ? '구매함으로' : '구매 포기로'} 옮겼어요.`}</span>
-            <button
-              type="button"
-              className="link-btn"
-              onClick={() => {
-                onReconsider?.(undo.id)
-                setUndo(null)
-                headingRef.current?.focus()
-              }}
-            >
-              되돌리기
-            </button>
-          </div>
+          <>
+            <div className="example-bar">
+              <span className="note">{`‘${undo.name}’${josa(undo.name, '을/를')} ${undo.decision === 'purchased' ? '구매함으로' : '구매 포기로'} 옮겼어요.`}</span>
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => {
+                  onReconsider?.(undo.id)
+                  setUndo(null)
+                  headingRef.current?.focus()
+                }}
+              >
+                되돌리기
+              </button>
+            </div>
+            {undo.decision === 'purchased' ? <p className="note">{RETRO_NOTICE}</p> : null}
+          </>
         ) : null}
       </div>
       {onRemoveExamples && exampleCount > 0 ? (

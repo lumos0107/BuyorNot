@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseSettings, validateWage, type Settings } from './settings'
-import { historySummary, review, reviewDue } from './summary'
+import { RETRO_AFTER_MS, RETRO_NOTICE, historySummary, review, reviewDue } from './summary'
 import { decideItem, demoItems, reviewAtFrom, type WishItem } from './wishlist'
 
 // PRD F12 결정 기록 요약·구매 후 회고 / AC24, AC25
@@ -64,6 +64,15 @@ describe('구매 후 회고 시점 (F12)', () => {
   it('AC25: 결정 + 7일 − 1ms에는 묻지 않고, 정각부터 묻는다', () => {
     expect(reviewDue(bought, new Date(T0.getTime() + 7 * DAY - 1))).toBe(false)
     expect(reviewDue(bought, new Date(T0.getTime() + 7 * DAY))).toBe(true)
+  })
+
+  it('AC78: 회고 안내 문장은 PRD 문장 그대로이고 일수는 회고가 열리는 RETRO_AFTER_MS와 같다', () => {
+    expect(RETRO_NOTICE).toBe('7일 뒤부터 결정 기록에서 잘 샀는지 적을 수 있어요.')
+    // 문장 속 일수만큼 지난 때가 reviewDue가 처음 true가 되는 때와 같다
+    const days = Number(/^(\d+)일/.exec(RETRO_NOTICE)?.[1])
+    expect(days * DAY).toBe(RETRO_AFTER_MS)
+    expect(reviewDue(bought, new Date(T0.getTime() + days * DAY - 1))).toBe(false)
+    expect(reviewDue(bought, new Date(T0.getTime() + days * DAY))).toBe(true)
   })
 
   it('AC25: 구매 포기·고민 중 기록에는 묻지 않는다', () => {
