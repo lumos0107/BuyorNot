@@ -58,10 +58,22 @@ p {
 
 .app-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 8px 0 12px;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
 }
 
 .brand {
@@ -617,6 +629,57 @@ details > summary {
   list-style: none;
   font-size: 17px;
   font-weight: 700;
+}
+
+.card.guide > summary.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.card.guide > summary.card-title::-webkit-details-marker {
+  display: none;
+}
+
+.card.guide > summary.card-title::before {
+  content: '+';
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 21px;
+  font-weight: 400;
+}
+
+.card.guide[open] > summary.card-title::before {
+  content: '−';
+}
+
+.card.guide > summary.card-title::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  flex: none;
+  margin-left: auto;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+}
+
+.card.guide[open] > summary.card-title::after {
+  transform: rotate(225deg);
+}
+
+.card.guide[open] > summary.card-title {
+  margin-bottom: 12px;
 }
 
 .entry-disclosure > summary.entry-trigger::-webkit-details-marker,

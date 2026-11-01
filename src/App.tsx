@@ -25,6 +25,7 @@ import { useSettings } from './store/useSettings'
 import { useSubscriptions } from './store/useSubscriptions'
 import { useWishlist, type StorageStatus } from './store/useWishlist'
 import { Button } from './ui/Button'
+import { BrandMark } from './ui/BrandMark'
 import { ResetConfirm } from './ui/ResetConfirm'
 import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
 
@@ -58,9 +59,10 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="brand" tabIndex={-1} ref={brandRef}>
-          살까말까
-        </h1>
+        <div className="brand-lockup">
+          <BrandMark />
+          <h1 className="brand" tabIndex={-1} ref={brandRef}>살까말까</h1>
+        </div>
         <span className="brand-sub">살지 말지, 산다면 얼마에</span>
       </header>
 
