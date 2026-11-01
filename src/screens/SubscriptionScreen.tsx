@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import {
   ADD_BUTTON,
   ADD_FORM,
@@ -25,14 +25,20 @@ import {
   AREAS_HINT,
   AREAS_LEGEND,
   OVERLAP_NOTE,
+  PRICE_DAY_LABEL,
+  PRICE_REASON_LABEL,
+  PRICE_REASON_LEGEND,
   PHONE_COMPARE_LINKS,
   PHONE_COMPARE_NOTE,
   cancelConfirmLines,
   cancelledLine,
   cancelledNotice,
   contractLines,
+  cycleChangeNote,
   overlapCardLines,
   overlapSummaryLines,
+  priceChangeLine,
+  priceRiseLine,
   kindTotalsLine,
   nextLabel,
   priceText as priceLabel,
@@ -65,6 +71,10 @@ import {
   tracksUsage,
   tracksContract,
   USE_AREAS,
+  lastPriceChangeDay,
+  priceChangeMode,
+  yearsLater,
+  type PriceReason,
   validateSubscriptionInput,
   type Cycle,
   type Subscription,
@@ -114,6 +124,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
   const s = subscriptionSummary(active, today)
   const totalsLine = kindTotalsLine(active, today)
   const trialSummary = trialSummaryLine(s)
+  const riseLine = priceRiseLine(active, today)
   const overlaps = overlapSummaryLines(active)
   const exampleCount = items.filter((sub) => isExample(sub.name)).length
   // 삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다
@@ -197,6 +208,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           </ul>
           {totalsLine ? <p>{totalsLine}</p> : null}
           {trialSummary ? <p>{trialSummary}</p> : null}
+          {riseLine ? <p>{riseLine}</p> : null}
           {overlaps.map((line) => <p key={line}>{line}</p>)}
           {overlaps.length > 0 ? <p className="note">{OVERLAP_NOTE}</p> : null}
           {s.candidateCount > 0 ? (
@@ -341,11 +353,13 @@ function SubscriptionForm({
   /** 저장하지 못한 이유(다른 탭에서 바뀜 등) */
   notice?: string
 }) {
-  const [raw, setRaw] = useState<SubscriptionRawInput>(initial)
+  const [raw, setRaw] = useState<SubscriptionRawInput>(() => ({ ...initial, priceDay: initial.priceDay ?? toDayIso(today) }))
   const [attempted, setAttempted] = useState(false)
+  const priceReasonErrorId = useId()
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   const { value, errors } = validateSubscriptionInput(raw, today, keepRenewal, keepTrial, base)
   const shown: SubscriptionFieldErrors = attempted ? errors : {}
+  const priceMode = priceChangeMode(raw, base)
   const set = <K extends keyof SubscriptionRawInput>(key: K, v: SubscriptionRawInput[K]) => setRaw((r) => ({ ...r, [key]: v }))
 
   const submit = (event: FormEvent) => {
@@ -377,6 +391,18 @@ function SubscriptionForm({
       </SelectField>
       <TextField label={NAME_LABEL} autoFocus={autoFocus} placeholder={NAME_PLACEHOLDER} maxLength={40} value={raw.name} error={shown.name} onChange={(e) => set('name', e.target.value)} />
       <TextField label="요금" inputMode="numeric" placeholder="원" value={raw.price} error={shown.price} onChange={(e) => set('price', e.target.value)} />
+      {priceMode === 'reason' ? (
+        <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }} tabIndex={-1} aria-invalid={shown.priceReason ? true : undefined} aria-describedby={shown.priceReason ? priceReasonErrorId : undefined}>
+          <legend className="field-label">{PRICE_REASON_LEGEND}</legend>
+          <div className="radio-group">
+            {(['service', 'me', 'fix'] as PriceReason[]).map((reason) => <label key={reason}><input type="radio" name={`${label}-price-reason`} checked={raw.priceReason === reason} onChange={() => set('priceReason', reason)} /> {PRICE_REASON_LABEL[reason]}</label>)}
+          </div>
+          {shown.priceReason ? <p className="field-error" id={priceReasonErrorId}>{shown.priceReason}</p> : null}
+        </fieldset>
+      ) : null}
+      {priceMode === 'reason' && raw.priceReason && raw.priceReason !== 'fix' ? (
+        <TextField label={PRICE_DAY_LABEL} type="date" min={toDayIso(yearsLater(today, -1))} max={toDayIso(today)} value={raw.priceDay ?? ''} error={shown.priceDay} onChange={(e) => set('priceDay', e.target.value)} />
+      ) : null}
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="field-label">결제 주기</legend>
         <div className="radio-group">
@@ -391,6 +417,7 @@ function SubscriptionForm({
           ))}
         </div>
       </fieldset>
+      {priceMode === 'cycle-note' ? <p className="note">{cycleChangeNote(base?.priceChanges?.length ?? 0)}</p> : null}
       {raw.cycle === 'monthly' ? (
         <TextField
           label="결제일 (매월)"
@@ -544,7 +571,7 @@ function SubscriptionCard({
           initial={toRaw(sub, base.renewal)}
           keepRenewal={sub.cycle !== 'monthly' ? base.renewal : undefined}
           keepTrial={sub.trialEndDate}
-          base={sub}
+          base={base.sub}
           notice={stale ? STALE_NOTICE : undefined}
           autoFocus
           onSubmit={(input) => {
@@ -575,6 +602,7 @@ function SubscriptionCard({
       </div>
       <p className="card-meta">{KIND_LABEL[kindOf(sub)]}</p>
       <p className="price">{priceText}</p>
+      {priceChangeLine(sub, today) ? <p className="card-meta">{priceChangeLine(sub, today)}</p> : null}
       {trialText ? <p className="card-meta">{trialText}</p> : null}
       <p className="card-meta">
         {nextLabel(sub)} {next} · D-{dday}
@@ -675,7 +703,7 @@ function CancelConfirm({ sub, today, onConfirm, onCancel }: { sub: Subscription;
   const [raw, setRaw] = useState(toDayIso(today))
   const [attempted, setAttempted] = useState(false)
   const { ref, focusFirstError } = useFocusFirstError<HTMLDivElement>()
-  const checked = validateCancelDay(raw, today)
+  const checked = validateCancelDay(raw, today, lastPriceChangeDay(sub))
   const back = new Date(today.getFullYear(), today.getMonth(), today.getDate() - CANCEL_BACK_DAYS)
   return (
     <div className="stack" role="group" aria-label="해지 확인" ref={ref}>

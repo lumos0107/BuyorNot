@@ -15,6 +15,9 @@ import {
   overlapCardLines,
   overlapSummaryLines,
   priceText,
+  priceChangeLine,
+  priceRiseLine,
+  cycleChangeNote,
   skipLine,
 } from './fixedCosts'
 import { subscriptionSummary, type FixedCostKind, type Subscription } from './subscriptions'
@@ -69,6 +72,32 @@ describe('같은 곳에 쓰는 구독·멤버십 (F51)', () => {
     const third = sub('요기요 요기패스', 2900, { kind: 'membership', areas: ['delivery'] })
     expect(overlapCardLines(first, [first, second, third])).toEqual(['배달에 쓰는 것이 2개 더 있어요: 요기요 요기패스, 쿠팡 와우 멤버십'])
     expect(overlapSummaryLines([{ ...first, areas: ['other'] }, { ...second, areas: ['other'] }])).toEqual([])
+  })
+})
+
+describe('요금 바뀜 기록 (F50)', () => {
+  const changed = sub('넷플릭스', 17000, { priceChanges: [{ day: '2026-11-01', from: 13500, to: 17000, by: 'service' }] })
+  it('AC104: 서비스가 올린 줄과 최근 90일 인상 줄을 만든다', () => {
+    expect(priceChangeLine(changed, TODAY)).toBe('2026-11-01부터 13,500원 → 17,000원 (3,500원 올랐어요)')
+    expect(priceRiseLine([changed], TODAY)).toBe('최근 90일에 요금이 오른 고정비 1개 · 월 3,500원 늘었어요')
+    expect(priceChangeLine(changed, new Date(2027, 0, 29))).not.toBeNull()
+    expect(priceChangeLine(changed, new Date(2027, 0, 30))).toBeNull()
+  })
+  it('AC104: 서비스가 내린 요금은 카드에 보이고 인상은 순증가만 센다', () => {
+    const lowered = { ...changed, priceKrw: 16000, priceChanges: [...changed.priceChanges!, { day: '2026-11-20', from: 17000, to: 16000, by: 'service' as const }] }
+    expect(priceChangeLine(lowered, new Date(2026, 10, 20))).toBe('2026-11-20부터 17,000원 → 16,000원 (1,000원 내렸어요)')
+    expect(priceRiseLine([lowered], new Date(2026, 10, 20))).toBe('최근 90일에 요금이 오른 고정비 1개 · 월 2,500원 늘었어요')
+    expect(priceRiseLine([{ ...lowered, cancelledOn: '2026-11-20' }], new Date(2026, 10, 20))).toBeNull()
+  })
+  it('AC107: 내가 바꾼 줄은 보이지만 인상에는 넣지 않는다', () => {
+    const own = sub('휴대폰', 15000, { kind: 'phone', priceChanges: [{ day: '2026-11-01', from: 55000, to: 15000, by: 'me' }] })
+    expect(priceChangeLine(own, TODAY)).toBe('2026-11-01에 요금제를 바꿨어요: 55,000원 → 15,000원')
+    expect(priceRiseLine([own], TODAY)).toBeNull()
+    expect(cycleChangeNote(2)).toBe('결제 주기를 바꾸면 요금 바뀜 기록 2개가 지워져요.')
+  })
+  it('AC108: 해지한 날이 마지막 요금 바뀐 날보다 앞이면 오류다', () => {
+    expect(validateCancelDay('2026-10-15', TODAY, '2026-10-20').error).toBe('해지한 날은 마지막으로 요금이 바뀐 날(2026-10-20)과 같거나 그 뒤여야 해요')
+    expect(validateCancelDay('2026-10-20', TODAY, '2026-10-20').value).toBe('2026-10-20')
   })
 })
 

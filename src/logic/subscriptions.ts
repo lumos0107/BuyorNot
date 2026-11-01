@@ -1,5 +1,5 @@
 import { calendarDaysBetween, daysInMonth, parseDay } from './dates'
-import { isDay, isIntBetween, isString, isTimestamp } from './guards'
+import { isDay, isIntBetween, isRecord, isString, isTimestamp } from './guards'
 import { MAX_WON, parseInteger } from './number'
 import { isUsageRecords, latestUseDay, type UsageRecord } from './usageRecords'
 import { NOTE_MAX, validateNote } from './wishlist'
@@ -10,6 +10,9 @@ export type Cycle = 'monthly' | 'yearly' | 'weekly'
 // PRD F45 고정비 종류. 구독이면 저장하지 않는다(없으면 구독)
 export type FixedCostKind = 'subscription' | 'membership' | 'delivery' | 'phone' | 'housing' | 'insurance' | 'other'
 export type UseArea = 'delivery' | 'shopping' | 'video' | 'music' | 'storage' | 'other'
+export type PriceReason = 'service' | 'me' | 'fix'
+export type PriceChange = { day: string; from: number; to: number; by: 'service' | 'me' }
+export const PRICE_CHANGE_MAX = 24
 export const USE_AREAS: readonly UseArea[] = ['delivery', 'shopping', 'video', 'music', 'storage', 'other']
 /** 종류 고르기 순서 (F45) */
 export const FIXED_COST_KINDS: readonly FixedCostKind[] = ['subscription', 'membership', 'delivery', 'phone', 'housing', 'insurance', 'other']
@@ -29,6 +32,8 @@ export type Subscription = {
   contractEndDate?: string
   /** 구독·멤버십을 쓰는 곳 (F51) */
   areas?: UseArea[]
+  /** 요금 변경 기록 (F50), 날짜순 */
+  priceChanges?: PriceChange[]
   /** 마지막으로 쓴 날. 비어 있고 오늘 썼어요 기록도 없으면 "확인 필요"(해지 후보 아님, F23) */
   lastUsedDate: string | null
   memo?: string
@@ -62,6 +67,15 @@ export const CANCEL_AFTER_DAYS = 31
 export const USAGE_MAX_MINUTES = 30 * 24 * 60
 export const USE_COUNT_MAX = 999
 export const INTERVAL_WEEKS_MAX = 12
+
+export const PRICE_REASON_REQUIRED = '요금이 바뀐 이유를 골라 주세요'
+export const PRICE_DAY_REQUIRED = '바뀐 날을 골라 주세요'
+export const PRICE_DAY_RANGE = '바뀐 날은 1년 전부터 오늘 사이여야 해요'
+export const PRICE_CHANGES_FULL = '요금 바뀜 기록은 24개까지예요. ‘잘못 적어서 고쳐요’로만 고칠 수 있어요.'
+
+export function lastPriceChangeDay(sub: Pick<Subscription, 'priceChanges'>): string | undefined {
+  return sub.priceChanges?.at(-1)?.day
+}
 /** "오늘 썼어요" 기록을 남기는 기간 (F19) */
 export const USE_LOG_KEEP_DAYS = 90
 
@@ -246,12 +260,22 @@ export type SubscriptionRawInput = {
   intervalWeeks?: string
   contractEndDate?: string
   areas?: UseArea[]
+  priceReason?: PriceReason | ''
+  priceDay?: string
 }
 export type SubscriptionInput = Pick<
   Subscription,
   'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'intervalWeeks' | 'lastUsedDate' | 'memo' | 'kind' | 'trialEndDate' | 'contractEndDate' | 'areas'
->
+> & { priceChange?: { by: PriceReason; day: string } }
 export type SubscriptionFieldErrors = Partial<Record<Exclude<keyof SubscriptionRawInput, 'cycle'>, string>>
+
+export function priceChangeMode(raw: SubscriptionRawInput, base: Subscription | undefined): 'none' | 'reason' | 'cycle-note' {
+  if (!base) return 'none'
+  const changedCycle = raw.cycle !== base.cycle || (raw.cycle === 'weekly' && parseInteger(raw.intervalWeeks ?? '') !== base.intervalWeeks)
+  if (changedCycle) return base.priceChanges?.length ? 'cycle-note' : 'none'
+  const price = parseInteger(raw.price)
+  return price !== null && price >= 1 && price <= MAX_WON && price !== base.priceKrw ? 'reason' : 'none'
+}
 
 /**
  * unchangedRenewal: 수정 폼에 채워 둔 다음 갱신일. 그대로 두면 원래 기준일을 유지하므로 범위를 다시 따지지 않는다
@@ -338,6 +362,21 @@ export function validateSubscriptionInput(
   if (memo.error) errors.memo = memo.error
   else if (memo.value) value.memo = memo.value
 
+  if (priceChangeMode(raw, base) === 'reason') {
+    const reason = raw.priceReason
+    if (reason !== 'service' && reason !== 'me' && reason !== 'fix') errors.priceReason = PRICE_REASON_REQUIRED
+    else if (reason === 'fix') value.priceChange = { by: reason, day: toDayIso(today) }
+    else {
+      const text = (raw.priceDay ?? '').trim()
+      const day = parseDay(text)
+      if (!day) errors.priceDay = PRICE_DAY_REQUIRED
+      else if (calendarDaysBetween(yearsLater(today, -1), day) < 0 || calendarDaysBetween(day, today) < 0) errors.priceDay = PRICE_DAY_RANGE
+      else if (lastPriceChangeDay(base!) && text < lastPriceChangeDay(base!)!) errors.priceDay = `바뀐 날은 마지막으로 바뀐 날(${lastPriceChangeDay(base!)})과 같거나 그 뒤여야 해요`
+      else if ((base?.priceChanges?.length ?? 0) >= PRICE_CHANGE_MAX && text !== lastPriceChangeDay(base!)) errors.priceReason = PRICE_CHANGES_FULL
+      else value.priceChange = { by: reason, day: text }
+    }
+  }
+
   if (Object.keys(errors).length > 0) return { errors }
   return { value, errors }
 }
@@ -347,15 +386,33 @@ export function createSubscription(input: SubscriptionInput, now: Date, id: stri
   return cleanSub({ id, ...input, createdAt: at, updatedAt: at })
 }
 
+export function applyPriceChange(changes: readonly PriceChange[] | undefined, from: number, to: number, change: { by: PriceReason; day: string }): PriceChange[] | undefined {
+  const next = [...(changes ?? [])]
+  const last = next.at(-1)
+  if (change.by === 'fix') {
+    if (!last) return undefined
+    next[next.length - 1] = { ...last, to }
+  } else if (last?.day === change.day) {
+    next[next.length - 1] = { ...last, to, by: change.by }
+  } else {
+    next.push({ day: change.day, from, to, by: change.by })
+  }
+  if (next.at(-1)?.from === next.at(-1)?.to) next.pop()
+  return next.length ? next : undefined
+}
+
 export function updateSubscription(sub: Subscription, input: SubscriptionInput, now: Date): Subscription {
   // 예시 사용량(F16)과 "오늘 썼어요" 기록(F19)은 입력 폼에 없으므로 고쳐도 그대로 둔다
-  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates, usageEntry: sub.usageEntry, usageRecords: sub.usageRecords, cancelledOn: sub.cancelledOn }
+  const cycleChanged = input.cycle !== sub.cycle || (input.cycle === 'weekly' && input.intervalWeeks !== sub.intervalWeeks)
+  const priceChanges = cycleChanged ? undefined : input.priceChange ? applyPriceChange(sub.priceChanges, sub.priceKrw, input.priceKrw, input.priceChange) : sub.priceChanges
+  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates, usageEntry: sub.usageEntry, usageRecords: sub.usageRecords, cancelledOn: sub.cancelledOn, priceChanges }
   return cleanSub({ id: sub.id, ...input, ...usage, createdAt: sub.createdAt, updatedAt: now.toISOString() })
 }
 
 // 주기에 맞지 않는 필드(월 구독의 갱신일 등)와 빈 메모는 저장하지 않는다
 function cleanSub(sub: Subscription): Subscription {
   const out: Subscription = { ...sub }
+  delete (out as Subscription & { priceChange?: SubscriptionInput['priceChange'] }).priceChange
   if (out.cycle === 'monthly') delete out.renewalDate
   else delete out.billingDay
   if (out.cycle !== 'weekly') delete out.intervalWeeks
@@ -370,6 +427,7 @@ function cleanSub(sub: Subscription): Subscription {
   if (out.trialEndDate === undefined || !tracksUsage(out)) delete out.trialEndDate
   if (out.contractEndDate === undefined || !tracksContract(out)) delete out.contractEndDate
   if (!out.areas?.length || !tracksUsage(out)) delete out.areas
+  if (!out.priceChanges?.length) delete out.priceChanges
   if (out.cancelledOn === undefined) delete out.cancelledOn
   return out
 }
@@ -470,6 +528,17 @@ function isSubscription(v: unknown): v is Subscription {
   if (o.areas !== undefined) {
     if (!tracksUsage({ kind: o.kind as FixedCostKind | undefined }) || !Array.isArray(o.areas) || o.areas.length < 1 || o.areas.length > USE_AREAS.length) return false
     if (!o.areas.every((area: unknown) => USE_AREAS.includes(area as UseArea)) || new Set(o.areas).size !== o.areas.length) return false
+  }
+  if (o.priceChanges !== undefined) {
+    if (!Array.isArray(o.priceChanges) || o.priceChanges.length < 1 || o.priceChanges.length > PRICE_CHANGE_MAX) return false
+    let lastDay = ''
+    for (const entry of o.priceChanges) {
+      if (!isRecord(entry) || !isDay(entry.day) || entry.day <= lastDay) return false
+      if (!isIntBetween(entry.from, 1, MAX_WON) || !isIntBetween(entry.to, 1, MAX_WON) || entry.from === entry.to) return false
+      if (entry.by !== 'service' && entry.by !== 'me') return false
+      lastDay = entry.day
+    }
+    if (o.priceChanges.at(-1).to !== o.priceKrw || (o.cancelledOn !== undefined && lastDay > o.cancelledOn)) return false
   }
   // 예시 사용량(F16): 시간과 횟수 중 하나만, 범위 안의 정수
   if (o.exampleUsageMinutes !== undefined && !isIntBetween(o.exampleUsageMinutes, 0, USAGE_MAX_MINUTES)) return false

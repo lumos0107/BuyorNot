@@ -83,6 +83,7 @@ describe('구독 정리함 (F14)', () => {
     const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
     await again.user.clear(editor.getByLabelText('요금'))
     await again.user.type(editor.getByLabelText('요금'), '17000')
+    await again.user.click(editor.getByRole('radio', { name: '잘못 적어서 고쳐요' }))
     await again.user.click(editor.getByRole('button', { name: '저장' }))
     expect(card('넷플릭스').getByText('월 17,000원')).toBeInTheDocument()
     await again.user.click(card('넷플릭스').getByRole('button', { name: '삭제' }))

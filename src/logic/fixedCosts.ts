@@ -1,6 +1,6 @@
 import { calendarDaysBetween } from './dates'
 import { formatWon, josa } from './number'
-import { daysUntil, inTrial, kindOf, monthlyEquivalent, nextBillingDate, parseDay, tracksContract, USE_AREAS, type FixedCostKind, type Subscription, type SubscriptionSummary, type UseArea } from './subscriptions'
+import { daysUntil, inTrial, kindOf, monthlyEquivalent, monthlyOf, nextBillingDate, parseDay, tracksContract, USE_AREAS, type FixedCostKind, type PriceReason, type Subscription, type SubscriptionSummary, type UseArea } from './subscriptions'
 
 // PRD F45 고정비 정리함: 종류 이름, 요약의 종류별 줄, 화면 문장
 
@@ -136,6 +136,46 @@ export function overlapCardLines(sub: Subscription, active: readonly Subscriptio
   })
 }
 
+export const PRICE_REASON_LEGEND = '요금이 바뀐 이유'
+export const PRICE_REASON_LABEL: Record<PriceReason, string> = {
+  service: '서비스가 요금을 바꿨어요',
+  me: '내가 요금제를 바꿨어요',
+  fix: '잘못 적어서 고쳐요',
+}
+export const PRICE_DAY_LABEL = '바뀐 날'
+
+export function cycleChangeNote(count: number): string {
+  return `결제 주기를 바꾸면 요금 바뀜 기록 ${count}개가 지워져요.`
+}
+
+export function priceChangeLine(sub: Subscription, today: Date): string | null {
+  const change = sub.priceChanges?.at(-1)
+  if (!change) return null
+  const day = parseDay(change.day)
+  if (!day) return null
+  const ago = calendarDaysBetween(day, today)
+  if (ago < 0 || ago > 89) return null
+  if (change.by === 'me') return `${change.day}에 요금제를 바꿨어요: ${formatWon(change.from)} → ${formatWon(change.to)}`
+  const difference = change.to - change.from
+  return `${change.day}부터 ${formatWon(change.from)} → ${formatWon(change.to)} (${formatWon(Math.abs(difference))} ${difference > 0 ? '올랐어요' : '내렸어요'})`
+}
+
+export function priceRiseLine(active: readonly Subscription[], today: Date): string | null {
+  let count = 0
+  let total = 0
+  for (const sub of active) {
+    if (sub.cancelledOn) continue
+    const net = (sub.priceChanges ?? []).filter((change) => {
+      const day = parseDay(change.day)
+      if (!day || change.by !== 'service') return false
+      const ago = calendarDaysBetween(day, today)
+      return ago >= 0 && ago <= 89
+    }).reduce((sum, change) => sum + monthlyOf(sub, change.to) - monthlyOf(sub, change.from), 0)
+    if (net > 0) { count++; total += net }
+  }
+  return count > 0 ? `최근 90일에 요금이 오른 고정비 ${count}개 · 월 ${formatWon(total)} 늘었어요` : null
+}
+
 /** 해지 확인 문장(카드 안): 첫 줄, 둘째 줄, 통신·보험은 셋째 줄 */
 export function cancelConfirmLines(sub: Subscription): string[] {
   const kind = kindOf(sub)
@@ -157,12 +197,13 @@ export const CANCEL_DAY_RANGE = '해지한 날은 90일 전부터 오늘 사이�
 export const CANCEL_BACK_DAYS = 90
 
 /** 해지한 날 검사 (F47) */
-export function validateCancelDay(raw: string, today: Date): { value?: string; error?: string } {
+export function validateCancelDay(raw: string, today: Date, lastChangeDay?: string): { value?: string; error?: string } {
   const text = raw.trim()
   const day = parseDay(text)
   if (!day) return { error: CANCEL_DAY_EMPTY }
   const ago = calendarDaysBetween(day, today)
   if (ago < 0 || ago > CANCEL_BACK_DAYS) return { error: CANCEL_DAY_RANGE }
+  if (lastChangeDay && text < lastChangeDay) return { error: `해지한 날은 마지막으로 요금이 바뀐 날(${lastChangeDay})과 같거나 그 뒤여야 해요` }
   return { value: text }
 }
 
