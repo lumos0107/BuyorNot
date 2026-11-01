@@ -4,6 +4,7 @@ import {
   GOAL_STALE,
   NOTE_MOVED,
   NOTE_REDUCED,
+  NOTE_LOWERED,
   NOTE_SEPARATE,
   NOTE_SKIPPED,
   SAVINGS_EMPTY,
@@ -107,6 +108,7 @@ export function SavingsScreen({ items, subscriptions, savings, today }: Props) {
             </li>
           </ul>
           <p className="note">{NOTE_REDUCED}</p>
+          {n.loweredCount > 0 ? <p className="note">{NOTE_LOWERED}</p> : null}
           <p className="note">{NOTE_SKIPPED}</p>
           <p className="note">{NOTE_MOVED}</p>
           <p className="note">{NOTE_SEPARATE}</p>

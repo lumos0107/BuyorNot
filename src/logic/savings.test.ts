@@ -22,6 +22,7 @@ import {
   validateGoalInput,
   validateTransferInput,
   isSavingsEmpty,
+  loweredMonthly,
   NOTE_MOVED,
   NOTE_REDUCED,
   NOTE_SEPARATE,
@@ -166,6 +167,31 @@ const sub = (over: Partial<Subscription>): Subscription => ({
   createdAt: '2026-10-01T00:00:00.000Z',
   updatedAt: '2026-10-01T00:00:00.000Z',
   ...over,
+})
+
+describe('요금 낮춤을 줄어든 고정비에 넣기 (F48 보강)', () => {
+  const lowered = sub({ name: '휴대폰', kind: 'phone', priceKrw: 15000, priceChanges: [{ day: '2026-11-01', from: 55000, to: 15000, by: 'me' }] })
+  it('AC107: 55,000원을 15,000원으로 낮추면 월 40,000원이다', () => {
+    expect(loweredMonthly(lowered)).toBe(40000)
+    expect(savingsNumbers([], [lowered], EMPTY_SAVINGS)).toMatchObject({ reducedCount: 0, loweredCount: 1, reducedMonthly: 40000 })
+    expect(reducedLabel(savingsNumbers([], [lowered], EMPTY_SAVINGS))).toBe('줄어든 고정비 · 요금 낮춤 1개')
+  })
+  it('AC107: 낮춘 뒤 해지하면 해지 1개·요금 낮춤 1개 월 55,000원이다', () => {
+    const n = savingsNumbers([], [{ ...lowered, cancelledOn: '2026-11-01' }], EMPTY_SAVINGS)
+    expect(n.reducedMonthly).toBe(55000)
+    expect(reducedLabel(n)).toBe('줄어든 고정비 · 해지 1개 · 요금 낮춤 1개')
+  })
+  it('AC107: 다시 올린 값은 차이에서 빼고 월세·서비스가 내린 값은 세지 않는다', () => {
+    const changed = { ...lowered, priceKrw: 20000, priceChanges: [...lowered.priceChanges!, { day: '2026-11-20', from: 15000, to: 20000, by: 'me' as const }] }
+    expect(loweredMonthly(changed)).toBe(35000)
+    expect(loweredMonthly({ ...lowered, kind: 'housing' })).toBe(0)
+    expect(loweredMonthly({ ...lowered, priceChanges: [{ day: '2026-11-01', from: 55000, to: 15000, by: 'service' }] })).toBe(0)
+  })
+  it('AC107: 요금 낮춤만 있으면 빈 화면이 아니고 예시는 표시한다', () => {
+    const n = savingsNumbers([], [{ ...lowered, name: '(예시) 휴대폰' }], EMPTY_SAVINGS)
+    expect(isSavingsEmpty(n)).toBe(false)
+    expect(n.includesExample).toBe(true)
+  })
 })
 const wish = (over: Partial<WishItem>): WishItem => ({
   id: 'w1',
