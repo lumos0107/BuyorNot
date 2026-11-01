@@ -1079,7 +1079,7 @@ describe('다른 화면을 보는 동안 끝난 읽기 (10장 앱 공통)', () =
     openBundle()
     await readPhoto(B)
 
-    goTo('고민 중인 물건')
+    goTo('물건')
     const keep = within(screen.getByRole('form', { name: '물건 담기' })).getByRole('button', { name: '담아 두기' })
     if (keepFocus) keep.focus()
     else (document.activeElement as HTMLElement | null)?.blur()

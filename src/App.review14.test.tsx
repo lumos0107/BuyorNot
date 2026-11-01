@@ -44,7 +44,7 @@ describe('빈 사용 기록 (높음)', () => {
     localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub({ useDates: [] })] }))
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('tab', { name: '구독' }))
+    await user.click(screen.getByRole('tab', { name: '고정비' }))
     expect(card('티빙').getByText('사용 기록 없음')).toBeInTheDocument()
     // 사용 기록이 없으면 해지 후보가 아니라 확인 필요다 (F23)
     expect(card('티빙').getByText('확인 필요')).toBeInTheDocument()
@@ -62,7 +62,7 @@ describe('되돌리기 알림의 유효성 (중간)', () => {
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '다시 고민하기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '옮기기' }))
-    await user.click(screen.getByRole('tab', { name: '고민 중인 물건' }))
+    await user.click(screen.getByRole('tab', { name: '물건' }))
     expect(within(screen.getByRole('status', { name: '결정 알림' })).queryByRole('button', { name: '되돌리기' })).not.toBeInTheDocument()
   })
 
@@ -149,7 +149,7 @@ describe('백업 불러오기 보완 (중간·낮음)', () => {
     })
     await user.click(confirm.getByRole('button', { name: '바꾸기' }))
     expect(screen.getByRole('status', { name: '백업 상태' })).toHaveTextContent('백업 파일의 기록으로 바꿨지만 구독을 저장하지 못했어요. 각 화면의 저장 안내를 확인해 주세요.')
-    await user.click(screen.getByRole('tab', { name: '구독' }))
+    await user.click(screen.getByRole('tab', { name: '고정비' }))
     expect(screen.getByRole('status', { name: '구독 저장 상태' })).toBeInTheDocument()
   })
 

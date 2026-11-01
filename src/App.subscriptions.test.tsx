@@ -20,7 +20,7 @@ afterEach(() => {
 async function openSubs() {
   const user = userEvent.setup()
   const utils = render(<App />)
-  await user.click(screen.getByRole('tab', { name: '구독' }))
+  await user.click(screen.getByRole('tab', { name: '고정비' }))
   return { user, ...utils }
 }
 
@@ -43,7 +43,7 @@ async function addSub(user: ReturnType<typeof userEvent.setup>, f: Fill) {
 describe('구독 정리함 (F14)', () => {
   it('네 번째 메뉴로 열리고, 비어 있으면 안내한다', async () => {
     await openSubs()
-    expect(screen.getByRole('tab', { name: '구독', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '고정비', selected: true })).toBeInTheDocument()
     expect(screen.getByText('아직 등록한 구독이 없어요.')).toBeInTheDocument()
   })
 

@@ -146,7 +146,7 @@ describe('사기 전에 한 번 더 (F15, AC29)', () => {
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(card('블루투스 헤드폰').getByRole('radio', { name: '후회해요' }))
     await user.click(card('블루투스 헤드폰').getByRole('button', { name: '회고 저장' }))
-    await user.click(screen.getByRole('tab', { name: '고민 중인 물건' }))
+    await user.click(screen.getByRole('tab', { name: '물건' }))
     const form = within(screen.getByRole('form', { name: '물건 담기' }))
     await user.type(form.getByLabelText('상품명'), '헤드폰')
     const notice = within(form.getByRole('status', { name: '비슷한 기록' }))

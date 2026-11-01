@@ -4,14 +4,27 @@ import {
   TRANSFER_MAX,
   addTransfer,
   clearGoal,
+  isSavingsEmpty,
+  NOTE_MOVED,
+  NOTE_REDUCED,
+  NOTE_SEPARATE,
+  NOTE_SKIPPED,
+  SAVINGS_EMPTY,
   isSavingsStore,
+  movedLabel,
   parseSavings,
+  reducedLabel,
   removeTransfer,
+  savingsNumbers,
   setGoal,
+  skippedLabel,
   type Goal,
   type SavingsStore,
   type Transfer,
 } from './savings'
+import type { Subscription } from './subscriptions'
+import { historySummary } from './summary'
+import type { WishItem } from './wishlist'
 
 // PRD F48 저장 (AC96): buyornot.savings.v1 = { schemaVersion: 1, transfers, goal }
 // plan: 계획의 테스트 이름 끝 (AC96)을 앞으로 옮김(R2)
@@ -122,5 +135,108 @@ describe('모으기 기록 바꾸기 (F48 저장)', () => {
     const withGoal = setGoal({ ...EMPTY_SAVINGS, transfers: [T()] }, G())
     expect(withGoal.goal).toEqual(G())
     expect(clearGoal(withGoal)).toEqual({ schemaVersion: 1, transfers: [T()], goal: null })
+  })
+})
+
+// PRD F48 세 숫자 (AC91). 계획의 테스트 이름 끝 번호를 앞으로 옮김(R2)
+const sub = (over: Partial<Subscription>): Subscription => ({
+  id: 's1',
+  name: '넷플릭스',
+  priceKrw: 13500,
+  cycle: 'monthly',
+  billingDay: 10,
+  lastUsedDate: null,
+  createdAt: '2026-10-01T00:00:00.000Z',
+  updatedAt: '2026-10-01T00:00:00.000Z',
+  ...over,
+})
+const wish = (over: Partial<WishItem>): WishItem => ({
+  id: 'w1',
+  name: '무선 헤드폰',
+  priceKrw: 129000,
+  reason: '이유',
+  url: null,
+  createdAt: '2026-10-01T00:00:00.000Z',
+  updatedAt: '2026-10-01T00:00:00.000Z',
+  reviewAt: '2026-10-04T00:00:00.000Z',
+  status: 'skipped',
+  decidedAt: '2026-10-02T00:00:00.000Z',
+  ...over,
+})
+const store = (transfers: Transfer[]): SavingsStore => ({ ...EMPTY_SAVINGS, transfers })
+
+describe('모으기 세 숫자 (F48)', () => {
+  const cancelled = [
+    sub({ id: 'a', name: '넷플릭스', priceKrw: 13500, cancelledOn: '2026-11-05' }),
+    sub({ id: 'b', name: '클라우드', priceKrw: 120000, cycle: 'yearly', renewalDate: '2027-03-01', cancelledOn: '2026-11-06' }),
+    sub({ id: 'c', name: '월세', priceKrw: 450000, kind: 'housing', cancelledOn: '2026-11-07' }),
+  ]
+
+  it('AC91: 해지한 월세는 줄어든 고정비에 없고, 연 요금은 12로 나눠 반올림해 더한다', () => {
+    const n = savingsNumbers([], cancelled, EMPTY_SAVINGS)
+    expect(n.reducedCount).toBe(2)
+    expect(n.reducedMonthly).toBe(23500)
+  })
+
+  it('AC91: 해지하지 않은 고정비는 세지 않는다', () => {
+    const n = savingsNumbers([], [sub({ priceKrw: 13500 }), ...cancelled], EMPTY_SAVINGS)
+    expect(n.reducedCount).toBe(2)
+  })
+
+  it('AC91: 참은 구매는 결정 기록 요약의 구매 포기 금액과 같다', () => {
+    const items = [
+      wish({ id: 'w1', priceKrw: 129000 }),
+      wish({ id: 'w2', name: '마우스', priceKrw: 45000 }),
+      wish({ id: 'w3', name: '키보드', priceKrw: 99000, status: 'purchased' }),
+      wish({ id: 'w4', name: '의자', priceKrw: 70000, status: 'considering', decidedAt: null }),
+    ]
+    const n = savingsNumbers(items, [], EMPTY_SAVINGS)
+    expect(n.skippedCount).toBe(2)
+    expect(n.skippedTotal).toBe(174000)
+    expect(n.skippedCount).toBe(historySummary(items, null).skippedCount)
+    expect(n.skippedTotal).toBe(historySummary(items, null).skippedTotal)
+  })
+
+  it('AC91: 옮긴 돈은 넣었어요에서 꺼냈어요를 뺀다', () => {
+    const both = store([T({ id: 'in1', amountKrw: 100000 }), T({ id: 'out1', amountKrw: 20000, direction: 'out' })])
+    expect(savingsNumbers([], [], both)).toMatchObject({ transferCount: 2, movedTotal: 80000 })
+    const outOnly = store([T({ id: 'out1', amountKrw: 30000, direction: 'out' })])
+    expect(savingsNumbers([], [], outOnly)).toMatchObject({ transferCount: 1, movedTotal: -30000 })
+  })
+
+  it('AC91: 해지한 월세만 있으면 비어 있다', () => {
+    const n = savingsNumbers([], [cancelled[2]], EMPTY_SAVINGS)
+    expect(isSavingsEmpty(n)).toBe(true)
+    expect(isSavingsEmpty(savingsNumbers([], cancelled, EMPTY_SAVINGS))).toBe(false)
+    expect(isSavingsEmpty(savingsNumbers([wish({})], [], EMPTY_SAVINGS))).toBe(false)
+    expect(isSavingsEmpty(savingsNumbers([], [], store([T()])))).toBe(false)
+  })
+
+  it('AC91: 세는 기록에 예시가 있으면 예시 포함이다', () => {
+    expect(savingsNumbers([], cancelled, EMPTY_SAVINGS).includesExample).toBe(false)
+    expect(savingsNumbers([wish({ name: '(예시) 헤드폰' })], [], EMPTY_SAVINGS).includesExample).toBe(true)
+    expect(savingsNumbers([], [sub({ name: '(예시) 넷플릭스', cancelledOn: '2026-11-05' })], EMPTY_SAVINGS).includesExample).toBe(true)
+    // 세지 않는 기록(구매함, 해지한 월세)의 예시는 예시 포함이 아니다
+    expect(savingsNumbers([wish({ name: '(예시) 청소기', status: 'purchased' })], [], EMPTY_SAVINGS).includesExample).toBe(false)
+    expect(savingsNumbers([], [sub({ name: '(예시) 월세', kind: 'housing', cancelledOn: '2026-11-05' })], EMPTY_SAVINGS).includesExample).toBe(false)
+  })
+
+  it('AC91: 줄 이름은 PRD 문장 그대로다', () => {
+    const n = savingsNumbers(
+      [wish({ id: 'w1', priceKrw: 129000 }), wish({ id: 'w2', priceKrw: 45000 })],
+      cancelled,
+      store([T({ id: 'in1', amountKrw: 100000 }), T({ id: 'out1', amountKrw: 20000, direction: 'out' })]),
+    )
+    expect(reducedLabel(n)).toBe('줄어든 고정비 · 해지 2개')
+    expect(skippedLabel(n)).toBe('참은 구매 · 구매 포기 2건')
+    expect(movedLabel(n)).toBe('옮긴 돈 · 기록 2건')
+  })
+
+  it('AC91: 빈 화면과 안내 문장은 PRD 문장 그대로다', () => {
+    expect(SAVINGS_EMPTY).toBe('아직 모은 기록이 없어요. 고민하던 물건을 구매 포기하거나, 고정비를 ‘해지했어요’로 옮기거나, 은행 앱에서 옮긴 돈을 적으면 여기에 보여요.')
+    expect(NOTE_REDUCED).toBe('줄어든 고정비는 ‘해지했어요’로 옮긴 고정비의 요금을 한 달 기준으로 더한 값이에요. 월세·관리비는 세지 않아요.')
+    expect(NOTE_SKIPPED).toBe('참은 구매는 구매 포기한 물건을 담을 때 적은 가격의 합이에요. 실제로 아낀 돈과는 다를 수 있어요.')
+    expect(NOTE_MOVED).toBe('옮긴 돈은 은행 앱에서 실제로 옮긴 뒤 적은 금액이에요. 넣었어요에서 꺼냈어요를 뺐어요.')
+    expect(NOTE_SEPARATE).toBe('세 숫자는 서로 다른 돈이라 더하지 않아요. 저축 목표는 옮긴 돈으로만 채워요.')
   })
 })

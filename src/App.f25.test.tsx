@@ -31,7 +31,7 @@ async function open(...items: unknown[]) {
   localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items }))
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('tab', { name: '구독' }))
+  await user.click(screen.getByRole('tab', { name: '고정비' }))
   return user
 }
 const card = (name: string) => within(screen.getByRole('article', { name }))

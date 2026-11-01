@@ -594,7 +594,7 @@ describe('녹음이 안 되거나 받아쓴 내용이 없을 때 (AC58)', () => 
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
     expect(s.server.calls).toEqual([])
 
-    goTo('고민 중인 물건')
+    goTo('물건')
 
     expect(startButton()).toBeEnabled()
     expect(form().queryByRole('timer')).not.toBeInTheDocument()
@@ -699,7 +699,7 @@ describe('20초 자동 멈춤과 권한 창 (계획 Task 14)', () => {
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
     expect(s.server.calls).toEqual([])
 
-    goTo('고민 중인 물건')
+    goTo('물건')
 
     expect(startButton()).toBeEnabled()
     expect(form().queryByRole('timer')).not.toBeInTheDocument()
@@ -849,10 +849,10 @@ describe('메뉴 이동·화면이 사라짐과 늦은 결과 (10장 앱 공통)
 
     if (keepFocus) expect(tab).toHaveFocus()
     else expect(document.body).toHaveFocus()
-    expect(focusedInside(focusSpy, panelOf('고민 중인 물건'))).toEqual([])
+    expect(focusedInside(focusSpy, panelOf('물건'))).toEqual([])
     expect(held.signal?.aborted).toBe(false)
 
-    goTo('고민 중인 물건')
+    goTo('물건')
 
     expect(values()).toEqual({ name: '요가 매트', price: '35000', reason: '집에서 홈트 하려고', desire: null, period: '3일', customDays: null })
     expect(statusLinesWith(heard(YOGA_TRANSCRIPT))).toEqual([heard(YOGA_TRANSCRIPT), '상품명·가격·이유·고민 기간을 채웠어요.'])
@@ -874,9 +874,9 @@ describe('메뉴 이동·화면이 사라짐과 늦은 결과 (10장 앱 공통)
     await settle()
 
     expect(document.body).toHaveFocus()
-    expect(focusedInside(focusSpy, panelOf('고민 중인 물건'))).toEqual([])
+    expect(focusedInside(focusSpy, panelOf('물건'))).toEqual([])
 
-    goTo('고민 중인 물건')
+    goTo('물건')
 
     expect(form().getByRole('alert')).toHaveTextContent(BUSY)
     expect(values()).toEqual(EMPTY_FORM)

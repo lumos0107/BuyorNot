@@ -108,7 +108,7 @@ p {
   font-size: 15px;
 }
 
-/* 좁은 화면에서도 주요 메뉴 4개가 한 줄에 모두 보이게 한다 (높이 44px은 유지) */
+/* 좁은 화면에서도 주요 메뉴 5개가 한 줄에 모두 보이게 한다 (높이·너비 44px 이상) */
 @media (max-width: 420px) {
   .tabs:not(.tabs-sub) {
     gap: 0;
@@ -117,6 +117,7 @@ p {
 
   .tabs:not(.tabs-sub) .tab {
     padding: 10px 6px;
+    min-width: 44px;
     font-size: 14px;
   }
 }

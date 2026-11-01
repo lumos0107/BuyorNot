@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseSettings, validateWage, type Settings } from './settings'
-import { RETRO_AFTER_MS, RETRO_NOTICE, historySummary, review, reviewDue } from './summary'
+import { RETRO_AFTER_MS, RETRO_NOTICE, SKIPPED_NOTICE, historySummary, review, reviewDue } from './summary'
 import { decideItem, demoItems, reviewAtFrom, type WishItem } from './wishlist'
 
 // PRD F12 결정 기록 요약·구매 후 회고 / AC24, AC25
@@ -73,6 +73,10 @@ describe('구매 후 회고 시점 (F12)', () => {
     expect(days * DAY).toBe(RETRO_AFTER_MS)
     expect(reviewDue(bought, new Date(T0.getTime() + days * DAY - 1))).toBe(false)
     expect(reviewDue(bought, new Date(T0.getTime() + days * DAY))).toBe(true)
+  })
+
+  it('AC96: 구매 포기 안내 문장은 PRD 문장 그대로다', () => {
+    expect(SKIPPED_NOTICE).toBe('구매 포기한 금액은 모으기의 ‘참은 구매’에 더해져요.')
   })
 
   it('AC25: 구매 포기·고민 중 기록에는 묻지 않는다', () => {

@@ -55,7 +55,7 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
   async function openSubs() {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('tab', { name: '구독' }))
+    await user.click(screen.getByRole('tab', { name: '고정비' }))
     return user
   }
   const summary = () => within(screen.getByRole('region', { name: '구독 요약' }))

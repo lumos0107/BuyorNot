@@ -79,7 +79,7 @@ describe('화면 연결과 안내', () => {
     render(<App />)
     await user.click(screen.getByRole('tab', { name: '가격 비교' }))
     await user.click(screen.getByRole('button', { name: '고민 중인 물건에 담으러 가기' }))
-    expect(screen.getByRole('tab', { name: '고민 중인 물건', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '물건', selected: true })).toBeInTheDocument()
     expect(screen.getByRole('form', { name: '물건 담기' })).toBeInTheDocument()
   })
 

@@ -19,7 +19,7 @@ const card = (name: string) => within(screen.getByRole('article', { name }))
 async function openSubs() {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('tab', { name: '구독' }))
+  await user.click(screen.getByRole('tab', { name: '고정비' }))
   return user
 }
 

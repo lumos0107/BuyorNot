@@ -6,6 +6,7 @@ import { EvalReport } from './screens/ai/EvalReport'
 import { BackupSection } from './screens/BackupSection'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
+import { SavingsScreen } from './screens/SavingsScreen'
 import { SubscriptionScreen } from './screens/SubscriptionScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
 import { useSavings } from './store/useSavings'
@@ -16,13 +17,14 @@ import { Button } from './ui/Button'
 import { ResetConfirm } from './ui/ResetConfirm'
 import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
 
-type Screen = 'wishlist' | 'compare' | 'history' | 'subscriptions'
+type Screen = 'wishlist' | 'compare' | 'history' | 'subscriptions' | 'savings'
 
 const SCREENS: readonly TabItem<Screen>[] = [
-  { id: 'wishlist', label: '고민 중인 물건' },
+  { id: 'wishlist', label: '물건' },
   { id: 'compare', label: '가격 비교' },
   { id: 'history', label: '결정 기록' },
-  { id: 'subscriptions', label: '구독' },
+  { id: 'subscriptions', label: '고정비' },
+  { id: 'savings', label: '모으기' },
 ]
 
 export default function App() {
@@ -124,6 +126,9 @@ export default function App() {
             onReset={subscriptions.resetStorage}
             onDismiss={subscriptions.dismissNotice}
           />
+        </TabPanel>
+        <TabPanel id="savings" hidden={screen !== 'savings'}>
+          <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} today={wishlist.now} />
         </TabPanel>
       </main>
 

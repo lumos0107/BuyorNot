@@ -1,4 +1,6 @@
-import { parseDay } from './subscriptions'
+import { kindOf, monthlyEquivalent, parseDay, type Subscription } from './subscriptions'
+import { historySummary } from './summary'
+import { isExample, type WishItem } from './wishlist'
 
 // PRD F48 모으기 저장. 키 buyornot.savings.v1, 날짜는 'YYYY-MM-DD'(현지 달력), 시각은 ISO
 export type TransferDirection = 'in' | 'out'
@@ -105,3 +107,51 @@ export function setGoal(store: SavingsStore, goal: Goal): SavingsStore {
 export function clearGoal(store: SavingsStore): SavingsStore {
   return { ...store, goal: null }
 }
+
+// ---------- 세 숫자 (F48): 저장하지 않고 볼 때마다 계산하며, 어디서도 더하지 않는다 ----------
+
+export type SavingsNumbers = {
+  /** 해지한 고정비(월세·관리비 빼고)의 개수와 카드 월평균 합 */
+  reducedCount: number
+  reducedMonthly: number
+  /** 구매 포기 기록의 건수와 등록 가격 합 (결정 기록 요약과 같은 값) */
+  skippedCount: number
+  skippedTotal: number
+  /** 옮긴 돈 기록 건수와 넣었어요 − 꺼냈어요 */
+  transferCount: number
+  movedTotal: number
+  /** 세는 기록 가운데 이름이 "(예시)"로 시작하는 것이 있는지 */
+  includesExample: boolean
+}
+
+export function savingsNumbers(items: readonly WishItem[], subs: readonly Subscription[], store: SavingsStore): SavingsNumbers {
+  const reduced = subs.filter((sub) => sub.cancelledOn !== undefined && kindOf(sub) !== 'housing')
+  const skipped = historySummary(items, null)
+  const movedTotal = store.transfers.reduce((sum, t) => sum + (t.direction === 'in' ? t.amountKrw : -t.amountKrw), 0)
+  return {
+    reducedCount: reduced.length,
+    reducedMonthly: reduced.reduce((sum, sub) => sum + monthlyEquivalent(sub), 0),
+    skippedCount: skipped.skippedCount,
+    skippedTotal: skipped.skippedTotal,
+    transferCount: store.transfers.length,
+    movedTotal,
+    includesExample:
+      reduced.some((sub) => isExample(sub.name)) || items.some((item) => item.status === 'skipped' && isExample(item.name)),
+  }
+}
+
+/** 세 기록이 모두 0건이면 빈 화면 (월세·관리비 해지만 있으면 0건) */
+export function isSavingsEmpty(n: SavingsNumbers): boolean {
+  return n.reducedCount === 0 && n.skippedCount === 0 && n.transferCount === 0
+}
+
+export const SAVINGS_EMPTY =
+  '아직 모은 기록이 없어요. 고민하던 물건을 구매 포기하거나, 고정비를 ‘해지했어요’로 옮기거나, 은행 앱에서 옮긴 돈을 적으면 여기에 보여요.'
+export const NOTE_REDUCED = '줄어든 고정비는 ‘해지했어요’로 옮긴 고정비의 요금을 한 달 기준으로 더한 값이에요. 월세·관리비는 세지 않아요.'
+export const NOTE_SKIPPED = '참은 구매는 구매 포기한 물건을 담을 때 적은 가격의 합이에요. 실제로 아낀 돈과는 다를 수 있어요.'
+export const NOTE_MOVED = '옮긴 돈은 은행 앱에서 실제로 옮긴 뒤 적은 금액이에요. 넣었어요에서 꺼냈어요를 뺐어요.'
+export const NOTE_SEPARATE = '세 숫자는 서로 다른 돈이라 더하지 않아요. 저축 목표는 옮긴 돈으로만 채워요.'
+
+export const reducedLabel = (n: SavingsNumbers) => `줄어든 고정비 · 해지 ${n.reducedCount}개`
+export const skippedLabel = (n: SavingsNumbers) => `참은 구매 · 구매 포기 ${n.skippedCount}건`
+export const movedLabel = (n: SavingsNumbers) => `옮긴 돈 · 기록 ${n.transferCount}건`

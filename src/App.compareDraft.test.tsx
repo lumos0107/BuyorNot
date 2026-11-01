@@ -24,7 +24,7 @@ describe('비교 결과를 고민 목록에 담기 (F21)', () => {
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     await user.click(within(screen.getByRole('region', { name: '할인 비교 결과' })).getByRole('button', { name: 'B안으로 담기' }))
 
-    expect(screen.getByRole('tab', { name: '고민 중인 물건', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '물건', selected: true })).toBeInTheDocument()
     expect(wishForm().getByLabelText('가격')).toHaveValue('72000')
     expect(wishForm().getByLabelText('사고 싶은 이유')).toHaveValue('가격 비교: B안 결제액 72,000원 (할인 8,000원 · 배송비 포함)')
     expect(wishForm().getByLabelText('상품명')).toHaveFocus()

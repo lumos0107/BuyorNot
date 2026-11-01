@@ -967,10 +967,10 @@ describe('다른 화면을 보는 동안 끝난 읽기 (10장 앱 공통)', () =
 
     if (keepFocus) expect(tab).toHaveFocus()
     else expect(document.body).toHaveFocus()
-    expect(focusedInside(focusSpy, panelOf('고민 중인 물건'))).toEqual([])
+    expect(focusedInside(focusSpy, panelOf('물건'))).toEqual([])
     expect(held.signal?.aborted).toBe(false)
 
-    goTo('고민 중인 물건')
+    goTo('물건')
 
     expect(boxEl()).toBeVisible()
     expect(boxLines()).toEqual([READ_LINE, PRODUCT, FILL_FIRST])

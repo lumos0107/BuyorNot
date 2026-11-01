@@ -11,7 +11,7 @@ import { formatWon, josa } from '../logic/number'
 import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, hasAnswer, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
-import { RETRO_NOTICE } from '../logic/summary'
+import { RETRO_NOTICE, SKIPPED_NOTICE } from '../logic/summary'
 import { applyVoiceFill, voiceStatusLines, type VoiceField } from '../logic/voiceFill'
 import {
   COOLING_PRESETS,
@@ -167,6 +167,7 @@ export function WishlistScreen({
               </button>
             </div>
             {undo.decision === 'purchased' ? <p className="note">{RETRO_NOTICE}</p> : null}
+            {undo.decision === 'skipped' ? <p className="note">{SKIPPED_NOTICE}</p> : null}
           </>
         ) : null}
       </div>

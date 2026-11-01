@@ -1117,7 +1117,7 @@ describe('다른 화면을 보는 동안 끝난 요청 (10장 앱 공통)', () =
     openPhotoTab()
     await readPhoto()
 
-    goTo('고민 중인 물건')
+    goTo('물건')
     const keep = wishForm().getByRole('button', { name: '담아 두기' })
     keep.focus()
     // jsdom은 숨은 요소의 focus()를 무시하므로, 포커스가 그대로인 것만으로는 숨김 검사가 빠진 구현을 잡지 못한다.
@@ -1240,7 +1240,7 @@ describe('결과에서 고민 목록에 담기 (AC54)', () => {
 
     fireEvent.click(result().getByRole('button', { name: '고민 목록에 담기' }))
 
-    expect(screen.getByRole('tab', { name: '고민 중인 물건', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '물건', selected: true })).toBeInTheDocument()
     expect(wishForm().getByLabelText('상품명')).toHaveValue('농심 오징어짬뽕 소컵 6입')
     expect(wishForm().getByLabelText('가격')).toHaveValue('3980')
     expect(wishForm().getByLabelText('링크 (선택)')).toHaveValue(SEARCH_URL)

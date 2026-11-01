@@ -150,6 +150,46 @@ describe('결정 직후 되돌리기 (F18)', () => {
     expect(screen.queryByText(RETRO_LINE)).not.toBeInTheDocument()
   })
 
+  // AC96 (F18 보강): 구매 포기를 확인한 직후 '참은 구매' 안내 줄
+  const SKIPPED_LINE = '구매 포기한 금액은 모으기의 ‘참은 구매’에 더해져요.'
+
+  it('AC96: 구매 포기를 확인하면 결정 알림에 참은 구매 안내 줄이 따로 보인다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(card('키보드').getByRole('button', { name: '구매 포기' }))
+    await user.click(card('키보드').getByRole('button', { name: '구매 포기 확인' }))
+
+    const moved = notice().getByText('‘키보드’를 구매 포기로 옮겼어요.')
+    const line = notice().getByText(SKIPPED_LINE)
+    expect(moved).not.toBe(line)
+    expect(moved.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(notice().getByRole('button', { name: '되돌리기' })).toBeInTheDocument()
+    expect(screen.queryByText(RETRO_LINE)).not.toBeInTheDocument()
+  })
+
+  it('AC96: 구매함을 확인하면 그 줄이 없고 회고 줄은 그대로다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    render(<App />)
+    await buy(user, '키보드')
+
+    expect(screen.queryByText(SKIPPED_LINE)).not.toBeInTheDocument()
+    expect(notice().getByText(RETRO_LINE)).toBeInTheDocument()
+  })
+
+  it('AC96: 되돌리기를 누르면 그 줄도 사라진다', async () => {
+    seedTwo()
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(card('키보드').getByRole('button', { name: '구매 포기' }))
+    await user.click(card('키보드').getByRole('button', { name: '구매 포기 확인' }))
+    expect(notice().getByText(SKIPPED_LINE)).toBeInTheDocument()
+    await user.click(notice().getByRole('button', { name: '되돌리기' }))
+
+    expect(screen.queryByText(SKIPPED_LINE)).not.toBeInTheDocument()
+  })
+
   it('AC78: 구매함 뒤 다른 물건을 구매 포기하면 알림이 바뀌고 회고 줄이 없다', async () => {
     seedTwo()
     const user = userEvent.setup()
@@ -200,7 +240,7 @@ describe('결정 기록에서 다시 고민하기 (F18)', () => {
     expect(screen.getByRole('heading', { level: 2, name: '결정 기록' })).toHaveFocus()
     expect(stored()).toMatchObject({ status: 'considering', decidedAt: null })
     expect(stored().satisfaction).toBeUndefined()
-    await user.click(screen.getByRole('tab', { name: '고민 중인 물건' }))
+    await user.click(screen.getByRole('tab', { name: '물건' }))
     expect(card('전기 포트').getByText('고민 기간 끝')).toBeInTheDocument()
   })
 

@@ -84,7 +84,7 @@ describe('구독: 여러 탭', () => {
   async function openSubs() {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('tab', { name: '구독' }))
+    await user.click(screen.getByRole('tab', { name: '고정비' }))
     return user
   }
 
@@ -276,7 +276,7 @@ it('수정 폼 저장 경고는 취소하면 사라지고, 다시 열면 바뀐 
   localStorage.setItem(SUBS_KEY, store(sub({})))
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('tab', { name: '구독' }))
+  await user.click(screen.getByRole('tab', { name: '고정비' }))
   await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
   otherTabWrites(SUBS_KEY, store(sub({ priceKrw: 17000, updatedAt: iso(T0.getTime()) })))
   await user.click(within(screen.getByRole('form', { name: '구독 수정' })).getByRole('button', { name: '저장' }))
@@ -304,7 +304,7 @@ describe('손상 상태와 다른 탭', () => {
     localStorage.setItem(SUBS_KEY, '{bad')
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('tab', { name: '구독' }))
+    await user.click(screen.getByRole('tab', { name: '고정비' }))
     await addMonthly(user, '유튜브')
     otherTabWrites(SUBS_KEY, store(sub({ name: '왓챠' })))
     expect(screen.getByRole('article', { name: '왓챠' })).toBeInTheDocument()
@@ -335,7 +335,7 @@ describe('손상 상태와 다른 탭', () => {
     localStorage.setItem(SUBS_KEY, '{bad')
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('tab', { name: '구독' }))
+    await user.click(screen.getByRole('tab', { name: '고정비' }))
     const banner = within(screen.getByRole('status', { name: '구독 저장 상태' }))
     await user.click(banner.getByRole('button', { name: '구독 기록 초기화' }))
     otherTabWrites(SUBS_KEY, store(sub({ name: '왓챠' })), false)
@@ -350,7 +350,7 @@ describe('수정 폼의 바뀜 판단과 처음 회고', () => {
     localStorage.setItem(SUBS_KEY, store(sub({})))
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('tab', { name: '구독' }))
+    await user.click(screen.getByRole('tab', { name: '고정비' }))
     await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
     otherTabWrites(SUBS_KEY, store(sub({ priceKrw: 17000 })))
     const editor = within(screen.getByRole('form', { name: '구독 수정' }))

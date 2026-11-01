@@ -10,6 +10,9 @@ export const RETRO_AFTER_MS = 7 * DAY_MS
 /** 구매함으로 옮긴 직후 결정 알림 아래에 보이는 회고 안내 (F18). 일수는 회고가 열리는 때(RETRO_AFTER_MS)에서 만들어 어긋나지 않게 한다 */
 export const RETRO_NOTICE = `${RETRO_AFTER_MS / DAY_MS}일 뒤부터 결정 기록에서 잘 샀는지 적을 수 있어요.`
 
+/** 구매 포기를 확인한 직후 결정 알림의 따로 된 줄 (F18 보강, F48 '참은 구매') */
+export const SKIPPED_NOTICE = '구매 포기한 금액은 모으기의 ‘참은 구매’에 더해져요.'
+
 export type HistorySummary = {
   skippedCount: number
   skippedTotal: number

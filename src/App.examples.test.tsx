@@ -58,7 +58,7 @@ describe('예시만 지우기', () => {
   it('구독에서도 예시 구독만 지운다', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('tab', { name: '구독' }))
+    await user.click(screen.getByRole('tab', { name: '고정비' }))
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))
     const form = within(screen.getByRole('form', { name: '구독 담기' }))
     await user.type(form.getByLabelText('구독 이름'), '티빙')
