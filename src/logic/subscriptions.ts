@@ -6,6 +6,11 @@ import { NOTE_MAX, validateNote } from './wishlist'
 // PRD F14 구독 정리함. 날짜는 'YYYY-MM-DD'(현지 달력), 시각은 ISO.
 export type Cycle = 'monthly' | 'yearly'
 
+// PRD F45 고정비 종류. 구독이면 저장하지 않는다(없으면 구독)
+export type FixedCostKind = 'subscription' | 'membership' | 'delivery' | 'phone' | 'housing' | 'insurance' | 'other'
+/** 종류 고르기 순서 (F45) */
+export const FIXED_COST_KINDS: readonly FixedCostKind[] = ['subscription', 'membership', 'delivery', 'phone', 'housing', 'insurance', 'other']
+
 export type Subscription = {
   id: string
   name: string
@@ -18,6 +23,12 @@ export type Subscription = {
   /** 마지막으로 쓴 날. 비어 있고 오늘 썼어요 기록도 없으면 "확인 필요"(해지 후보 아님, F23) */
   lastUsedDate: string | null
   memo?: string
+  /** 고정비 종류 (F45). 구독이면 없다 */
+  kind?: FixedCostKind
+  /** 무료 체험 끝나는 날 (F46, 'YYYY-MM-DD'). 구독·멤버십에만 있다 */
+  trialEndDate?: string
+  /** 해지한 날 (F47, 'YYYY-MM-DD'). 있으면 해지한 것이다 */
+  cancelledOn?: string
   /** 시연용 예시 사용 시간: 최근 30일, 분 (F16). 직접 넣은 구독에는 없다 */
   exampleUsageMinutes?: number
   /** 시연용 예시 사용 횟수: 최근 30일 (배달·쇼핑 멤버십의 주문 등, F16) */
@@ -47,6 +58,24 @@ export const USE_LOG_KEEP_DAYS = 90
 const pad = (n: number) => String(n).padStart(2, '0')
 const toIso = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`
 const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate()
+
+/** 종류. 없으면 구독 (F45) */
+export function kindOf(sub: Pick<Subscription, 'kind'>): FixedCostKind {
+  return sub.kind ?? 'subscription'
+}
+
+/** 마지막 사용일·사용량·해지 후보·무료 체험은 구독·멤버십에만 있다 (F45) */
+export function tracksUsage(sub: Pick<Subscription, 'kind'>): boolean {
+  const kind = kindOf(sub)
+  return kind === 'subscription' || kind === 'membership'
+}
+
+/** 오늘부터 years년 뒤 같은 월·일(정오). 그날이 없으면(2월 29일) 그 달 말일. years가 음수면 그만큼 전 */
+export function yearsLater(today: Date, years: number): Date {
+  const y = today.getFullYear() + years
+  const month = today.getMonth()
+  return new Date(y, month, Math.min(today.getDate(), daysInMonth(y, month + 1)), 12)
+}
 
 /** 'YYYY-MM-DD'가 실제로 있는 날짜면 현지 Date(정오), 아니면 null */
 export function parseDay(iso: string): Date | null {
@@ -172,7 +201,10 @@ export type SubscriptionRawInput = {
   lastUsedDate: string
   memo: string
 }
-export type SubscriptionInput = Pick<Subscription, 'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'lastUsedDate' | 'memo'>
+export type SubscriptionInput = Pick<
+  Subscription,
+  'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'lastUsedDate' | 'memo' | 'kind' | 'trialEndDate'
+>
 export type SubscriptionFieldErrors = Partial<Record<Exclude<keyof SubscriptionRawInput, 'cycle'>, string>>
 
 /** unchangedRenewal: 수정 폼에 채워 둔 다음 갱신일. 그대로 두면 원래 기준일을 유지하므로 범위를 다시 따지지 않는다 */
@@ -202,9 +234,7 @@ export function validateSubscriptionInput(
     const renewal = parseDay(raw.renewalDate.trim())
     const until = renewal ? calendarDaysBetween(today, renewal) : -1
     // 1년 뒤 같은 날. 없는 날(2월 29일)은 연 갱신 규칙처럼 그 달 말일로 맞춘다
-    const ny = today.getFullYear() + 1
-    const lastDay = Math.min(today.getDate(), daysInMonth(ny, today.getMonth() + 1))
-    const yearLater = calendarDaysBetween(today, new Date(ny, today.getMonth(), lastDay, 12))
+    const yearLater = calendarDaysBetween(today, yearsLater(today, 1))
     if (!renewal) errors.renewalDate = '다음 결제일을 골라 주세요'
     else if (raw.renewalDate.trim() !== unchangedRenewal && (until < 0 || until > yearLater)) {
       errors.renewalDate = '다음 결제일은 오늘부터 1년 안이어야 해요'
@@ -235,7 +265,7 @@ export function createSubscription(input: SubscriptionInput, now: Date, id: stri
 
 export function updateSubscription(sub: Subscription, input: SubscriptionInput, now: Date): Subscription {
   // 예시 사용량(F16)과 "오늘 썼어요" 기록(F19)은 입력 폼에 없으므로 고쳐도 그대로 둔다
-  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates, usageEntry: sub.usageEntry, usageRecords: sub.usageRecords }
+  const usage = { exampleUsageMinutes: sub.exampleUsageMinutes, exampleUseCount: sub.exampleUseCount, useDates: sub.useDates, usageEntry: sub.usageEntry, usageRecords: sub.usageRecords, cancelledOn: sub.cancelledOn }
   return cleanSub({ id: sub.id, ...input, ...usage, createdAt: sub.createdAt, updatedAt: now.toISOString() })
 }
 
@@ -250,6 +280,10 @@ function cleanSub(sub: Subscription): Subscription {
   if (!out.useDates || out.useDates.length === 0) delete out.useDates
   if (out.usageEntry === undefined) delete out.usageEntry
   if (out.usageRecords === undefined) delete out.usageRecords
+  // 구독이면 kind를 저장하지 않고, 구독·멤버십이 아니면 체험 끝나는 날도 저장하지 않는다 (F45·F46)
+  if (out.kind === undefined || out.kind === 'subscription') delete out.kind
+  if (out.trialEndDate === undefined || !tracksUsage(out)) delete out.trialEndDate
+  if (out.cancelledOn === undefined) delete out.cancelledOn
   return out
 }
 
@@ -332,6 +366,10 @@ function isSubscription(v: unknown): v is Subscription {
   } else return false
   if (o.lastUsedDate !== null && !isDay(o.lastUsedDate)) return false
   if (o.memo !== undefined && !(isString(o.memo) && o.memo.length <= NOTE_MAX)) return false
+  // 고정비 종류(F45), 무료 체험 끝나는 날(F46, 구독·멤버십에만), 해지한 날(F47)
+  if (o.kind !== undefined && !FIXED_COST_KINDS.includes(o.kind as FixedCostKind)) return false
+  if (o.trialEndDate !== undefined && !(isDay(o.trialEndDate) && tracksUsage({ kind: o.kind as FixedCostKind | undefined }))) return false
+  if (o.cancelledOn !== undefined && !isDay(o.cancelledOn)) return false
   // 예시 사용량(F16): 시간과 횟수 중 하나만, 범위 안의 정수
   if (o.exampleUsageMinutes !== undefined && !isIntIn(o.exampleUsageMinutes, USAGE_MAX_MINUTES)) return false
   if (o.exampleUseCount !== undefined && !isIntIn(o.exampleUseCount, USE_COUNT_MAX)) return false
