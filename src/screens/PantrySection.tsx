@@ -1,5 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { comparePantryPurchases, type PantryPurchase } from '../logic/pantry'
 import { formatWon } from '../logic/number'
+import { parseDecimal, parseInteger } from '../logic/number'
 import { parseDay } from '../logic/dates'
 import {
   PANTRY_CORRUPT, PANTRY_KIND_LABEL, PANTRY_LEVEL_LABEL, PANTRY_REPLACED, PANTRY_RESET_NOTE,
@@ -13,11 +15,12 @@ import { usePantry } from '../store/usePantry'
 import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
 import { ResetConfirm } from '../ui/ResetConfirm'
+import { useFocusFirstError } from '../ui/useFocusFirstError'
 
-type Props = { pantry: ReturnType<typeof usePantry>; subscriptions: readonly Subscription[]; today: Date }
+type Props = { pantry: ReturnType<typeof usePantry>; subscriptions: readonly Subscription[]; today: Date; onCompare: (purchase: PantryPurchase) => void }
 const LEVEL_ORDER = { out: 0, low: 1, plenty: 2 }
 
-export function PantrySection({ pantry, subscriptions, today }: Props) {
+export function PantrySection({ pantry, subscriptions, today, onCompare }: Props) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState<PantryKind>('essential')
   const [expiresOn, setExpiresOn] = useState('')
@@ -92,6 +95,7 @@ export function PantrySection({ pantry, subscriptions, today }: Props) {
           <Button onClick={() => setDiscardId(null)}>취소</Button>
         </div>
       </div> : null}
+      <PurchaseRecorder item={item} pantry={pantry} today={today} onCompare={onCompare} />
     </div>
   }
 
@@ -120,6 +124,55 @@ export function PantrySection({ pantry, subscriptions, today }: Props) {
       {discarded.count > 0 ? <details><summary>{`버린 식재료 ${discarded.count}개 · ${formatWon(discarded.amountKrw)}`}</summary>
         <div className="stack">{pantry.store.events.filter((event) => event.action === 'discarded' && event.day.slice(0, 7) === toDayIso(today).slice(0, 7)).map((event) => <p key={event.id}>{`${event.day} · ${event.name} · ${formatWon(event.amountKrw)}`}</p>)}</div>
       </details> : null}
+    </div>
+  </details>
+}
+
+function PurchaseRecorder({ item, pantry, today, onCompare }: { item: PantryItem; pantry: ReturnType<typeof usePantry>; today: Date; onCompare: (purchase: PantryPurchase) => void }) {
+  const [place, setPlace] = useState('')
+  const [amount, setAmount] = useState('')
+  const [size, setSize] = useState('')
+  const [unit, setUnit] = useState<PantryPurchase['unit']>('g')
+  const [day, setDay] = useState(toDayIso(today))
+  const [errors, setErrors] = useState<Partial<Record<'place' | 'amount' | 'size' | 'day', string>>>({})
+  const [full, setFull] = useState(false)
+  const { ref, focusFirstError } = useFocusFirstError<HTMLFormElement>()
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const nextErrors: typeof errors = {}
+    const cleanPlace = place.trim()
+    const parsedAmount = parseInteger(amount)
+    const parsedSize = parseDecimal(size)
+    if (!cleanPlace || cleanPlace.length > 30) nextErrors.place = '곳은 1~30자로 적어 주세요.'
+    if (parsedAmount === null || parsedAmount < 1 || parsedAmount > 1_000_000_000) nextErrors.amount = '금액은 1원~10억 원 사이여야 해요.'
+    if (parsedSize === null || parsedSize <= 0 || parsedSize > 10_000_000 || Math.round(parsedSize * 1000) !== parsedSize * 1000 || (unit === 'ea' && !Number.isInteger(parsedSize))) nextErrors.size = '용량을 올바르게 적어 주세요.'
+    if (!parseDay(day) || day > toDayIso(today)) nextErrors.day = '산 날은 오늘이거나 그 전이어야 해요.'
+    if (Object.keys(nextErrors).length) { setErrors(nextErrors); focusFirstError(); return }
+    const purchase: PantryPurchase = { id: newId(), day, place: cleanPlace, amountKrw: parsedAmount!, size: parsedSize!, unit, createdAt: new Date().toISOString() }
+    const result = pantry.addPurchase(item.id, purchase)
+    if (result === 'full') { setFull(true); return }
+    if (result === 'replaced') return
+    setPlace(''); setAmount(''); setSize(''); setErrors({}); setFull(false)
+  }
+  const pair = item.purchases.slice(-2)
+  const latest = latestPantryPurchase(item)
+  return <details>
+    <summary>산 값 적기·비교</summary>
+    <div className="stack">
+      <form className="stack" aria-label={`${item.name} 산 값 적기`} ref={ref} onSubmit={submit} noValidate>
+        <TextField label="산 날" type="date" max={toDayIso(today)} value={day} error={errors.day} onChange={(e) => { setDay(e.target.value); setErrors({}) }} />
+        <TextField label="곳" value={place} error={errors.place} onChange={(e) => { setPlace(e.target.value); setErrors({}) }} />
+        <TextField label="금액" inputMode="numeric" value={amount} error={errors.amount} onChange={(e) => { setAmount(e.target.value); setErrors({}) }} />
+        <TextField label="용량" inputMode="decimal" value={size} error={errors.size} onChange={(e) => { setSize(e.target.value); setErrors({}) }} />
+        <SelectField label="단위" value={unit} onChange={(e) => setUnit(e.target.value as PantryPurchase['unit'])}>
+          <option value="g">g</option><option value="kg">kg</option><option value="mL">mL</option><option value="L">L</option><option value="ea">개</option>
+        </SelectField>
+        <div className="btn-row"><Button type="submit">산 값 적기</Button></div>
+      </form>
+      {full ? <p role="alert" className="field-error">산 값은 5개까지예요</p> : null}
+      {item.purchases.map((purchase) => <p key={purchase.id}>{`${purchase.day} · ${purchase.place} · ${formatWon(purchase.amountKrw)} · ${purchase.size}${purchase.unit === 'ea' ? '개' : purchase.unit}`}</p>)}
+      {pair.length === 2 ? <><p>{comparePantryPurchases(pair[0], pair[1])}</p><p className="note">실제로 필요한 양과 총지출도 함께 보세요.</p></> : null}
+      {latest ? <div className="btn-row"><Button onClick={() => onCompare(latest)}>묶음 비교로 보내기</Button></div> : null}
     </div>
   </details>
 }

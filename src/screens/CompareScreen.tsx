@@ -46,6 +46,7 @@ export function CompareScreen({
   onAddToWishlist,
   onAddPhotoDraft,
   startWithExample = false,
+  pantryDraft,
 }: {
   onGoToWishlist?: () => void
   /** 처음부터 예시 값을 채워 결과가 바로 보이게 한다 (앱 화면에서 켠다, 2026-10-11 제작자 요청) */
@@ -54,8 +55,9 @@ export function CompareScreen({
   onAddToWishlist?: (draft: WishDraft) => void
   /** 가격표 사진 결과를 고민 목록의 담기 폼에 빈 칸만 채워 담기 (F31) */
   onAddPhotoDraft?: (draft: PhotoDraft) => void
+  pantryDraft?: BundleRawInput | null
 }) {
-  const [kind, setKind] = useState<CompareKind>('discount')
+  const [kind, setKind] = useState<CompareKind>(pantryDraft ? 'bundle' : 'discount')
   const withAi = aiServerUrl() !== null
   return (
     <div className="stack">
@@ -65,7 +67,7 @@ export function CompareScreen({
         <DiscountCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />
       </TabPanel>
       <TabPanel id="bundle" hidden={kind !== 'bundle'}>
-        <BundleCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />
+        <BundleCompare onAdd={onAddToWishlist} startWithExample={startWithExample} pantryDraft={pantryDraft} />
       </TabPanel>
       {withAi ? (
         <TabPanel id="photo" hidden={kind !== 'photo'}>
@@ -321,8 +323,8 @@ const EXAMPLE_USE: MonthlyUseRaw = { amount: '600', unit: 'mL' }
 
 const KIND_LABEL = { weight: '무게', volume: '부피', count: '개수' } as const
 
-function BundleCompare({ onAdd, startWithExample }: { onAdd?: (draft: WishDraft) => void; startWithExample: boolean }) {
-  const [a, setA] = useState(() => (startWithExample ? filled(EXAMPLE_BUNDLE_A) : fresh(EMPTY_BUNDLE)))
+function BundleCompare({ onAdd, startWithExample, pantryDraft }: { onAdd?: (draft: WishDraft) => void; startWithExample: boolean; pantryDraft?: BundleRawInput | null }) {
+  const [a, setA] = useState(() => pantryDraft ? filled(pantryDraft) : startWithExample ? filled(EXAMPLE_BUNDLE_A) : fresh(EMPTY_BUNDLE))
   const [b, setB] = useState(() => (startWithExample ? filled(EXAMPLE_BUNDLE_B) : fresh(EMPTY_BUNDLE)))
   const [use, setUse] = useState(() => (startWithExample ? filled(EXAMPLE_USE) : fresh(EMPTY_USE)))
 

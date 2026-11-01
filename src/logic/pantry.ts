@@ -143,3 +143,11 @@ export function pantryUnitPrice(purchase: PantryPurchase): { kind: ReturnType<ty
   const value = purchase.amountKrw * reference / base
   return { kind, value, label: kind === 'weight' ? '100g' : kind === 'volume' ? '100mL' : '1개' }
 }
+
+export function comparePantryPurchases(a: PantryPurchase, b: PantryPurchase): string {
+  const left = pantryUnitPrice(a)
+  const right = pantryUnitPrice(b)
+  if (left.kind !== right.kind) return '단위가 달라 단가를 비교할 수 없어요.'
+  const shown = (value: number) => `${value.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}원`
+  return `${a.place} ${left.label}당 ${shown(left.value)} · ${b.place} ${right.label}당 ${shown(right.value)}`
+}

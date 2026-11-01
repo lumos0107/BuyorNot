@@ -2,6 +2,8 @@ import { useRef, useState } from 'react'
 import { aiServerUrl } from './ai/config'
 import evalSummaryJson from './ai/evalSummary.json'
 import type { FormDraft } from './logic/draft'
+import type { BundleRawInput } from './logic/bundle'
+import type { PantryPurchase } from './logic/pantry'
 import { EvalReport } from './screens/ai/EvalReport'
 import { BackupSection } from './screens/BackupSection'
 import { BillsSection } from './screens/BillsSection'
@@ -36,6 +38,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('wishlist')
   // 가격 비교에서 고른 쪽(F21)이나 가격표 사진에서 읽은 값(F31)을 고민 목록의 담기 폼에 채운다
   const [draft, setDraft] = useState<FormDraft | null>(null)
+  const [pantryDraft, setPantryDraft] = useState<{ form: BundleRawInput; token: number } | null>(null)
+  const pantryDraftSeq = useRef(0)
   const wishlist = useWishlist()
   const settings = useSettings()
   const subscriptions = useSubscriptions()
@@ -91,11 +95,16 @@ export default function App() {
             draft={draft}
             onDraftUsed={() => setDraft(null)}
           />
-          <PantrySection pantry={pantry} subscriptions={subscriptions.items} today={wishlist.now} />
+          <PantrySection pantry={pantry} subscriptions={subscriptions.items} today={wishlist.now} onCompare={(purchase: PantryPurchase) => {
+            setPantryDraft({ form: { price: String(purchase.amountKrw), unit: purchase.unit, size: purchase.unit === 'ea' ? '' : String(purchase.size), count: purchase.unit === 'ea' ? String(purchase.size) : '1' }, token: ++pantryDraftSeq.current })
+            setScreen('compare')
+          }} />
         </TabPanel>
         <TabPanel id="compare" hidden={screen !== 'compare'}>
           <CompareScreen
+            key={pantryDraft?.token ?? 'default'}
             startWithExample
+            pantryDraft={pantryDraft?.form}
             onGoToWishlist={() => setScreen('wishlist')}
             onAddToWishlist={(value) => {
               setDraft({ source: 'compare', value })
