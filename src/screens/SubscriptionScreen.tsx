@@ -10,7 +10,11 @@ import {
   NAME_LABEL,
   NAME_PLACEHOLDER,
   STALE_NOTICE,
+  TRIAL_HINT,
+  TRIAL_LABEL,
   kindTotalsLine,
+  trialLine,
+  trialSummaryLine,
 } from '../logic/fixedCosts'
 import { formatWon } from '../logic/number'
 import { sameRecord } from '../logic/records'
@@ -73,6 +77,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
   const sorted = sortSubscriptions(items, today)
   const s = subscriptionSummary(items, today)
   const totalsLine = kindTotalsLine(items, today)
+  const trialSummary = trialSummaryLine(s)
   const exampleCount = items.filter((sub) => isExample(sub.name)).length
   // 삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -121,6 +126,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
             </li>
           </ul>
           {totalsLine ? <p>{totalsLine}</p> : null}
+          {trialSummary ? <p>{trialSummary}</p> : null}
           {s.candidateCount > 0 ? (
             <p className="field-label">
               해지 후보 {s.candidateCount}개 · 월평균 {formatWon(s.candidateMonthly)}
@@ -216,6 +222,7 @@ function toRaw(sub: Subscription, nextRenewal: string): SubscriptionRawInput {
     lastUsedDate: sub.lastUsedDate ?? '',
     memo: sub.memo ?? '',
     kind: kindOf(sub),
+    trialEndDate: sub.trialEndDate ?? '',
   }
 }
 
@@ -229,6 +236,7 @@ function SubscriptionForm({
   resetAfterSubmit,
   autoFocus,
   keepRenewal,
+  keepTrial,
   notice,
 }: {
   label: string
@@ -241,13 +249,15 @@ function SubscriptionForm({
   autoFocus?: boolean
   /** 수정 폼에 채워 둔 다음 갱신일. 그대로 두면 범위를 다시 따지지 않는다 */
   keepRenewal?: string
+  /** 수정 폼에 채워 둔 체험 끝나는 날. 그대로 두면 범위를 다시 따지지 않는다 (F46) */
+  keepTrial?: string
   /** 저장하지 못한 이유(다른 탭에서 바뀜 등) */
   notice?: string
 }) {
   const [raw, setRaw] = useState<SubscriptionRawInput>(initial)
   const [attempted, setAttempted] = useState(false)
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
-  const { value, errors } = validateSubscriptionInput(raw, today, keepRenewal)
+  const { value, errors } = validateSubscriptionInput(raw, today, keepRenewal, keepTrial)
   const shown: SubscriptionFieldErrors = attempted ? errors : {}
   const set = <K extends keyof SubscriptionRawInput>(key: K, v: SubscriptionRawInput[K]) => setRaw((r) => ({ ...r, [key]: v }))
 
@@ -310,6 +320,17 @@ function SubscriptionForm({
           onChange={(e) => set('renewalDate', e.target.value)}
         />
       )}
+      {tracksUsage({ kind: raw.kind }) ? (
+        <TextField
+          label={TRIAL_LABEL}
+          type="date"
+          min={toDayIso(today)}
+          hint={TRIAL_HINT}
+          value={raw.trialEndDate ?? ''}
+          error={shown.trialEndDate}
+          onChange={(e) => set('trialEndDate', e.target.value)}
+        />
+      ) : null}
       {tracksUsage({ kind: raw.kind }) ? (
         <TextField
           label="마지막 사용일 (선택)"
@@ -387,6 +408,9 @@ function SubscriptionCard({
     setMode('view')
   }
   const next = nextBillingDate(sub, today)
+  // 수정 폼에 채우는 다음 갱신일은 체험 끝나는 날이 아니라 결제일 규칙의 날이다 (F46)
+  const cycleNext = nextBillingDate({ ...sub, trialEndDate: undefined }, today)
+  const trialText = trialLine(sub, today)
   const dday = daysUntil(next, today)
   // 해지 후보·확인 필요·사용 기록·사용량은 구독·멤버십에만 있다 (F45)
   const tracked = tracksUsage(sub)
@@ -398,7 +422,7 @@ function SubscriptionCard({
     sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월평균 ${formatWon(monthlyEquivalent(sub))}`
 
   if (mode === 'edit') {
-    const base = editBase ?? { sub, renewal: next }
+    const base = editBase ?? { sub, renewal: cycleNext }
     return (
       <article className="card stack" aria-label={sub.name}>
         <SubscriptionForm
@@ -407,6 +431,7 @@ function SubscriptionCard({
           today={today}
           initial={toRaw(sub, base.renewal)}
           keepRenewal={sub.cycle === 'yearly' ? base.renewal : undefined}
+          keepTrial={sub.trialEndDate}
           notice={stale ? STALE_NOTICE : undefined}
           autoFocus
           onSubmit={(input) => {
@@ -437,6 +462,7 @@ function SubscriptionCard({
       </div>
       <p className="card-meta">{KIND_LABEL[kindOf(sub)]}</p>
       <p className="price">{priceText}</p>
+      {trialText ? <p className="card-meta">{trialText}</p> : null}
       <p className="card-meta">
         다음 결제 {next} · D-{dday}
       </p>
@@ -477,7 +503,7 @@ function SubscriptionCard({
             className="link-btn"
             ref={editRef}
             onClick={() => {
-              setEditBase({ sub, renewal: next })
+              setEditBase({ sub, renewal: cycleNext })
               setStale(false)
               setMode('edit')
             }}

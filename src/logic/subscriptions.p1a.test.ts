@@ -3,6 +3,7 @@ import {
   FIXED_COST_KINDS,
   createSubscription,
   kindOf,
+  nextBillingDate,
   parseSubscriptions,
   subscriptionSummary,
   tracksUsage,
@@ -147,5 +148,113 @@ describe('고정비 입력 검사·요약 (F45)', () => {
 
   it('AC83: 이름이 비면 이름을 입력해 달라고 한다', () => {
     expect(validateSubscriptionInput(raw({ name: '  ' }), NOW).errors.name).toBe('이름을 입력해 주세요')
+  })
+})
+
+// PRD F46 무료 체험 끝나는 날 (AC85~AC87, 판정 R46)
+const at = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y!, m! - 1, d!, 15, 30)
+}
+const trialSub = (over: Partial<Subscription> = {}): Subscription =>
+  ({ ...base, id: 't1', name: '넷플릭스', priceKrw: 13500, billingDay: 20, kind: undefined, trialEndDate: '2026-11-14', ...over }) as Subscription
+
+describe('체험 중의 다음 결제일 (F46, R46)', () => {
+  it('AC86: 체험 중이면 다음 결제일은 체험 끝나는 날이다', () => {
+    const sub = trialSub()
+    expect(nextBillingDate(sub, at('2026-11-01'))).toBe('2026-11-14')
+    // 체험 끝나는 날 당일도 체험 중이다
+    expect(nextBillingDate(sub, at('2026-11-14'))).toBe('2026-11-14')
+    // 연 구독도 체험 끝나는 날이 먼저다
+    const yearly = trialSub({ cycle: 'yearly', billingDay: undefined, renewalDate: '2027-11-14' })
+    expect(nextBillingDate(yearly, at('2026-11-01'))).toBe('2026-11-14')
+  })
+
+  it('AC86: 체험이 끝난 다음 날부터는 결제일 규칙으로 다음 결제일을 잡는다', () => {
+    const sub = trialSub()
+    expect(nextBillingDate(sub, at('2026-11-15'))).toBe('2026-11-20')
+    expect(nextBillingDate(sub, at('2026-12-01'))).toBe('2026-12-20')
+    const yearly = trialSub({ cycle: 'yearly', billingDay: undefined, renewalDate: '2027-11-14' })
+    expect(nextBillingDate(yearly, at('2026-11-15'))).toBe('2027-11-14')
+  })
+
+  it('AC86: 체험이 없으면 다음 결제일이 지금과 같다', () => {
+    // AC27의 입력 몇 개 그대로
+    const none = (billingDay: number) => trialSub({ trialEndDate: undefined, billingDay })
+    expect(nextBillingDate(none(31), at('2026-02-10'))).toBe('2026-02-28')
+    expect(nextBillingDate(none(31), at('2026-02-28'))).toBe('2026-02-28')
+    expect(nextBillingDate(none(15), at('2026-11-16'))).toBe('2026-12-15')
+  })
+})
+
+describe('체험 중인 것의 요약 (F46)', () => {
+  it('AC85: 체험 중인 것은 합계에서 빠지고 체험 줄 금액에 들어간다', () => {
+    const phone = { ...base, id: 'p1', name: '휴대폰', kind: 'phone', billingDay: 10 } as Subscription
+    const monthlyTrial = subscriptionSummary([trialSub(), phone], NOW)
+    expect(monthlyTrial).toMatchObject({ monthlyTotal: 55000, yearlyTotal: 660000, trialCount: 1, trialMonthly: 13500 })
+    // 매년이면 월 환산(120,000 / 12 = 10,000)이 체험 줄 금액이다
+    const yearlyTrial = trialSub({ cycle: 'yearly', priceKrw: 120000, billingDay: undefined, renewalDate: '2027-11-14' })
+    expect(subscriptionSummary([yearlyTrial, phone], NOW)).toMatchObject({ monthlyTotal: 55000, yearlyTotal: 660000, trialCount: 1, trialMonthly: 10000 })
+    // 체험이 끝난 다음 날부터는 합계에 들어간다
+    expect(subscriptionSummary([trialSub(), phone], at('2026-11-15'))).toMatchObject({ monthlyTotal: 68500, trialCount: 0, trialMonthly: 0 })
+  })
+
+  it('AC85: 체험 중인 구독도 해지 후보·확인 필요는 그대로 판정한다', () => {
+    const s = subscriptionSummary([trialSub({ lastUsedDate: '2026-08-01' }), trialSub({ id: 't2', name: '왓챠' })], NOW)
+    expect(s).toMatchObject({ candidateCount: 1, unknownCount: 1, trialCount: 2, monthlyTotal: 0 })
+  })
+})
+
+describe('체험 끝나는 날 입력 (F46)', () => {
+  const raw = (over: Partial<SubscriptionRawInput> = {}): SubscriptionRawInput => ({
+    name: '넷플릭스',
+    price: '13500',
+    cycle: 'monthly',
+    billingDay: '20',
+    renewalDate: '',
+    lastUsedDate: '',
+    memo: '',
+    ...over,
+  })
+  const RANGE = '무료 체험 끝나는 날은 오늘부터 1년 안이어야 해요'
+
+  it('AC87: 체험 끝나는 날의 범위와 오류', () => {
+    expect(validateSubscriptionInput(raw({ trialEndDate: '2027-11-02' }), NOW).errors.trialEndDate).toBe(RANGE)
+    expect(validateSubscriptionInput(raw({ trialEndDate: '2026-10-31' }), NOW).errors.trialEndDate).toBe(RANGE)
+    const edge = validateSubscriptionInput(raw({ trialEndDate: '2027-11-01' }), NOW)
+    expect(edge.errors).toEqual({})
+    expect(edge.value?.trialEndDate).toBe('2027-11-01')
+    // 오늘도 받는다. 비우면 체험이 아니다
+    expect(validateSubscriptionInput(raw({ trialEndDate: '2026-11-01' }), NOW).value?.trialEndDate).toBe('2026-11-01')
+    const empty = validateSubscriptionInput(raw({ trialEndDate: '  ' }), NOW)
+    expect(empty.errors).toEqual({})
+    expect('trialEndDate' in empty.value!).toBe(false)
+    // 날짜가 아니면
+    expect(validateSubscriptionInput(raw({ trialEndDate: '2026-02-30' }), NOW).errors.trialEndDate).toBe('올바른 날짜를 골라 주세요')
+  })
+
+  it('AC87: 채워 둔 지난 체험 날을 그대로 두면 저장된다', () => {
+    const kept = validateSubscriptionInput(raw({ trialEndDate: '2026-10-20' }), NOW, undefined, '2026-10-20')
+    expect(kept.errors).toEqual({})
+    expect(kept.value?.trialEndDate).toBe('2026-10-20')
+    // 채워 둔 값과 다르게 바꾸면 범위를 따진다
+    expect(validateSubscriptionInput(raw({ trialEndDate: '2026-10-21' }), NOW, undefined, '2026-10-20').errors.trialEndDate).toBe(RANGE)
+  })
+
+  it('AC87: 구독·멤버십이 아니면 체험 끝나는 날을 넣지 않는다', () => {
+    for (const kind of ['delivery', 'phone', 'housing', 'insurance', 'other'] as const) {
+      const out = validateSubscriptionInput(raw({ kind, trialEndDate: '2026-11-14' }), NOW)
+      expect(out.errors).toEqual({})
+      expect('trialEndDate' in out.value!).toBe(false)
+    }
+    // 잘못된 값이 남아 있어도 오류가 아니다
+    expect(validateSubscriptionInput(raw({ kind: 'phone', trialEndDate: '2099-01-01' }), NOW).errors).toEqual({})
+    expect(validateSubscriptionInput(raw({ kind: 'membership', trialEndDate: '2026-11-14' }), NOW).value?.trialEndDate).toBe('2026-11-14')
+  })
+
+  it('AC87: 체험이 있어도 결제일은 필수다', () => {
+    expect(validateSubscriptionInput(raw({ billingDay: '', trialEndDate: '2026-11-14' }), NOW).errors).toEqual({ billingDay: '결제일은 1~31일 사이여야 해요' })
+    const yearly = validateSubscriptionInput(raw({ cycle: 'yearly', renewalDate: '', trialEndDate: '2026-11-14' }), NOW)
+    expect(yearly.errors).toEqual({ renewalDate: '다음 결제일을 골라 주세요' })
   })
 })

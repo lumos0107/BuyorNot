@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -206,5 +206,153 @@ describe('손상 (F45)', () => {
     expect(banner).toHaveTextContent('저장된 구독을 읽을 수 없어요. 초기화하기 전까지는 새로 넣은 구독이 저장되지 않아요.')
     await addFixed(user, { name: '휴대폰', price: '55000', kind: '통신', billingDay: '10' })
     expect(localStorage.getItem(SUBS_KEY)).toBe(bad)
+  })
+})
+
+// PRD F46 무료 체험 끝나는 날 (AC85~AC87, 판정 R46). 오늘 2026-11-01
+const TRIAL_LABEL = '무료 체험 끝나는 날 (선택)'
+const TRIAL_ON = '무료 체험 중 · 2026-11-14에 끝나요 (D-13). 그 뒤 월 13,500원'
+const phone = () => sub({ id: 'p', name: '휴대폰', priceKrw: 55000, billingDay: 10, kind: 'phone' })
+const netflixTrial = (over: Partial<Subscription> = {}) => sub({ billingDay: 20, trialEndDate: '2026-11-14', ...over })
+const yearlyTrial = () =>
+  sub({ cycle: 'yearly', priceKrw: 120000, billingDay: undefined, renewalDate: '2027-11-14', trialEndDate: '2026-11-14' })
+
+// 시계를 옮겨 처음부터 다시 연다
+async function openFixedAt(at: Date) {
+  vi.setSystemTime(at)
+  return openFixed()
+}
+
+describe('무료 체험 끝나는 날 (F46)', () => {
+  it('AC85: 체험 중인 넷플릭스는 체험 줄·다음 결제·요약 체험 줄을 보인다', async () => {
+    const user = await openFixed()
+    await user.type(form().getByLabelText('이름'), '넷플릭스')
+    await user.type(form().getByLabelText('요금'), '13500')
+    await user.type(form().getByLabelText('결제일 (매월)'), '14')
+    expect(form().getByLabelText(TRIAL_LABEL)).toHaveAttribute('type', 'date')
+    expect(form().getByLabelText(TRIAL_LABEL)).toHaveAttribute('min', '2026-11-01')
+    expect(form().getByText('그날까지는 합계에 넣지 않고, 그날을 첫 결제일로 보여 드려요. 그 뒤에는 위 결제일로 계산해요.')).toBeInTheDocument()
+    fireEvent.change(form().getByLabelText(TRIAL_LABEL), { target: { value: '2026-11-14' } })
+    await user.click(form().getByRole('button', { name: '고정비 추가' }))
+    expect(storedItems()[0]).toMatchObject({ name: '넷플릭스', billingDay: 14, trialEndDate: '2026-11-14' })
+    expect(card('넷플릭스').getByText(TRIAL_ON)).toBeInTheDocument()
+    expect(card('넷플릭스').getByText('다음 결제 2026-11-14 · D-13')).toBeInTheDocument()
+    expect(summary().getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
+    // 체험 중인 것만 있으면 합계는 0원이다
+    expect(summary().getByText('연 0원')).toBeInTheDocument()
+  })
+
+  it('AC85: 체험 줄은 다음 결제 줄 바로 위에 있다', async () => {
+    seed(netflixTrial())
+    await openFixed()
+    const trial = card('넷플릭스').getByText(TRIAL_ON)
+    expect(trial.nextElementSibling).toHaveTextContent('다음 결제 2026-11-14 · D-13')
+  })
+
+  it('AC85: 매년이면 그 뒤 연 요금과 월 10,000원이다', async () => {
+    seed(yearlyTrial())
+    await openFixed()
+    expect(card('넷플릭스').getByText('무료 체험 중 · 2026-11-14에 끝나요 (D-13). 그 뒤 연 120,000원')).toBeInTheDocument()
+    expect(card('넷플릭스').getByText('다음 결제 2026-11-14 · D-13')).toBeInTheDocument()
+    expect(summary().getByText('무료 체험 중 1개 · 끝나면 월 10,000원이 더 나가요')).toBeInTheDocument()
+  })
+
+  it('AC85: 체험 중인 것과 통신이 있으면 합계는 통신만이고 종류별 줄이 없다', async () => {
+    seed(netflixTrial(), phone())
+    await openFixed()
+    expect(summary().getByText('55,000원')).toBeInTheDocument()
+    expect(summary().getByText('연 660,000원')).toBeInTheDocument()
+    expect(summary().queryByText(/구독·멤버십 .*원/)).not.toBeInTheDocument()
+    expect(summary().queryByText(/통신 .*원 ·|· 통신 /)).not.toBeInTheDocument()
+    expect(summary().getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
+  })
+
+  it('AC86: 11-14·11-15·12-01에 다시 보면 PRD 문장과 날짜다', async () => {
+    seed(netflixTrial(), phone())
+    // 11-14: 체험이 오늘 끝난다. 월평균 고정비에 아직 없다
+    await openFixedAt(new Date(2026, 10, 14, 9))
+    expect(card('넷플릭스').getByText('무료 체험이 오늘 끝나요. 해지하지 않으면 유료로 바뀌어요.')).toBeInTheDocument()
+    expect(card('넷플릭스').getByText('다음 결제 2026-11-14 · D-0')).toBeInTheDocument()
+    expect(summary().getByText('55,000원')).toBeInTheDocument()
+    expect(summary().getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
+    cleanup()
+    // 11-15: 체험 줄이 없고 결제일 규칙의 다음 결제일이다. 월평균 고정비에 13,500원이 들어간다
+    await openFixedAt(new Date(2026, 10, 15, 9))
+    expect(card('넷플릭스').queryByText(/무료 체험/)).not.toBeInTheDocument()
+    expect(card('넷플릭스').getByText('다음 결제 2026-11-20 · D-5')).toBeInTheDocument()
+    expect(summary().getByText('68,500원')).toBeInTheDocument()
+    expect(summary().queryByText(/무료 체험 중/)).not.toBeInTheDocument()
+    expect(summary().getByText('구독·멤버십 13,500원 · 통신 55,000원')).toBeInTheDocument()
+    cleanup()
+    // 12-01
+    await openFixedAt(new Date(2026, 11, 1, 9))
+    expect(card('넷플릭스').getByText('다음 결제 2026-12-20 · D-19')).toBeInTheDocument()
+  })
+
+  it('AC87: 종류를 통신으로 바꾸면 체험 칸이 사라지고 저장되지 않는다', async () => {
+    const user = await openFixed()
+    await user.type(form().getByLabelText('이름'), '휴대폰')
+    await user.type(form().getByLabelText('요금'), '55000')
+    await user.type(form().getByLabelText('결제일 (매월)'), '10')
+    fireEvent.change(form().getByLabelText(TRIAL_LABEL), { target: { value: '2026-11-14' } })
+    await user.selectOptions(form().getByLabelText('종류'), '통신')
+    expect(form().queryByLabelText(TRIAL_LABEL)).not.toBeInTheDocument()
+    await user.click(form().getByRole('button', { name: '고정비 추가' }))
+    expect(storedItems()[0]).toMatchObject({ name: '휴대폰', kind: 'phone' })
+    expect(storedItems()[0]).not.toHaveProperty('trialEndDate')
+    expect(card('휴대폰').queryByText(/무료 체험/)).not.toBeInTheDocument()
+  })
+
+  it('AC87: 멤버십이면 체험 칸이 있다', async () => {
+    const user = await openFixed()
+    await user.selectOptions(form().getByLabelText('종류'), '멤버십')
+    expect(form().getByLabelText(TRIAL_LABEL)).toBeInTheDocument()
+  })
+
+  it('AC87: 결제일을 비우면 결제일 오류다', async () => {
+    const user = await openFixed()
+    await user.type(form().getByLabelText('이름'), '넷플릭스')
+    await user.type(form().getByLabelText('요금'), '13500')
+    fireEvent.change(form().getByLabelText(TRIAL_LABEL), { target: { value: '2026-11-14' } })
+    await user.click(form().getByRole('button', { name: '고정비 추가' }))
+    expect(form().getByText('결제일은 1~31일 사이여야 해요')).toBeInTheDocument()
+    expect(localStorage.getItem(SUBS_KEY)).toBeNull()
+  })
+
+  it('AC87: 체험 끝나는 날이 1년을 넘으면 오류다', async () => {
+    const user = await openFixed()
+    await user.type(form().getByLabelText('이름'), '넷플릭스')
+    await user.type(form().getByLabelText('요금'), '13500')
+    await user.type(form().getByLabelText('결제일 (매월)'), '14')
+    fireEvent.change(form().getByLabelText(TRIAL_LABEL), { target: { value: '2027-11-02' } })
+    await user.click(form().getByRole('button', { name: '고정비 추가' }))
+    expect(form().getByText('무료 체험 끝나는 날은 오늘부터 1년 안이어야 해요')).toBeInTheDocument()
+    expect(form().getByLabelText(TRIAL_LABEL)).toHaveFocus()
+    expect(localStorage.getItem(SUBS_KEY)).toBeNull()
+  })
+
+  it('AC87: 수정 폼에 채워 둔 지난 체험 날을 그대로 저장하고, 비우면 체험이 아니다', async () => {
+    seed(netflixTrial({ trialEndDate: '2026-10-20' }))
+    const user = await openFixed()
+    await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
+    let editor = within(screen.getByRole('form', { name: '고정비 수정' }))
+    expect(editor.getByLabelText(TRIAL_LABEL)).toHaveValue('2026-10-20')
+    await user.click(editor.getByRole('button', { name: '저장' }))
+    expect(storedItems()[0]).toMatchObject({ trialEndDate: '2026-10-20', billingDay: 20 })
+    await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
+    editor = within(screen.getByRole('form', { name: '고정비 수정' }))
+    fireEvent.change(editor.getByLabelText(TRIAL_LABEL), { target: { value: '' } })
+    await user.click(editor.getByRole('button', { name: '저장' }))
+    expect(storedItems()[0]).not.toHaveProperty('trialEndDate')
+  })
+
+  it('AC86: 체험 중인 연 고정비를 수정해 저장해도 갱신일은 체험 끝나는 날로 바뀌지 않는다', async () => {
+    seed(yearlyTrial())
+    const user = await openFixed()
+    await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
+    const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
+    expect(editor.getByLabelText('다음 결제일')).toHaveValue('2027-11-14')
+    await user.click(editor.getByRole('button', { name: '저장' }))
+    expect(storedItems()[0]).toMatchObject({ renewalDate: '2027-11-14', trialEndDate: '2026-11-14' })
   })
 })

@@ -96,7 +96,14 @@ export function monthlyEquivalent(sub: Subscription): number {
   return sub.cycle === 'monthly' ? sub.priceKrw : Math.round(sub.priceKrw / 12)
 }
 
+/** 무료 체험 중: 오늘이 체험 끝나는 날이거나 그 전 (F46) */
+export function inTrial(sub: Pick<Subscription, 'trialEndDate'>, today: Date): boolean {
+  return sub.trialEndDate !== undefined && daysUntil(sub.trialEndDate, today) >= 0
+}
+
 export function nextBillingDate(sub: Subscription, today: Date): string {
+  // 체험 중이면 체험 끝나는 날이 첫 결제일이고, 그 뒤는 아래 결제일 규칙이다 (F46, 판정 R46)
+  if (inTrial(sub, today)) return sub.trialEndDate!
   const y = today.getFullYear()
   const m = today.getMonth() + 1
   const d = today.getDate()
@@ -167,19 +174,27 @@ export type SubscriptionSummary = {
   candidateMonthly: number
   /** 사용 기록이 없는 구독·멤버십 수 (F23) */
   unknownCount: number
+  /** 무료 체험 중인 고정비 수와 그 월평균(카드 월평균 값)의 합 (F46) */
+  trialCount: number
+  trialMonthly: number
 }
 
 export function subscriptionSummary(subs: readonly Subscription[], today: Date): SubscriptionSummary {
-  const monthlyRaw = subs.filter((s) => s.cycle === 'monthly').reduce((sum, s) => sum + s.priceKrw, 0)
-  const yearlyRaw = subs.filter((s) => s.cycle === 'yearly').reduce((sum, s) => sum + s.priceKrw, 0)
+  // 무료 체험 중인 것은 합계에 넣지 않고 체험 줄에 따로 센다 (F46)
+  const trials = subs.filter((s) => inTrial(s, today))
+  const paying = subs.filter((s) => !inTrial(s, today))
+  const monthlyRaw = paying.filter((s) => s.cycle === 'monthly').reduce((sum, s) => sum + s.priceKrw, 0)
+  const yearlyRaw = paying.filter((s) => s.cycle === 'yearly').reduce((sum, s) => sum + s.priceKrw, 0)
   // 해지 후보·확인 필요는 구독·멤버십에만 센다 (F45)
   const candidates = subs.filter((s) => tracksUsage(s) && isCancelCandidate(s, today))
   return {
-    monthlyTotal: subs.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
+    monthlyTotal: paying.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
     yearlyTotal: monthlyRaw * 12 + yearlyRaw,
     candidateCount: candidates.length,
     candidateMonthly: candidates.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
     unknownCount: subs.filter((s) => tracksUsage(s) && needsUsageCheck(s)).length,
+    trialCount: trials.length,
+    trialMonthly: trials.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
   }
 }
 
@@ -203,6 +218,8 @@ export type SubscriptionRawInput = {
   memo: string
   /** 고정비 종류 (F45). 없으면 구독 */
   kind?: FixedCostKind
+  /** 무료 체험 끝나는 날 (F46). 비우면 체험이 아니다 */
+  trialEndDate?: string
 }
 export type SubscriptionInput = Pick<
   Subscription,
@@ -210,11 +227,15 @@ export type SubscriptionInput = Pick<
 >
 export type SubscriptionFieldErrors = Partial<Record<Exclude<keyof SubscriptionRawInput, 'cycle'>, string>>
 
-/** unchangedRenewal: 수정 폼에 채워 둔 다음 갱신일. 그대로 두면 원래 기준일을 유지하므로 범위를 다시 따지지 않는다 */
+/**
+ * unchangedRenewal: 수정 폼에 채워 둔 다음 갱신일. 그대로 두면 원래 기준일을 유지하므로 범위를 다시 따지지 않는다
+ * unchangedTrial: 수정 폼에 채워 둔 체험 끝나는 날. 그대로 두면 범위를 다시 따지지 않는다 (F46)
+ */
 export function validateSubscriptionInput(
   raw: SubscriptionRawInput,
   today: Date,
   unchangedRenewal?: string,
+  unchangedTrial?: string,
 ): { value?: SubscriptionInput; errors: SubscriptionFieldErrors } {
   const errors: SubscriptionFieldErrors = {}
   const value: SubscriptionInput = { name: '', priceKrw: 0, cycle: raw.cycle, lastUsedDate: null }
@@ -254,6 +275,17 @@ export function validateSubscriptionInput(
     if (!used) errors.lastUsedDate = '올바른 날짜를 골라 주세요'
     else if (calendarDaysBetween(used, today) < 0) errors.lastUsedDate = '마지막 사용일은 오늘이거나 그 전이어야 해요'
     else value.lastUsedDate = lastUsedRaw
+  }
+
+  // 무료 체험 끝나는 날은 구독·멤버십에만 받는다. 비우면 체험이 아니다 (F46)
+  const trialRaw = tracksUsage({ kind }) ? (raw.trialEndDate ?? '').trim() : ''
+  if (trialRaw !== '') {
+    const trial = parseDay(trialRaw)
+    const until = trial ? calendarDaysBetween(today, trial) : -1
+    if (!trial) errors.trialEndDate = '올바른 날짜를 골라 주세요'
+    else if (trialRaw !== unchangedTrial && (until < 0 || until > calendarDaysBetween(today, yearsLater(today, 1)))) {
+      errors.trialEndDate = '무료 체험 끝나는 날은 오늘부터 1년 안이어야 해요'
+    } else value.trialEndDate = trialRaw
   }
 
   const memo = validateNote(raw.memo)
