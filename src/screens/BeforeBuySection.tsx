@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ALTERNATIVE_LINKS, ALTERNATIVE_NOTE, installmentLine, pantryDuplicateLine, usageCostLine, validateInstallment, validateUsesPerYear } from '../logic/beforeBuy'
+import { ALTERNATIVE_LINKS, ALTERNATIVE_NOTE, bulkUseLine, installmentLine, pantryDuplicateLine, usageCostLine, validateBulkUse, validateInstallment, validateUsesPerYear } from '../logic/beforeBuy'
 import { formatWon } from '../logic/number'
 import type { PantryStore } from '../logic/pantry'
 import type { WishItem } from '../logic/wishlist'
@@ -25,6 +25,10 @@ function BeforeCard({ item, wishlist, pantry }: { item: WishItem; wishlist: Wish
   const [errors, setErrors] = useState<ReturnType<typeof validateInstallment>['errors']>({})
   const [uses, setUses] = useState(item.usesPerYear ? String(item.usesPerYear) : '')
   const [usesError, setUsesError] = useState('')
+  const [bulkTotal, setBulkTotal] = useState(item.bulkUse ? String(item.bulkUse.total) : '')
+  const [bulkMonthly, setBulkMonthly] = useState(item.bulkUse ? String(item.bulkUse.monthlyUse) : '')
+  const [bulkExpires, setBulkExpires] = useState(item.bulkUse?.expiresMonths ? String(item.bulkUse.expiresMonths) : '')
+  const [bulkErrors, setBulkErrors] = useState<ReturnType<typeof validateBulkUse>['errors']>({})
   const { ref, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   const save = (event: FormEvent) => {
     event.preventDefault()
@@ -49,6 +53,17 @@ function BeforeCard({ item, wishlist, pantry }: { item: WishItem; wishlist: Wish
       return next
     })) setUsesError('')
   }
+  const saveBulk = (event: FormEvent) => {
+    event.preventDefault()
+    const checked = validateBulkUse({ total: bulkTotal, monthlyUse: bulkMonthly, expiresMonths: bulkExpires })
+    if (checked.value === undefined) { setBulkErrors(checked.errors); return }
+    if (wishlist.updateBefore(item.id, (current) => {
+      const next = { ...current }
+      if (checked.value) next.bulkUse = checked.value
+      else delete next.bulkUse
+      return next
+    })) setBulkErrors({})
+  }
   return <section className="card stack" aria-label={`${item.name} 사기 전 확인`}>
     <p className="card-title">{item.name}</p>
     <p className="note">{`일시불 ${formatWon(item.priceKrw)}`}</p>
@@ -69,5 +84,13 @@ function BeforeCard({ item, wishlist, pantry }: { item: WishItem; wishlist: Wish
       <p className="note">{ALTERNATIVE_NOTE}</p>
       <div className="btn-row">{ALTERNATIVE_LINKS.map((link) => <a key={link.href} className="btn" href={link.href} target="_blank" rel="noopener noreferrer">{link.name}</a>)}</div>
     </> : item.usesPerYear ? <p className="note">{`1년에 ${item.usesPerYear}번`}</p> : null}
+    <form className="stack" aria-label={`${item.name} 대용량 사용`} onSubmit={saveBulk} noValidate>
+      <p className="field-label">대용량 사용 (선택)</p>
+      <TextField label="총량" inputMode="decimal" value={bulkTotal} error={bulkErrors.total} onChange={(e) => { setBulkTotal(e.target.value); setBulkErrors({}) }} />
+      <TextField label="한 달 사용량" inputMode="decimal" value={bulkMonthly} error={bulkErrors.monthlyUse} onChange={(e) => { setBulkMonthly(e.target.value); setBulkErrors({}) }} />
+      <TextField label="유통기한 (개월, 선택)" inputMode="numeric" value={bulkExpires} error={bulkErrors.expiresMonths} onChange={(e) => { setBulkExpires(e.target.value); setBulkErrors({}) }} />
+      <div className="btn-row"><Button type="submit">사용량 적기</Button></div>
+    </form>
+    {bulkUseLine(item) ? <p className={bulkUseLine(item)?.warning ? 'field-error' : 'note'}>{bulkUseLine(item)?.line}</p> : null}
   </section>
 }

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { ALTERNATIVE_LINKS, installmentLine, pantryDuplicateLine, usageCostLine, validateInstallment, validateUsesPerYear } from './beforeBuy'
+import { ALTERNATIVE_LINKS, bulkUseLine, installmentLine, pantryDuplicateLine, usageCostLine, validateBulkUse, validateInstallment, validateUsesPerYear } from './beforeBuy'
 import type { PantryItem } from './pantry'
 import type { WishItem } from './wishlist'
 
@@ -29,4 +29,12 @@ it('AC137·AC138: 집에 있는 것과 이름이 정확히 같을 때만 알려 
   const pantry: PantryItem[] = [{ id: 'p1', name: '세탁 세제', kind: 'essential', level: 'plenty', purchases: [], createdAt: item.createdAt, updatedAt: item.updatedAt }]
   expect(pantryDuplicateLine(' 세탁 세제 ', pantry)).toBe('집에 있는 것에 ‘세탁 세제’가 있어요 (넉넉)')
   expect(pantryDuplicateLine('세제', pantry)).toBeNull()
+})
+it('AC139·AC140: 대용량을 다 쓰는 달이 유통기한보다 길 때만 걸리는 점을 보인다', () => {
+  expect(bulkUseLine({ ...item, bulkUse: { total: 10, monthlyUse: 1, expiresMonths: 6 } })).toEqual({ line: '다 쓰는 데 약 10개월 · 유통기한 6개월', warning: true })
+  expect(bulkUseLine({ ...item, bulkUse: { total: 10, monthlyUse: 2, expiresMonths: 6 } })).toEqual({ line: '다 쓰는 데 약 5개월', warning: false })
+})
+it('AC140: 총량과 한 달 사용량은 함께 적고 소수 셋째 자리까지만 받는다', () => {
+  expect(validateBulkUse({ total: '10', monthlyUse: '' }).errors.monthlyUse).toBe('한 달 사용량을 적어 주세요.')
+  expect(validateBulkUse({ total: '10.0001', monthlyUse: '1' }).errors.total).toBe('총량은 0보다 크고 소수 셋째 자리까지 적어 주세요.')
 })

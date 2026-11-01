@@ -42,3 +42,14 @@ it('AC135·AC136: 1년에 두 번 쓰는 물건은 사용당 금액과 중고 �
   expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0].usesPerYear).toBe(2)
 })
+
+it('AC139: 총량 10·월 사용량 1·기한 6개월은 다 쓰는 데 10개월이라고 보인다', async () => {
+  const user = await open()
+  const form = within(screen.getByRole('form', { name: '청소기 대용량 사용' }))
+  await user.type(form.getByLabelText('총량'), '10')
+  await user.type(form.getByLabelText('한 달 사용량'), '1')
+  await user.type(form.getByLabelText('유통기한 (개월, 선택)'), '6')
+  await user.click(form.getByRole('button', { name: '사용량 적기' }))
+  expect(screen.getByText('다 쓰는 데 약 10개월 · 유통기한 6개월')).toBeInTheDocument()
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0].bulkUse).toEqual({ total: 10, monthlyUse: 1, expiresMonths: 6 })
+})
