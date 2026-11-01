@@ -105,6 +105,7 @@ export default function App() {
             key={pantryDraft?.token ?? 'default'}
             startWithExample
             pantryDraft={pantryDraft?.form}
+            subscriptions={subscriptions.items}
             onGoToWishlist={() => setScreen('wishlist')}
             onAddToWishlist={(value) => {
               setDraft({ source: 'compare', value })

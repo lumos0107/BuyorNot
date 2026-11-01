@@ -122,6 +122,16 @@ p {
   }
 }
 
+@media (max-width: 420px) {
+  .tabs-sub {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .tabs-sub .tab {
+    min-width: 44px;
+  }
+}
+
 .screen-title {
   font-size: 20px;
   font-weight: 700;

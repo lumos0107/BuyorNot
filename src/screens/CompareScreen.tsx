@@ -30,13 +30,16 @@ import { SelectField, TextField } from '../ui/Field'
 import { TabPanel, Tabs, type TabItem } from '../ui/Tabs'
 import { BundlePhotoFill } from './ai/BundlePhotoFill'
 import { TagPhotoCheck } from './ai/TagPhotoCheck'
+import { DeliveryCompare } from './DeliveryCompare'
+import type { Subscription } from '../logic/subscriptions'
 
 // 무료배송 채우기(F13)는 2026-10-13 제작자 결정으로 화면에서 뺐다. 계산 로직(logic/shipping.ts)은 남겨 두었다
-type CompareKind = 'discount' | 'bundle' | 'photo'
+type CompareKind = 'discount' | 'bundle' | 'photo' | 'delivery'
 
 const KINDS: readonly TabItem<CompareKind>[] = [
   { id: 'discount', label: '할인 비교' },
   { id: 'bundle', label: '묶음상품 비교' },
+  { id: 'delivery', label: '배달' },
 ]
 // 가격표 사진(F31)은 AI 서버 주소가 있는 빌드에서만 세 번째 탭으로 둔다 (PRD 10장 앱 공통)
 const KINDS_WITH_AI: readonly TabItem<CompareKind>[] = [...KINDS, { id: 'photo', label: '가격표 사진' }]
@@ -47,6 +50,7 @@ export function CompareScreen({
   onAddPhotoDraft,
   startWithExample = false,
   pantryDraft,
+  subscriptions = [],
 }: {
   onGoToWishlist?: () => void
   /** 처음부터 예시 값을 채워 결과가 바로 보이게 한다 (앱 화면에서 켠다, 2026-10-11 제작자 요청) */
@@ -56,6 +60,7 @@ export function CompareScreen({
   /** 가격표 사진 결과를 고민 목록의 담기 폼에 빈 칸만 채워 담기 (F31) */
   onAddPhotoDraft?: (draft: PhotoDraft) => void
   pantryDraft?: BundleRawInput | null
+  subscriptions?: readonly Subscription[]
 }) {
   const [kind, setKind] = useState<CompareKind>(pantryDraft ? 'bundle' : 'discount')
   const withAi = aiServerUrl() !== null
@@ -68,6 +73,9 @@ export function CompareScreen({
       </TabPanel>
       <TabPanel id="bundle" hidden={kind !== 'bundle'}>
         <BundleCompare onAdd={onAddToWishlist} startWithExample={startWithExample} pantryDraft={pantryDraft} />
+      </TabPanel>
+      <TabPanel id="delivery" hidden={kind !== 'delivery'}>
+        <DeliveryCompare subscriptions={subscriptions} />
       </TabPanel>
       {withAi ? (
         <TabPanel id="photo" hidden={kind !== 'photo'}>

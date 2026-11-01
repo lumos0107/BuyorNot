@@ -252,19 +252,19 @@ describe('가격표 사진 탭과 사진 고르기 (10장 앱 공통)', () => {
     goTo('가격 비교')
 
     const tabs = within(screen.getByRole('tablist', { name: '가격 비교 종류' })).getAllByRole('tab')
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['할인 비교', '묶음상품 비교'])
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['할인 비교', '묶음상품 비교', '배달'])
     expect(screen.queryByLabelText('가격표 사진 찍기')).not.toBeInTheDocument()
     expect(screen.queryByText(PHOTO_NOTICE)).not.toBeInTheDocument()
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  it('서버 주소가 있으면 가격 비교의 세 번째 탭이 가격표 사진이고, 사진 고르기 바로 아래 전송 안내가 누르기 전부터 보인다', () => {
+  it('AC61·AC129: 서버 주소가 있으면 가격표 사진은 네 번째 탭이고 전송 안내가 누르기 전부터 보인다', () => {
     const s = setup()
     openApp()
     goTo('가격 비교')
 
     const tabs = within(screen.getByRole('tablist', { name: '가격 비교 종류' })).getAllByRole('tab')
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['할인 비교', '묶음상품 비교', '가격표 사진'])
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['할인 비교', '묶음상품 비교', '배달', '가격표 사진'])
 
     goTo('가격표 사진')
     const input = photoInput()
