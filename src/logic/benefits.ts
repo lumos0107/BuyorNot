@@ -131,3 +131,20 @@ export function expiryLine(row: Expiry, today: Date): string {
   const days = calendarDaysBetween(today, expiry)
   return days < 0 ? `${row.name} · 만료일이 지났어요 (${row.expiresOn})` : `${row.name} · 만료일 ${row.expiresOn} · D-${days}`
 }
+
+export function validateSettlementInput(nickname: string, rawAmount: string, day: string, direction: Settlement['direction'], today: Date): Omit<Settlement, 'id' | 'settledOn'> | null {
+  const amountKrw = parseInteger(rawAmount)
+  if (!name(nickname, 20) || !isIntBetween(amountKrw, 1, MAX_KRW) || !isDay(day) || day > toDayIso(today)) return null
+  if (direction !== 'receive' && direction !== 'pay') return null
+  return { nickname: nickname.trim(), amountKrw, day, direction }
+}
+
+export function settlementTotals(rows: readonly Settlement[]): { receiveKrw: number; payKrw: number } {
+  return rows.reduce((total, row) => {
+    if (row.settledOn === undefined) {
+      if (row.direction === 'receive') total.receiveKrw += row.amountKrw
+      else total.payKrw += row.amountKrw
+    }
+    return total
+  }, { receiveKrw: 0, payKrw: 0 })
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { CARD_MAX, EXPIRY_MAX, PROGRAMS, PROGRAM_STATUSES, PROGRAM_STATUS_LABEL, cardGapLine, cardMonthLine, expiryLine, programListStale, sortExpiries, validateCardInput, validateExpiryInput, validateProgramInput, type CardRawInput, type ProgramCheck, type ProgramId, type ProgramStatus } from '../logic/benefits'
+import { CARD_MAX, EXPIRY_MAX, PROGRAMS, PROGRAM_STATUSES, PROGRAM_STATUS_LABEL, SETTLEMENT_MAX, cardGapLine, cardMonthLine, expiryLine, programListStale, settlementTotals, sortExpiries, validateCardInput, validateExpiryInput, validateProgramInput, validateSettlementInput, type CardRawInput, type ProgramCheck, type ProgramId, type ProgramStatus, type Settlement } from '../logic/benefits'
 import { buildExpiryIcs, expiryGoogleCalendarUrl, expiryIcsFileName } from '../logic/calendar'
 import { formatWon } from '../logic/number'
 import { toDayIso } from '../logic/subscriptions'
@@ -31,6 +31,55 @@ export function BenefitsSection({ benefits, today }: { benefits: Benefits; today
       {PROGRAMS.map((program) => <ProgramRow key={program.id} program={program} saved={benefits.store.programs.find((row) => row.id === program.id)} today={today} onSave={saveProgram} />)}
       <CardProgressSection benefits={benefits} today={today} />
       <ExpirySection benefits={benefits} today={today} />
+      <SettlementSection benefits={benefits} today={today} />
+    </div>
+  </details>
+}
+
+function SettlementSection({ benefits, today }: { benefits: Benefits; today: Date }) {
+  const [nickname, setNickname] = useState('')
+  const [amount, setAmount] = useState('')
+  const [day, setDay] = useState(toDayIso(today))
+  const [direction, setDirection] = useState<Settlement['direction']>('receive')
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const totals = settlementTotals(benefits.store.settlements)
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const value = validateSettlementInput(nickname, amount, day, direction, today)
+    if (!value) { setError('별명·금액·날짜를 확인해 주세요.'); return }
+    if (benefits.store.settlements.length >= SETTLEMENT_MAX) { setError('정산 기록은 50건까지 적을 수 있어요.'); return }
+    if (!benefits.change((current) => ({ ...current, settlements: [...current.settlements, { id: newId(), ...value }] }))) return
+    setNickname(''); setAmount(''); setDay(toDayIso(today)); setDirection('receive'); setError(''); setSaved(true)
+  }
+  return <details className="benefit-item">
+    <summary className="field-label">친구 정산·빌려준 돈</summary>
+    <div className="stack benefit-item-content">
+      {benefits.store.settlements.length > 0 ? <p className="field-label">{`받을 돈 ${formatWon(totals.receiveKrw)} · 줄 돈 ${formatWon(totals.payKrw)}`}</p> : null}
+      <form className="stack" aria-label="정산 적기" onSubmit={submit} noValidate>
+        <TextField label="별명" maxLength={20} value={nickname} onChange={(event) => { setNickname(event.target.value); setSaved(false) }} />
+        <TextField label="금액" inputMode="numeric" placeholder="원" value={amount} onChange={(event) => { setAmount(event.target.value); setSaved(false) }} />
+        <TextField label="정산 날짜" type="date" max={toDayIso(today)} value={day} onChange={(event) => { setDay(event.target.value); setSaved(false) }} />
+        <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="field-label">방향</legend>
+          <div className="radio-group">
+            <label><input type="radio" name="settlement-direction" checked={direction === 'receive'} onChange={() => setDirection('receive')} /> 받을 돈</label>
+            <label><input type="radio" name="settlement-direction" checked={direction === 'pay'} onChange={() => setDirection('pay')} /> 줄 돈</label>
+          </div>
+        </fieldset>
+        {error ? <p className="field-error" role="alert">{error}</p> : null}
+        <Button variant="primary" type="submit">적기</Button>
+      </form>
+      {saved ? <p className="note" role="status">별명은 백업 파일에도 들어가요.</p> : null}
+      {[...benefits.store.settlements].sort((a, b) => b.day.localeCompare(a.day)).map((row) => <article className="benefit-record" aria-label={row.nickname} key={row.id}>
+        <p className="field-label">{`${row.nickname} · ${row.direction === 'receive' ? '받을 돈' : '줄 돈'} ${formatWon(row.amountKrw)}`}</p>
+        <p className="note">{row.day}</p>
+        {row.settledOn ? <p>{`${row.settledOn}에 ${row.direction === 'receive' ? '받았어요' : '줬어요'}`}</p> : <Button onClick={() => benefits.change((current) => ({ ...current, settlements: current.settlements.map((entry) => entry.id === row.id ? { ...entry, settledOn: toDayIso(today) } : entry) }))}>{row.direction === 'receive' ? '받았어요' : '줬어요'}</Button>}
+        <div className="btn-row">
+          {confirmId === row.id ? <><Button variant="danger" onClick={() => { if (benefits.change((current) => ({ ...current, settlements: current.settlements.filter((entry) => entry.id !== row.id) }))) setConfirmId(null) }}>지우기 확인</Button><Button onClick={() => setConfirmId(null)}>취소</Button></> : <Button onClick={() => setConfirmId(row.id)}>지우기</Button>}
+        </div>
+      </article>)}
     </div>
   </details>
 }
