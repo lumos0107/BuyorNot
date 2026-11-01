@@ -122,7 +122,8 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, today }: 
         <p className="card-title">직접 적은 대체 금액</p>
         {avoided.cookedCount > 0 ? <p className="card-row"><span>해 먹었다고 적은 금액</span><span className="price">{formatWon(avoided.cookedKrw)}</span></p> : null}
         {avoided.stockCount > 0 ? <p className="card-row"><span>있어서 안 샀다고 적은 금액</span><span className="price">{formatWon(avoided.stockKrw)}</span></p> : null}
-        <p className="note">해 먹었다고 적은 금액은 배달 대신 썼을 금액을 직접 적은 값이에요. 실제로 모은 돈은 아니에요.</p>
+        {avoided.cookedCount > 0 ? <p className="note">해 먹었다고 적은 금액은 배달 대신 썼을 금액을 직접 적은 값이에요. 실제로 모은 돈은 아니에요.</p> : null}
+        {avoided.stockCount > 0 ? <p className="note">있어서 안 샀다고 적은 금액은 마지막으로 산 값이에요. 실제로 모은 돈은 아니에요.</p> : null}
       </section> : null}
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />

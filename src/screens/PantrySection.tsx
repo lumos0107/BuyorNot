@@ -6,7 +6,7 @@ import { parseDay } from '../logic/dates'
 import {
   PANTRY_CORRUPT, PANTRY_KIND_LABEL, PANTRY_LEVEL_LABEL, PANTRY_REPLACED, PANTRY_RESET_NOTE,
   PANTRY_SAVE_FAILED, PANTRY_STORAGE_LABEL, PANTRY_UNAVAILABLE, nextPantryLevel,
-  normalizePantryName, pantryAdded, pantryDeleteConfirm, pantryDiscardConfirm, pantryLevelChanged, pantryRecipeDeleteConfirm,
+  normalizePantryName, pantryAdded, pantryDeleteConfirm, pantryDiscardConfirm, pantryLevelChanged, pantryRecipeDeleteConfirm, pantryStockSaved,
   discardedThisMonth, expiringPantryItems, latestPantryPurchase, type PantryItem, type PantryKind,
   recipeAvailability, sortPantryRecipes, type PantryRecipe,
 } from '../logic/pantry'
@@ -30,6 +30,8 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
   const [message, setMessage] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [discardId, setDiscardId] = useState<string | null>(null)
+  const [stockConfirmId, setStockConfirmId] = useState<string | null>(null)
+  const [eventFull, setEventFull] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const summaryRef = useRef<HTMLElement>(null)
   const items = [...pantry.store.items].sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] || a.name.localeCompare(b.name, 'ko'))
@@ -63,6 +65,17 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
     else setMessage('')
   }
 
+  const recordStock = (item: PantryItem, now: Date) => {
+    const latest = latestPantryPurchase(item)
+    if (!latest) return
+    const event = { id: newId(), action: 'stock' as const, sourceId: item.id, name: item.name, day: toDayIso(today), amountKrw: latest.amountKrw, createdAt: now.toISOString() }
+    const result = pantry.addEvent(event)
+    setStockConfirmId(null)
+    if (result === 'full') { setEventFull(true); return }
+    if (result === 'ok') setMessage(pantryStockSaved(item.name))
+    else setMessage('')
+  }
+
   const row = (item: PantryItem) => {
     const delivery = subscriptions.some((sub) => !sub.cancelledOn && kindOf(sub) === 'delivery' && normalizePantryName(sub.name) === normalizePantryName(item.name))
     const latest = latestPantryPurchase(item)
@@ -76,6 +89,10 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
         <Button aria-label={`${item.name} 남은 정도: ${PANTRY_LEVEL_LABEL[item.level]}`} onClick={() => changeLevel(item)}>남은 정도: {PANTRY_LEVEL_LABEL[item.level]}</Button>
         <Button onClick={() => setDeleteId(item.id)}>지우기</Button>
         {item.kind === 'ingredient' ? <Button aria-label={`${item.name} 버렸어요`} onClick={() => setDiscardId(item.id)}>버렸어요</Button> : null}
+        {latest ? <Button aria-label={`${item.name} 있어서 안 샀어요`} onClick={() => {
+          if (pantry.store.events.some((event) => event.action === 'stock' && event.sourceId === item.id && event.day === toDayIso(today))) setStockConfirmId(item.id)
+          else recordStock(item, new Date())
+        }}>있어서 안 샀어요</Button> : null}
       </div>
       {deleteId === item.id ? <div role="group" aria-label="집에 있는 것 지우기 확인" className="stack">
         <p>{pantryDeleteConfirm(item.name)}</p>
@@ -83,6 +100,10 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
           <Button variant="danger" autoFocus onClick={() => { if (pantry.removeItem(item.id)) { setDeleteId(null); summaryRef.current?.focus() } else setDeleteId(null) }}>지우기</Button>
           <Button onClick={() => setDeleteId(null)}>취소</Button>
         </div>
+      </div> : null}
+      {stockConfirmId === item.id ? <div role="group" aria-label="같은 날 기록 확인" className="stack">
+        <p>오늘 이미 적었어요. 한 번 더 적을까요?</p>
+        <div className="btn-row"><Button autoFocus onClick={() => recordStock(item, new Date())}>한 번 더 적기</Button><Button onClick={() => setStockConfirmId(null)}>취소</Button></div>
       </div> : null}
       {discardId === item.id ? <div role="group" aria-label="식재료 버리기 확인" className="stack">
         <p>{pantryDiscardConfirm(item.name)}</p>
@@ -118,6 +139,7 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
         <div className="btn-row"><Button variant="primary" type="submit">적기</Button></div>
       </form>
       <p role="status" aria-label="집에 있는 것 알림" className="note">{message}</p>
+      {eventFull ? <p role="alert" className="field-error">기록이 너무 많아 더 적을 수 없어요.</p> : null}
       {items.length === 0 ? <p className="note">아직 적은 것이 없어요.</p> : null}
       {expiring.length > 0 ? <section className="stack" aria-label="먼저 쓸 것"><p className="card-title">먼저 쓸 것</p>{expiring.map(row)}</section> : null}
       {needed.length > 0 ? <section className="stack" aria-label="살 때가 된 것"><p className="card-title">살 때가 된 것</p>{needed.map(row)}</section> : null}

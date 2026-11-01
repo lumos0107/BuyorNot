@@ -37,6 +37,7 @@ export const pantryLevelChanged = (name: string, level: PantryLevel) => `‘${na
 export const pantryDeleteConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 지울까요? 산 값 기록도 함께 지워져요.`
 export const pantryDiscardConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 버린 기록으로 옮길까요?`
 export const pantryRecipeDeleteConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 지울까요? 해 먹은 기록은 그대로 남아요.`
+export const pantryStockSaved = (name: string) => `‘${name}’${josa(name, '을/를')} 있어서 안 샀다고 적었어요.`
 
 export const normalizePantryName = (name: string) => name.trim().toLocaleLowerCase('ko')
 const nonEmpty = (v: unknown, max: number) => isString(v) && v.trim().length >= 1 && v.trim().length <= max
