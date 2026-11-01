@@ -6,8 +6,9 @@ import { parseDay } from '../logic/dates'
 import {
   PANTRY_CORRUPT, PANTRY_KIND_LABEL, PANTRY_LEVEL_LABEL, PANTRY_REPLACED, PANTRY_RESET_NOTE,
   PANTRY_SAVE_FAILED, PANTRY_STORAGE_LABEL, PANTRY_UNAVAILABLE, nextPantryLevel,
-  normalizePantryName, pantryAdded, pantryDeleteConfirm, pantryDiscardConfirm, pantryLevelChanged,
+  normalizePantryName, pantryAdded, pantryDeleteConfirm, pantryDiscardConfirm, pantryLevelChanged, pantryRecipeDeleteConfirm,
   discardedThisMonth, expiringPantryItems, latestPantryPurchase, type PantryItem, type PantryKind,
+  recipeAvailability, sortPantryRecipes, type PantryRecipe,
 } from '../logic/pantry'
 import { kindOf, toDayIso, type Subscription } from '../logic/subscriptions'
 import { newId } from '../logic/wishlist'
@@ -124,8 +125,66 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
       {discarded.count > 0 ? <details><summary>{`버린 식재료 ${discarded.count}개 · ${formatWon(discarded.amountKrw)}`}</summary>
         <div className="stack">{pantry.store.events.filter((event) => event.action === 'discarded' && event.day.slice(0, 7) === toDayIso(today).slice(0, 7)).map((event) => <p key={event.id}>{`${event.day} · ${event.name} · ${formatWon(event.amountKrw)}`}</p>)}</div>
       </details> : null}
+      <RecipesSection pantry={pantry} today={today} />
     </div>
   </details>
+}
+
+function RecipesSection({ pantry, today }: { pantry: ReturnType<typeof usePantry>; today: Date }) {
+  const [name, setName] = useState('')
+  const [ingredientsRaw, setIngredientsRaw] = useState('')
+  const [estimateRaw, setEstimateRaw] = useState('')
+  const [errors, setErrors] = useState<Partial<Record<'name' | 'ingredients' | 'estimate', string>>>({})
+  const [message, setMessage] = useState('')
+  const [full, setFull] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const { ref, focusFirstError } = useFocusFirstError<HTMLFormElement>()
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const cleanName = name.trim()
+    const parts = [...new Map(ingredientsRaw.split(',').map((part) => part.trim()).filter(Boolean).map((part) => [normalizePantryName(part), part])).values()]
+    const estimate = estimateRaw.trim() ? parseInteger(estimateRaw) : null
+    const nextErrors: typeof errors = {}
+    if (!cleanName || cleanName.length > 40) nextErrors.name = '이름은 1~40자로 적어 주세요.'
+    if (parts.length < 1 || parts.length > 10 || parts.some((part) => part.length > 40)) nextErrors.ingredients = '재료는 1~10개를 쉼표로 나누어 적어 주세요.'
+    if (estimateRaw.trim() && (estimate === null || estimate < 1 || estimate > 100000)) nextErrors.estimate = '금액은 1원~10만 원 사이여야 해요.'
+    if (Object.keys(nextErrors).length) { setErrors(nextErrors); focusFirstError(); return }
+    const at = new Date().toISOString()
+    const recipe: PantryRecipe = { id: newId(), name: cleanName, ingredients: parts, ...(estimate !== null ? { estimateKrw: estimate } : {}), createdAt: at, updatedAt: at }
+    const result = pantry.addRecipe(recipe)
+    if (result === 'full') { setFull(true); return }
+    if (result === 'replaced') return
+    setName(''); setIngredientsRaw(''); setEstimateRaw(''); setErrors({}); setFull(false)
+  }
+  const cook = (recipe: PantryRecipe, now: Date) => {
+    const event = { id: newId(), action: 'cooked' as const, sourceId: recipe.id, name: recipe.name, day: toDayIso(today), amountKrw: recipe.estimateKrw ?? 0, createdAt: now.toISOString() }
+    const result = pantry.addEvent(event)
+    if (result === 'full') { setFull(true); return }
+    if (result === 'ok') setMessage(`‘${recipe.name}’ 해 먹은 기록을 적었어요.`)
+    else setMessage('')
+  }
+  return <section className="stack" aria-label="자주 해 먹는 것">
+    <p className="card-title">자주 해 먹는 것</p>
+    <form className="stack" aria-label="자주 해 먹는 것 적기" ref={ref} onSubmit={submit} noValidate>
+      <TextField label="이름" value={name} error={errors.name} onChange={(e) => { setName(e.target.value); setErrors({}) }} />
+      <TextField label="재료 이름" hint="쉼표로 나누어 적어 주세요." value={ingredientsRaw} error={errors.ingredients} onChange={(e) => { setIngredientsRaw(e.target.value); setErrors({}) }} />
+      <TextField label="배달 대신 썼을 금액 (선택)" inputMode="numeric" value={estimateRaw} error={errors.estimate} onChange={(e) => { setEstimateRaw(e.target.value); setErrors({}) }} />
+      <div className="btn-row"><Button type="submit">적기</Button></div>
+    </form>
+    {full ? <p role="alert" className="field-error">기록이 너무 많아 더 적을 수 없어요.</p> : null}
+    <p role="status" aria-label="해 먹은 것 알림" className="note">{message}</p>
+    {sortPantryRecipes(pantry.store.recipes, pantry.store.items).map((recipe) => {
+      const available = recipeAvailability(recipe, pantry.store.items)
+      return <div key={recipe.id} className="card stack" role="group" aria-label={recipe.name}>
+        <p className="card-title">{recipe.name}</p>
+        <p>{`있는 재료 ${available.count}/${available.total}개`}</p>
+        {available.missing.length ? <p className="note">{`부족한 재료: ${available.missing.join(', ')}`}</p> : null}
+        {recipe.estimateKrw ? <p className="note">{`배달 대신 썼을 금액 ${formatWon(recipe.estimateKrw)}`}</p> : null}
+        <div className="btn-row"><Button aria-label={`${recipe.name} 해 먹었어요`} onClick={() => cook(recipe, new Date())}>해 먹었어요</Button><Button onClick={() => setDeleteId(recipe.id)}>지우기</Button></div>
+        {deleteId === recipe.id ? <div className="stack" role="group" aria-label="자주 해 먹는 것 지우기 확인"><p>{pantryRecipeDeleteConfirm(recipe.name)}</p><div className="btn-row"><Button variant="danger" autoFocus onClick={() => { pantry.removeRecipe(recipe.id); setDeleteId(null) }}>지우기</Button><Button onClick={() => setDeleteId(null)}>취소</Button></div></div> : null}
+      </div>
+    })}
+  </section>
 }
 
 function PurchaseRecorder({ item, pantry, today, onCompare }: { item: PantryItem; pantry: ReturnType<typeof usePantry>; today: Date; onCompare: (purchase: PantryPurchase) => void }) {

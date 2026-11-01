@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { EMPTY_PANTRY, PANTRY_KEY, addPantryPurchase, comparePantryPurchases, discardedThisMonth, expiringPantryItems, isPantryStore, parsePantry, type PantryItem, type PantryPurchase } from './pantry'
+import { EMPTY_PANTRY, PANTRY_KEY, addPantryPurchase, comparePantryPurchases, discardedThisMonth, expiringPantryItems, isPantryStore, parsePantry, recipeAvailability, sortPantryRecipes, type PantryItem, type PantryPurchase, type PantryRecipe } from './pantry'
 
 const stamp = '2026-11-01T00:00:00.000Z'
 const item = (over: Partial<PantryItem> = {}): PantryItem => ({ id: 'p1', name: '세제', kind: 'essential', level: 'plenty', purchases: [], createdAt: stamp, updatedAt: stamp, ...over })
@@ -37,4 +37,11 @@ it('AC122: 단위 종류가 다르면 비교하지 않고 5개 뒤에는 더하�
   expect(comparePantryPurchases(purchase(), purchase({ id: 'a2', unit: 'L' }))).toBe('단위가 달라 단가를 비교할 수 없어요.')
   const full = store(item({ purchases: Array.from({ length: 5 }, (_, i) => purchase({ id: String(i) })) }))
   expect(addPantryPurchase(full, 'p1', purchase({ id: 'extra' }))).toBe('full')
+})
+
+it('AC123: 집에 있는 재료 수와 부족한 이름을 세고 많은 순으로 보인다', () => {
+  const items = [item({ id: 'a', name: '두부', kind: 'ingredient' }), item({ id: 'b', name: '김치', kind: 'ingredient' }), item({ id: 'c', name: '계란', kind: 'ingredient', level: 'out' })]
+  const recipe: PantryRecipe = { id: 'r1', name: '김치두부', ingredients: ['두부', '김치', '계란'], estimateKrw: 12000, createdAt: stamp, updatedAt: stamp }
+  expect(recipeAvailability(recipe, items)).toEqual({ count: 2, total: 3, missing: ['계란'] })
+  expect(sortPantryRecipes([{ ...recipe, id: 'r2', name: '계란 요리', ingredients: ['계란'] }, recipe], items)[0].name).toBe('김치두부')
 })

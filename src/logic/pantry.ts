@@ -36,6 +36,7 @@ export const pantryAdded = (name: string) => `‘${name}’${josa(name, '을/를
 export const pantryLevelChanged = (name: string, level: PantryLevel) => `‘${name}’의 남은 정도를 ${PANTRY_LEVEL_LABEL[level]}으로 바꿨어요.` // copy-check: ignore josa '의'는 받침과 관계없이 같다. 세 상태 이름은 모두 받침이 있다
 export const pantryDeleteConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 지울까요? 산 값 기록도 함께 지워져요.`
 export const pantryDiscardConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 버린 기록으로 옮길까요?`
+export const pantryRecipeDeleteConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 지울까요? 해 먹은 기록은 그대로 남아요.`
 
 export const normalizePantryName = (name: string) => name.trim().toLocaleLowerCase('ko')
 const nonEmpty = (v: unknown, max: number) => isString(v) && v.trim().length >= 1 && v.trim().length <= max
@@ -150,4 +151,25 @@ export function comparePantryPurchases(a: PantryPurchase, b: PantryPurchase): st
   if (left.kind !== right.kind) return '단위가 달라 단가를 비교할 수 없어요.'
   const shown = (value: number) => `${value.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}원`
   return `${a.place} ${left.label}당 ${shown(left.value)} · ${b.place} ${right.label}당 ${shown(right.value)}`
+}
+
+export function recipeAvailability(recipe: PantryRecipe, items: readonly PantryItem[]): { count: number; total: number; missing: string[] } {
+  const available = new Set(items.filter((item) => item.kind === 'ingredient' && item.level !== 'out').map((item) => normalizePantryName(item.name)))
+  const missing = recipe.ingredients.filter((ingredient) => !available.has(normalizePantryName(ingredient)))
+  return { count: recipe.ingredients.length - missing.length, total: recipe.ingredients.length, missing }
+}
+
+export function sortPantryRecipes(recipes: readonly PantryRecipe[], items: readonly PantryItem[]): PantryRecipe[] {
+  return [...recipes].sort((a, b) => recipeAvailability(b, items).count - recipeAvailability(a, items).count || a.name.localeCompare(b.name, 'ko'))
+}
+
+export function pantryAvoidedTotals(events: readonly PantryEvent[]): { cookedCount: number; cookedKrw: number; stockCount: number; stockKrw: number } {
+  const cooked = events.filter((event) => event.action === 'cooked')
+  const stock = events.filter((event) => event.action === 'stock')
+  return {
+    cookedCount: cooked.length,
+    cookedKrw: cooked.reduce((sum, event) => sum + event.amountKrw, 0),
+    stockCount: stock.length,
+    stockKrw: stock.reduce((sum, event) => sum + event.amountKrw, 0),
+  }
 }
