@@ -31,6 +31,7 @@ describe('화면 보완', () => {
   it('링크 영역을 접은 채 오류가 나면 다시 펼치고 그 입력으로 포커스를 옮긴다', async () => {
     const user = userEvent.setup()
     render(<App />)
+    await user.click(form().getByText('물건 담기'))
     await user.type(form().getByLabelText('상품명'), '무선 헤드폰')
     await user.type(form().getByLabelText('가격'), '129000')
     await user.type(form().getByLabelText('사고 싶은 이유'), '이유')

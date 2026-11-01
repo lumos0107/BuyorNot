@@ -39,6 +39,7 @@ import {
 import { Button } from '../ui/Button'
 import { downloadText } from '../ui/download'
 import { ExampleBar } from '../ui/ExampleBar'
+import { EmptyIllustration } from '../ui/EmptyIllustration'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
 import { SizePhotoFill } from './ai/SizePhotoFill'
@@ -216,6 +217,7 @@ export function WishlistScreen({
       />
       {considering.length === 0 ? (
         <div className="empty card stack">
+          <EmptyIllustration kind="wish" />
           <p>아직 담아 둔 물건이 없어요.</p>
         </div>
       ) : (
@@ -351,6 +353,7 @@ function AddForm({
   const [desire, setDesire] = useState<DesireLevel | undefined>()
   // 담을 때의 체크리스트 (F28, 선택): 접어 두고 답한 것만 카드로 보낸다
   const [answers, setAnswers] = useState<Answers>({})
+  const entryRef = useRef<HTMLDetailsElement>(null)
   const checklistRef = useRef<HTMLDetailsElement>(null)
   const [attempted, setAttempted] = useState(false)
   // 링크는 접어 두고, 잘못돼 담지 못하면 펼친다 (F24)
@@ -400,6 +403,7 @@ function AddForm({
   }
   useEffect(() => {
     if (!draft) return
+    if (entryRef.current) entryRef.current.open = true
     if (draftFilledLink && linkRef.current) linkRef.current.open = true
     focusField(formRef.current, draftFocus)
     onDraftUsed?.()
@@ -421,6 +425,7 @@ function AddForm({
   }
   useEffect(() => {
     if (exampleFill === 0) return
+    if (entryRef.current) entryRef.current.open = true
     if (checklistRef.current) checklistRef.current.open = true
     formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
   }, [exampleFill, formRef])
@@ -503,6 +508,7 @@ function AddForm({
     setDesire(undefined)
     setAnswers({})
     if (checklistRef.current) checklistRef.current.open = false
+    if (entryRef.current) entryRef.current.open = false
     setAttempted(false)
     setDraftNotice(null)
     setPhotoLink(null)
@@ -513,7 +519,9 @@ function AddForm({
 
   return (
     <form className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate ref={formRef}>
-      <p className="card-title">물건 담기</p>
+      <details className="entry-disclosure" ref={entryRef}>
+      <summary className="entry-trigger">물건 담기</summary>
+      <div className="entry-content stack">
       {added ? (
         <p className="note" role="status" aria-label="담은 물건">
           {added.text}
@@ -674,6 +682,8 @@ function AddForm({
       <Button variant="primary" block type="submit">
         담아 두기
       </Button>
+      </div>
+      </details>
     </form>
   )
 }

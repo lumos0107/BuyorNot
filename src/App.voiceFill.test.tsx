@@ -84,6 +84,7 @@ function setup(options: SetupOptions = {}): Setup {
   const mic = mockMicrophone({ permission, trackCount })
   if (recorder) vi.stubGlobal('MediaRecorder', FakeMediaRecorder)
   const view = render(<App />)
+  fireEvent.click(within(screen.getByRole('form', { name: '물건 담기' })).getByText('물건 담기'))
   current = { server, mic, view }
   return current
 }

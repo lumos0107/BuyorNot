@@ -373,6 +373,13 @@ a.btn {
   padding: 24px 16px;
 }
 
+.empty-illustration {
+  display: block;
+  width: 144px;
+  height: 90px;
+  margin: 0 auto;
+}
+
 /* 카드 아래 작은 글자 동작(수정·삭제): 글자처럼 보이지만 44px 높이는 유지한다 */
 .card-actions {
   display: flex;
@@ -598,6 +605,80 @@ details > summary {
   cursor: pointer;
   padding: 11px 0;
   margin-bottom: 0;
+}
+
+/* 담기 폼은 한 줄에서 시작하고, 필요한 순간에만 입력 칸을 펼친다. */
+.entry-disclosure > summary.entry-trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0;
+  list-style: none;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.entry-disclosure > summary.entry-trigger::-webkit-details-marker,
+.area-picker > summary.area-picker-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.entry-trigger::before {
+  content: '+';
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 23px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.entry-disclosure[open] > .entry-trigger::before {
+  content: '−';
+}
+
+.entry-trigger::after,
+.area-picker-trigger::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  flex: none;
+  margin-left: auto;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+}
+
+.entry-disclosure[open] > .entry-trigger::after,
+.area-picker[open] > .area-picker-trigger::after {
+  transform: rotate(225deg);
+}
+
+.entry-content {
+  padding-top: 14px;
+}
+
+.area-picker > summary.area-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  list-style: none;
+  font-size: 15px;
+}
+
+.area-picker > fieldset {
+  padding-top: 10px !important;
 }
 
 /* 저축 목표 진행 막대 (F48): 색은 강조색 변수 */

@@ -55,6 +55,7 @@ import {
 import { formatWon } from '../logic/number'
 import { buildTrialIcs, trialGoogleCalendarUrl, trialIcsFileName } from '../logic/calendar'
 import { sameRecord } from '../logic/records'
+import { EmptyIllustration } from '../ui/EmptyIllustration'
 import { netflixRecord, parseNetflixCsv, type DayOrder } from '../logic/netflixCsv'
 import { usageInfo, validateUsageInput } from '../logic/usage'
 import { describeRecord, type UsageRecord } from '../logic/usageRecords'
@@ -238,6 +239,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       <SubscriptionForm label={ADD_FORM} submitLabel={ADD_BUTTON} today={today} onSubmit={onAdd} resetAfterSubmit />
       {active.length === 0 ? (
         <div className="empty card stack">
+          <EmptyIllustration kind="fixed" />
           <p>{EMPTY_TITLE}</p>
           <p className="note">{EMPTY_NOTE}</p>
           <Button onClick={onAddDemo}>예시 구독 넣기</Button>
@@ -360,6 +362,7 @@ function SubscriptionForm({
 }) {
   const [raw, setRaw] = useState<SubscriptionRawInput>(() => ({ ...initial, priceDay: initial.priceDay ?? toDayIso(today) }))
   const [attempted, setAttempted] = useState(false)
+  const entryRef = useRef<HTMLDetailsElement>(null)
   const priceReasonErrorId = useId()
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   const { value, errors } = validateSubscriptionInput(raw, today, keepRenewal, keepTrial, base)
@@ -378,12 +381,15 @@ function SubscriptionForm({
     if (resetAfterSubmit) {
       setRaw(EMPTY)
       setAttempted(false)
+      if (entryRef.current) entryRef.current.open = false
     }
   }
 
   return (
     <form className="card stack" aria-label={label} onSubmit={submit} noValidate ref={formRef}>
-      <p className="card-title">{label}</p>
+      <details className="entry-disclosure" ref={entryRef} open={resetAfterSubmit ? undefined : true}>
+      <summary className="entry-trigger">{label}</summary>
+      <div className="entry-content stack">
       <SelectField label="종류" value={raw.kind ?? 'subscription'} onChange={(e) => {
         const kind = e.target.value as FixedCostKind
         setRaw((r) => ({ ...r, kind, cycle: kind !== 'delivery' && r.cycle === 'weekly' ? 'monthly' : r.cycle }))
@@ -460,13 +466,16 @@ function SubscriptionForm({
         />
       ) : null}
       {tracksUsage({ kind: raw.kind }) ? (
-        <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+        <details className="area-picker field">
+          <summary className="area-picker-trigger">{`${AREAS_LEGEND} · ${raw.areas?.length ? `${raw.areas.length}개 선택` : '후보 보기'}`}</summary>
+          <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="field-label">{AREAS_LEGEND}</legend>
           <div className="check-list">
             {USE_AREAS.map((area) => <label key={area} className="check-row"><input type="checkbox" checked={raw.areas?.includes(area) ?? false} onChange={(e) => set('areas', e.target.checked ? [...(raw.areas ?? []), area] : (raw.areas ?? []).filter((entry) => entry !== area))} /> {AREA_LABEL[area]}</label>)}
           </div>
           <p className="field-hint">{AREAS_HINT}</p>
-        </fieldset>
+          </fieldset>
+        </details>
       ) : null}
       {tracksUsage({ kind: raw.kind }) ? (
         <TextField
@@ -494,6 +503,8 @@ function SubscriptionForm({
         </Button>
         {onCancel ? <Button onClick={onCancel}>취소</Button> : null}
       </div>
+      </div>
+      </details>
     </form>
   )
 }
