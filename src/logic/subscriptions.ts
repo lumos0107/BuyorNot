@@ -9,6 +9,8 @@ export type Cycle = 'monthly' | 'yearly' | 'weekly'
 
 // PRD F45 고정비 종류. 구독이면 저장하지 않는다(없으면 구독)
 export type FixedCostKind = 'subscription' | 'membership' | 'delivery' | 'phone' | 'housing' | 'insurance' | 'other'
+export type UseArea = 'delivery' | 'shopping' | 'video' | 'music' | 'storage' | 'other'
+export const USE_AREAS: readonly UseArea[] = ['delivery', 'shopping', 'video', 'music', 'storage', 'other']
 /** 종류 고르기 순서 (F45) */
 export const FIXED_COST_KINDS: readonly FixedCostKind[] = ['subscription', 'membership', 'delivery', 'phone', 'housing', 'insurance', 'other']
 
@@ -25,6 +27,8 @@ export type Subscription = {
   intervalWeeks?: number
   /** 통신·월세·보험·기타의 약정 또는 계약 끝나는 날 (F52) */
   contractEndDate?: string
+  /** 구독·멤버십을 쓰는 곳 (F51) */
+  areas?: UseArea[]
   /** 마지막으로 쓴 날. 비어 있고 오늘 썼어요 기록도 없으면 "확인 필요"(해지 후보 아님, F23) */
   lastUsedDate: string | null
   memo?: string
@@ -241,10 +245,11 @@ export type SubscriptionRawInput = {
   trialEndDate?: string
   intervalWeeks?: string
   contractEndDate?: string
+  areas?: UseArea[]
 }
 export type SubscriptionInput = Pick<
   Subscription,
-  'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'intervalWeeks' | 'lastUsedDate' | 'memo' | 'kind' | 'trialEndDate' | 'contractEndDate'
+  'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'intervalWeeks' | 'lastUsedDate' | 'memo' | 'kind' | 'trialEndDate' | 'contractEndDate' | 'areas'
 >
 export type SubscriptionFieldErrors = Partial<Record<Exclude<keyof SubscriptionRawInput, 'cycle'>, string>>
 
@@ -297,6 +302,10 @@ export function validateSubscriptionInput(
 
   // 구독이면 kind를 넣지 않는다. 구독·멤버십이 아니면 마지막 사용일 칸을 보지 않고 비운다 (F45)
   if (kind !== 'subscription') value.kind = kind
+  if (tracksUsage({ kind })) {
+    const areas = USE_AREAS.filter((area) => raw.areas?.includes(area))
+    if (areas.length > 0) value.areas = areas
+  }
   const lastUsedRaw = tracksUsage({ kind }) ? raw.lastUsedDate.trim() : ''
   if (lastUsedRaw !== '') {
     const used = parseDay(lastUsedRaw)
@@ -360,6 +369,7 @@ function cleanSub(sub: Subscription): Subscription {
   if (out.kind === undefined || out.kind === 'subscription') delete out.kind
   if (out.trialEndDate === undefined || !tracksUsage(out)) delete out.trialEndDate
   if (out.contractEndDate === undefined || !tracksContract(out)) delete out.contractEndDate
+  if (!out.areas?.length || !tracksUsage(out)) delete out.areas
   if (out.cancelledOn === undefined) delete out.cancelledOn
   return out
 }
@@ -457,6 +467,10 @@ function isSubscription(v: unknown): v is Subscription {
   if (o.trialEndDate !== undefined && !(isDay(o.trialEndDate) && tracksUsage({ kind: o.kind as FixedCostKind | undefined }))) return false
   if (o.cancelledOn !== undefined && !isDay(o.cancelledOn)) return false
   if (o.contractEndDate !== undefined && !(isDay(o.contractEndDate) && tracksContract({ kind: o.kind as FixedCostKind | undefined }))) return false
+  if (o.areas !== undefined) {
+    if (!tracksUsage({ kind: o.kind as FixedCostKind | undefined }) || !Array.isArray(o.areas) || o.areas.length < 1 || o.areas.length > USE_AREAS.length) return false
+    if (!o.areas.every((area: unknown) => USE_AREAS.includes(area as UseArea)) || new Set(o.areas).size !== o.areas.length) return false
+  }
   // 예시 사용량(F16): 시간과 횟수 중 하나만, 범위 안의 정수
   if (o.exampleUsageMinutes !== undefined && !isIntBetween(o.exampleUsageMinutes, 0, USAGE_MAX_MINUTES)) return false
   if (o.exampleUseCount !== undefined && !isIntBetween(o.exampleUseCount, 0, USE_COUNT_MAX)) return false

@@ -12,6 +12,8 @@ import {
   trialSummaryLine,
   validateCancelDay,
   nextLabel,
+  overlapCardLines,
+  overlapSummaryLines,
   priceText,
   skipLine,
 } from './fixedCosts'
@@ -52,6 +54,21 @@ describe('정기배송과 약정 (F45·F52)', () => {
     expect(PHONE_COMPARE_LINKS[0].name).toBe('알뜰폰허브')
     expect(new URL(PHONE_COMPARE_LINKS[0].href).search).toBe('')
     expect(new URL(PHONE_COMPARE_LINKS[0].href).hash).toBe('')
+  })
+})
+
+describe('같은 곳에 쓰는 구독·멤버십 (F51)', () => {
+  const first = sub('배달의민족 배민클럽', 3990, { kind: 'membership', areas: ['delivery'] })
+  const second = sub('쿠팡 와우 멤버십', 7890, { kind: 'membership', areas: ['shopping', 'delivery'] })
+  it('AC109: 배달 두 개는 월 합계와 카드의 하나 더 줄을 만든다', () => {
+    expect(overlapSummaryLines([first, second])).toEqual(['같은 곳에 쓰는 구독·멤버십: 배달 2개(배달의민족 배민클럽, 쿠팡 와우 멤버십) · 월 11,880원'])
+    expect(overlapCardLines(first, [first, second])).toEqual(['배달에 쓰는 것이 하나 더 있어요: 쿠팡 와우 멤버십'])
+    expect(overlapSummaryLines([first, { ...second, cancelledOn: '2026-11-01' }])).toEqual([])
+  })
+  it('AC109: 셋이면 가나다순이고 기타만 겹치면 줄이 없다', () => {
+    const third = sub('요기요 요기패스', 2900, { kind: 'membership', areas: ['delivery'] })
+    expect(overlapCardLines(first, [first, second, third])).toEqual(['배달에 쓰는 것이 2개 더 있어요: 요기요 요기패스, 쿠팡 와우 멤버십'])
+    expect(overlapSummaryLines([{ ...first, areas: ['other'] }, { ...second, areas: ['other'] }])).toEqual([])
   })
 })
 

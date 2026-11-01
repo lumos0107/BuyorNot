@@ -1,6 +1,6 @@
 import { calendarDaysBetween } from './dates'
 import { formatWon, josa } from './number'
-import { daysUntil, inTrial, kindOf, monthlyEquivalent, nextBillingDate, parseDay, tracksContract, type FixedCostKind, type Subscription, type SubscriptionSummary } from './subscriptions'
+import { daysUntil, inTrial, kindOf, monthlyEquivalent, nextBillingDate, parseDay, tracksContract, USE_AREAS, type FixedCostKind, type Subscription, type SubscriptionSummary, type UseArea } from './subscriptions'
 
 // PRD F45 고정비 정리함: 종류 이름, 요약의 종류별 줄, 화면 문장
 
@@ -108,6 +108,32 @@ export function contractLines(sub: Subscription, today: Date): string[] {
   const lines = [`${noun} 끝나는 날 ${sub.contractEndDate} (D-${left})`]
   if (left <= 60) lines.push(phone ? '약정이 끝나면 요금이나 할인이 바뀔 수 있어요. 통신사 앱에서 확인해 보세요.' : '계약이 끝나면 요금이나 조건이 바뀔 수 있어요. 계약한 곳에 확인해 보세요.')
   return lines
+}
+
+export const AREA_LABEL: Record<UseArea, string> = { delivery: '배달', shopping: '쇼핑', video: '영상', music: '음악', storage: '저장공간', other: '기타' }
+export const AREAS_LEGEND = '쓰는 곳 (선택)'
+export const AREAS_HINT = '같은 곳에 쓰는 구독·멤버십이 둘 이상이면 요약에 보여 드려요. 혜택은 바뀔 수 있으니 내 혜택에 맞게 골라 주세요.'
+export const OVERLAP_NOTE = '모두 쓰는지는 각 카드의 사용 기록에서 볼 수 있어요.'
+
+const overlapping = (subs: readonly Subscription[], area: UseArea) => subs.filter((sub) => !sub.cancelledOn && sub.areas?.includes(area))
+const sortedNames = (subs: readonly Subscription[]) => subs.map((sub) => sub.name).sort((a, b) => a.localeCompare(b, 'ko'))
+
+export function overlapSummaryLines(subs: readonly Subscription[]): string[] {
+  return USE_AREAS.filter((area) => area !== 'other').flatMap((area) => {
+    const group = overlapping(subs, area)
+    if (group.length < 2) return []
+    const total = group.reduce((sum, sub) => sum + monthlyEquivalent(sub), 0)
+    return [`같은 곳에 쓰는 구독·멤버십: ${AREA_LABEL[area]} ${group.length}개(${sortedNames(group).join(', ')}) · 월 ${formatWon(total)}`]
+  })
+}
+
+export function overlapCardLines(sub: Subscription, active: readonly Subscription[]): string[] {
+  if (sub.cancelledOn) return []
+  return USE_AREAS.filter((area) => area !== 'other' && sub.areas?.includes(area)).flatMap((area) => {
+    const others = overlapping(active, area).filter((item) => item.id !== sub.id)
+    if (others.length === 0) return []
+    return [`${AREA_LABEL[area]}에 쓰는 것이 ${others.length === 1 ? '하나' : `${others.length}개`} 더 있어요: ${sortedNames(others).join(', ')}`]
+  })
 }
 
 /** 해지 확인 문장(카드 안): 첫 줄, 둘째 줄, 통신·보험은 셋째 줄 */

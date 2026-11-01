@@ -21,12 +21,18 @@ import {
   TRIAL_LABEL,
   CANCEL_BACK_DAYS,
   CONTRACT_LABEL,
+  AREA_LABEL,
+  AREAS_HINT,
+  AREAS_LEGEND,
+  OVERLAP_NOTE,
   PHONE_COMPARE_LINKS,
   PHONE_COMPARE_NOTE,
   cancelConfirmLines,
   cancelledLine,
   cancelledNotice,
   contractLines,
+  overlapCardLines,
+  overlapSummaryLines,
   kindTotalsLine,
   nextLabel,
   priceText as priceLabel,
@@ -58,6 +64,7 @@ import {
   toDayIso,
   tracksUsage,
   tracksContract,
+  USE_AREAS,
   validateSubscriptionInput,
   type Cycle,
   type Subscription,
@@ -107,6 +114,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
   const s = subscriptionSummary(active, today)
   const totalsLine = kindTotalsLine(active, today)
   const trialSummary = trialSummaryLine(s)
+  const overlaps = overlapSummaryLines(active)
   const exampleCount = items.filter((sub) => isExample(sub.name)).length
   // 삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -189,6 +197,8 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           </ul>
           {totalsLine ? <p>{totalsLine}</p> : null}
           {trialSummary ? <p>{trialSummary}</p> : null}
+          {overlaps.map((line) => <p key={line}>{line}</p>)}
+          {overlaps.length > 0 ? <p className="note">{OVERLAP_NOTE}</p> : null}
           {s.candidateCount > 0 ? (
             <p className="field-label">
               해지 후보 {s.candidateCount}개 · 월평균 {formatWon(s.candidateMonthly)}
@@ -218,7 +228,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       ) : (
         <section className="stack" aria-label="고정비 목록">
           {sorted.map((sub) => (
-            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} onCancel={cancel} onToggleUse={onToggleUse} onSetUsage={onSetUsage} onImportUsage={onImportUsage} />
+            <SubscriptionCard key={sub.id} sub={sub} active={active} today={today} onEdit={onEdit} onRemove={remove} onCancel={cancel} onToggleUse={onToggleUse} onSetUsage={onSetUsage} onImportUsage={onImportUsage} />
           ))}
         </section>
       )}
@@ -297,6 +307,7 @@ function toRaw(sub: Subscription, nextRenewal: string): SubscriptionRawInput {
     kind: kindOf(sub),
     trialEndDate: sub.trialEndDate ?? '',
     contractEndDate: sub.contractEndDate ?? '',
+    areas: sub.areas ?? [],
   }
 }
 
@@ -417,6 +428,15 @@ function SubscriptionForm({
         />
       ) : null}
       {tracksUsage({ kind: raw.kind }) ? (
+        <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="field-label">{AREAS_LEGEND}</legend>
+          <div className="check-list">
+            {USE_AREAS.map((area) => <label key={area} className="check-row"><input type="checkbox" checked={raw.areas?.includes(area) ?? false} onChange={(e) => set('areas', e.target.checked ? [...(raw.areas ?? []), area] : (raw.areas ?? []).filter((entry) => entry !== area))} /> {AREA_LABEL[area]}</label>)}
+          </div>
+          <p className="field-hint">{AREAS_HINT}</p>
+        </fieldset>
+      ) : null}
+      {tracksUsage({ kind: raw.kind }) ? (
         <TextField
           label="마지막 사용일 (선택)"
           type="date"
@@ -448,6 +468,7 @@ function SubscriptionForm({
 
 function SubscriptionCard({
   sub,
+  active,
   today,
   onEdit,
   onRemove,
@@ -457,6 +478,7 @@ function SubscriptionCard({
   onImportUsage,
 }: {
   sub: Subscription
+  active: readonly Subscription[]
   today: Date
   onEdit: (id: string, input: SubscriptionInput) => void
   onRemove: (id: string) => void
@@ -560,6 +582,7 @@ function SubscriptionCard({
       {skipLine(sub, today) ? <p className="note">{skipLine(sub, today)}</p> : null}
       {contractLines(sub, today).map((line) => <p key={line} className="card-meta">{line}</p>)}
       {tracked ? <p className="card-meta">{lastUsed ? `마지막 사용 ${lastUsed}` : '사용 기록 없음'}</p> : null}
+      {overlapCardLines(sub, active).map((line) => <p key={line} className="card-meta">{line}</p>)}
       {usage ? <p className="card-meta">{`사용량(${usageLabel(usage)}): ${usage.text}`}</p> : null}
       {(tracked ? sub.usageRecords ?? [] : []).map((record) => (
         <p key={record.source} className="card-meta">

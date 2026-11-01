@@ -46,3 +46,19 @@ it('AC112: 구독의 약정 끝 저장값은 손상이고 구독 입력에는 �
   const raw = { name: '넷플릭스', price: '13500', kind: 'subscription' as const, cycle: 'monthly' as const, billingDay: '15', renewalDate: '', lastUsedDate: '', memo: '', contractEndDate: '2026-12-01' }
   expect(validateSubscriptionInput(raw, today).value?.contractEndDate).toBeUndefined()
 })
+
+it('AC110: 쓰는 곳 저장은 중복·빈 값·다른 종류를 거부한다', () => {
+  const saved = (item: unknown) => parseSubscriptions(JSON.stringify({ schemaVersion: 1, items: [item] }))
+  expect(saved({ ...monthly, areas: ['delivery'] }).ok).toBe(true)
+  expect(saved({ ...monthly, areas: [] }).ok).toBe(false)
+  expect(saved({ ...monthly, areas: ['delivery', 'delivery'] }).ok).toBe(false)
+  expect(saved({ ...monthly, areas: ['game'] }).ok).toBe(false)
+  expect(saved({ ...monthly, kind: 'phone', areas: ['delivery'] }).ok).toBe(false)
+})
+
+it('AC110: 고른 순서와 관계없이 정해진 순서로 저장하고 종류를 바꾸면 지운다', () => {
+  const raw = { name: '넷플릭스', price: '13500', kind: 'subscription' as const, cycle: 'monthly' as const, billingDay: '15', renewalDate: '', lastUsedDate: '', memo: '', areas: ['video', 'delivery', 'video'] as never }
+  expect(validateSubscriptionInput(raw, today).value?.areas).toEqual(['delivery', 'video'])
+  expect(validateSubscriptionInput({ ...raw, kind: 'phone' }, today).value?.areas).toBeUndefined()
+  expect(createSubscription({ name: '넷플릭스', priceKrw: 13500, cycle: 'monthly', billingDay: 15, lastUsedDate: null }, today, 'new')).not.toHaveProperty('areas')
+})
