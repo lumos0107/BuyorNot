@@ -15,6 +15,7 @@
 | `evaluating-ai` | AI 정확도를 재고 성적표(F43) 숫자를 만들 때 | 없음(평가 스크립트는 `eval/`) |
 | `checking-before-commit` | 커밋하기 직전 | `check_all.py`: 금지 파일·CR·문구·개인정보·PRD·TODO 검사 + 전체 테스트·린트·타입 |
 | `writing-tests-from-spec` | PRD 검증 사례를 테스트로 옮길 때 | 없음 |
+| `simplifying-entry-flows` | 입력 단계를 줄이거나 기존 기록으로 오늘 행동을 보여 줄 때(2026-11-02 추가) | 없음(필드 필요 시점·빈 값·날짜 경계·포커스 점검) |
 | `updating-devlog` | 작업이 끝나 DEVLOG·README를 남길 때 | 없음 |
 | `syncing-todo` | PRD·계획이 바뀌었거나 작업이 끝났을 때 TODO 맞추기 | `check_todo.py`: 기준 버전·기능·계획 작업 수·완료 해시 · `mark_done.py`: 작업 한 줄 완료 표시(2026-10-30 추가, GPT 46번) |
 | `testing-ai-screens` | AI 서버를 부르는 화면의 테스트를 쓰거나 리뷰할 때(2026-10-30 구현 중 추가, GPT 46번), 그 화면을 실제 브라우저(Playwright)로 확인하거나 모의 응답을 쓸 때(2026-10-31 보강, GPT 51번) | 없음(서버 흉내·늦은 응답·숨은 화면 포커스·미리보기 해제·60초 규칙) |
