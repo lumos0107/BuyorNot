@@ -72,6 +72,7 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
     const result = pantry.addEvent(event)
     setStockConfirmId(null)
     if (result === 'full') { setEventFull(true); return }
+    setEventFull(false)
     if (result === 'ok') setMessage(pantryStockSaved(item.name))
     else setMessage('')
   }
@@ -112,6 +113,8 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
             const event = { id: newId(), action: 'discarded' as const, sourceId: item.id, name: item.name, day: toDayIso(today), amountKrw: latest?.amountKrw ?? 0, createdAt: new Date().toISOString() }
             const result = pantry.discardItem(item.id, event)
             setDiscardId(null)
+            if (result === 'full') setEventFull(true)
+            else setEventFull(false)
             if (result === 'ok') summaryRef.current?.focus()
           }}>버렸어요</Button>
           <Button onClick={() => setDiscardId(null)}>취소</Button>

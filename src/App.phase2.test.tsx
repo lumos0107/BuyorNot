@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -94,7 +94,8 @@ describe('결정 메모 (F08)', () => {
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     const note = card('무선 헤드폰').getByLabelText('결정 메모 (선택)')
-    await user.type(note, '가'.repeat(201))
+    // 201번 키 입력의 실행 시간은 컴퓨터 부하에 따라 5초를 넘는다. 검증하려는 것은 201자 경계다.
+    fireEvent.change(note, { target: { value: '가'.repeat(201) } })
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
     expect(note).toHaveAccessibleDescription(/200자/)
     expect(screen.getByRole('article', { name: '무선 헤드폰' })).toBeInTheDocument()

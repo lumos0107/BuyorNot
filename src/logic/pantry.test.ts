@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { EMPTY_PANTRY, PANTRY_KEY, addPantryPurchase, comparePantryPurchases, discardedThisMonth, expiringPantryItems, isPantryStore, parsePantry, recipeAvailability, sortPantryRecipes, type PantryItem, type PantryPurchase, type PantryRecipe } from './pantry'
+import { EMPTY_PANTRY, PANTRY_KEY, addPantryPurchase, comparePantryPurchases, discardedThisMonth, expiringPantryItems, isPantryStore, latestPantryPurchase, parsePantry, recipeAvailability, sortPantryRecipes, type PantryItem, type PantryPurchase, type PantryRecipe } from './pantry'
 
 const stamp = '2026-11-01T00:00:00.000Z'
 const item = (over: Partial<PantryItem> = {}): PantryItem => ({ id: 'p1', name: '세제', kind: 'essential', level: 'plenty', purchases: [], createdAt: stamp, updatedAt: stamp, ...over })
@@ -37,6 +37,11 @@ it('AC122: 단위 종류가 다르면 비교하지 않고 5개 뒤에는 더하�
   expect(comparePantryPurchases(purchase(), purchase({ id: 'a2', unit: 'L' }))).toBe('단위가 달라 단가를 비교할 수 없어요.')
   const full = store(item({ purchases: Array.from({ length: 5 }, (_, i) => purchase({ id: String(i) })) }))
   expect(addPantryPurchase(full, 'p1', purchase({ id: 'extra' }))).toBe('full')
+})
+it('AC121: 같은 날·같은 시각에 두 번 적으면 나중에 적은 값이 마지막 산 값이다', () => {
+  const first = purchase({ id: 'a1', amountKrw: 12000 })
+  const second = purchase({ id: 'a2', amountKrw: 5000 })
+  expect(latestPantryPurchase(item({ purchases: [first, second] }))?.amountKrw).toBe(5000)
 })
 
 it('AC123: 집에 있는 재료 수와 부족한 이름을 세고 많은 순으로 보인다', () => {

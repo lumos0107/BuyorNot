@@ -120,7 +120,8 @@ export function addPantryEvent(store: PantryStore, event: PantryEvent): PantrySt
 }
 
 export function latestPantryPurchase(item: PantryItem): PantryPurchase | undefined {
-  return [...item.purchases].sort((a, b) => b.day.localeCompare(a.day) || b.createdAt.localeCompare(a.createdAt))[0]
+  return item.purchases.map((purchase, index) => ({ purchase, index }))
+    .sort((a, b) => b.purchase.day.localeCompare(a.purchase.day) || b.purchase.createdAt.localeCompare(a.purchase.createdAt) || b.index - a.index)[0]?.purchase
 }
 
 export function expiringPantryItems(items: readonly PantryItem[], today: Date): PantryItem[] {
