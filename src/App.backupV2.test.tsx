@@ -46,7 +46,13 @@ const nowSavings: SavingsStore = {
 }
 
 const base = { items: [fileItem], hourlyWage: 12000, subscriptions: [fileSub] }
-const v2 = makeBackup({ ...base, savings: fileSavings }, T0)
+const v2 = (() => {
+  const old = JSON.parse(makeBackup({ ...base, savings: fileSavings }, T0))
+  old.backupVersion = 2
+  delete old.pantry
+  delete old.spending
+  return JSON.stringify(old)
+})()
 // v1 모양 원문을 손으로 만든다 (backupVersion 1, savings 없음)
 const v1 = JSON.stringify({
   app: 'buyornot',
@@ -94,7 +100,7 @@ const READ_ERROR = '백업 파일을 읽을 수 없어요. 살까말까에서 �
 const NOTE = '이 파일에는 모으기 기록이 없어 지금 모으기 기록을 그대로 둬요.'
 
 describe('백업 v2 (F20 보강, AC99)', () => {
-  it('AC99: 백업 파일에 backupVersion 2와 모으기 기록이 들어간다', async () => {
+  it('AC99·AC131: 새 백업 파일에는 판 3과 모으기 기록이 들어간다', async () => {
     localStorage.setItem(SAVINGS_KEY, JSON.stringify(nowSavings))
     let blob: Blob | undefined
     URL.createObjectURL = vi.fn((b: Blob) => {
@@ -106,7 +112,7 @@ describe('백업 v2 (F20 보강, AC99)', () => {
     const user = await openBackup()
     await user.click(screen.getByRole('button', { name: '백업 파일 받기' }))
     const saved = JSON.parse(await readBlob(blob!))
-    expect(saved.backupVersion).toBe(2)
+    expect(saved.backupVersion).toBe(3)
     expect(saved.savings).toEqual(nowSavings)
   })
 
@@ -149,7 +155,7 @@ describe('백업 v2 (F20 보강, AC99)', () => {
     expect(screen.getByRole('status', { name: '백업 상태' })).toHaveTextContent('백업 파일의 기록으로 바꿨어요.')
   })
 
-  it('AC99: 모으기가 손상된 v2, 판 3, 모으기 없는 v2는 읽을 수 없다는 오류이고 아무것도 바뀌지 않는다', async () => {
+  it('AC99·AC131: 모으기가 손상된 v2, 필수 부분 없는 판 3, 모으기 없는 v2는 읽지 않는다', async () => {
     localStorage.setItem(SAVINGS_KEY, JSON.stringify(nowSavings))
     const user = await openBackup()
     const input = screen.getByLabelText('백업 파일 불러오기')

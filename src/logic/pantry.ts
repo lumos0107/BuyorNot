@@ -1,0 +1,112 @@
+import { isDay, isIntBetween, isRecord, isString, isTimestamp } from './guards'
+import { MAX_WON } from './number'
+import { unitKind, type Unit } from './bundle'
+
+// PRD F54~F58: 집에 있는 것, 산 값, 해 먹은 것과 건너뛴 구매를 한 키에 둔다.
+export type PantryKind = 'essential' | 'ingredient'
+export type PantryLevel = 'plenty' | 'low' | 'out'
+export type PantryPurchase = { id: string; day: string; place: string; amountKrw: number; size: number; unit: Unit; createdAt: string }
+export type PantryItem = { id: string; name: string; kind: PantryKind; level: PantryLevel; expiresOn?: string; purchases: PantryPurchase[]; createdAt: string; updatedAt: string }
+export type PantryRecipe = { id: string; name: string; ingredients: string[]; estimateKrw?: number; createdAt: string; updatedAt: string }
+export type PantryEvent = { id: string; action: 'discarded' | 'cooked' | 'stock'; sourceId: string; name: string; day: string; amountKrw: number; createdAt: string }
+export type PantryStore = { schemaVersion: 1; items: PantryItem[]; recipes: PantryRecipe[]; events: PantryEvent[] }
+export type PantryLoadResult = { ok: true; store: PantryStore } | { ok: false; reason: 'corrupt' | 'unavailable' }
+
+export const PANTRY_KEY = 'buyornot.pantry.v1'
+export const EMPTY_PANTRY: PantryStore = { schemaVersion: 1, items: [], recipes: [], events: [] }
+export const PANTRY_ITEM_MAX = 200
+export const PANTRY_RECIPE_MAX = 100
+export const PANTRY_EVENT_MAX = 2000
+export const PANTRY_PURCHASE_MAX = 5
+export const PANTRY_NAME_MAX = 40
+export const PANTRY_PLACE_MAX = 30
+export const PANTRY_ESTIMATE_MAX = 100000
+
+export const normalizePantryName = (name: string) => name.trim().toLocaleLowerCase('ko')
+const nonEmpty = (v: unknown, max: number) => isString(v) && v.trim().length >= 1 && v.trim().length <= max
+const uniqueIds = (items: readonly { id: string }[]) => new Set(items.map((item) => item.id)).size === items.length
+
+function isPurchase(v: unknown): v is PantryPurchase {
+  if (!isRecord(v)) return false
+  if (!nonEmpty(v.id, 100) || !isDay(v.day) || !nonEmpty(v.place, PANTRY_PLACE_MAX)) return false
+  if (!isIntBetween(v.amountKrw, 1, MAX_WON) || typeof v.size !== 'number' || !Number.isFinite(v.size) || v.size <= 0 || v.size > 10_000_000 || Math.round(v.size * 1000) !== v.size * 1000) return false
+  if (!['g', 'kg', 'mL', 'L', 'ea'].includes(v.unit as string) || (v.unit === 'ea' && !Number.isInteger(v.size))) return false
+  return isTimestamp(v.createdAt)
+}
+
+function isItem(v: unknown): v is PantryItem {
+  if (!isRecord(v) || !nonEmpty(v.id, 100) || !nonEmpty(v.name, PANTRY_NAME_MAX)) return false
+  if (v.kind !== 'essential' && v.kind !== 'ingredient') return false
+  if (v.level !== 'plenty' && v.level !== 'low' && v.level !== 'out') return false
+  if (v.expiresOn !== undefined && (v.kind !== 'ingredient' || !isDay(v.expiresOn))) return false
+  if (!Array.isArray(v.purchases) || v.purchases.length > PANTRY_PURCHASE_MAX || !v.purchases.every(isPurchase) || !uniqueIds(v.purchases)) return false
+  return isTimestamp(v.createdAt) && isTimestamp(v.updatedAt)
+}
+
+function isRecipe(v: unknown): v is PantryRecipe {
+  if (!isRecord(v) || !nonEmpty(v.id, 100) || !nonEmpty(v.name, PANTRY_NAME_MAX) || !Array.isArray(v.ingredients)) return false
+  if (v.ingredients.length < 1 || v.ingredients.length > 10 || !v.ingredients.every((part: unknown) => nonEmpty(part, PANTRY_NAME_MAX))) return false
+  if (new Set(v.ingredients.map((part: string) => normalizePantryName(part))).size !== v.ingredients.length) return false
+  if (v.estimateKrw !== undefined && !isIntBetween(v.estimateKrw, 1, PANTRY_ESTIMATE_MAX)) return false
+  return isTimestamp(v.createdAt) && isTimestamp(v.updatedAt)
+}
+
+function isEvent(v: unknown): v is PantryEvent {
+  if (!isRecord(v) || !nonEmpty(v.id, 100) || !nonEmpty(v.sourceId, 100) || !nonEmpty(v.name, PANTRY_NAME_MAX)) return false
+  if (v.action !== 'discarded' && v.action !== 'cooked' && v.action !== 'stock') return false
+  return isDay(v.day) && isIntBetween(v.amountKrw, 0, MAX_WON) && isTimestamp(v.createdAt)
+}
+
+export function isPantryStore(v: unknown): v is PantryStore {
+  if (!isRecord(v) || Object.keys(v).some((key) => !['schemaVersion', 'items', 'recipes', 'events'].includes(key))) return false
+  if (v.schemaVersion !== 1 || !Array.isArray(v.items) || !Array.isArray(v.recipes) || !Array.isArray(v.events)) return false
+  if (v.items.length > PANTRY_ITEM_MAX || v.recipes.length > PANTRY_RECIPE_MAX || v.events.length > PANTRY_EVENT_MAX) return false
+  if (!v.items.every(isItem) || !v.recipes.every(isRecipe) || !v.events.every(isEvent)) return false
+  if (!uniqueIds(v.items) || !uniqueIds(v.recipes) || !uniqueIds(v.events)) return false
+  return new Set(v.items.map((item) => normalizePantryName(item.name))).size === v.items.length
+}
+
+export function parsePantry(raw: string | null): PantryLoadResult {
+  if (raw === null) return { ok: true, store: EMPTY_PANTRY }
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return isPantryStore(parsed) ? { ok: true, store: parsed } : { ok: false, reason: 'corrupt' }
+  } catch { return { ok: false, reason: 'corrupt' } }
+}
+
+export function nextPantryItem(store: PantryStore, item: PantryItem): PantryStore | 'full' | 'duplicate' {
+  if (store.items.some((existing) => normalizePantryName(existing.name) === normalizePantryName(item.name))) return 'duplicate'
+  if (store.items.length >= PANTRY_ITEM_MAX) return 'full'
+  return { ...store, items: [...store.items, item] }
+}
+
+export function updatePantryItem(store: PantryStore, id: string, update: (item: PantryItem) => PantryItem): PantryStore {
+  return { ...store, items: store.items.map((item) => item.id === id ? update(item) : item) }
+}
+
+export function removePantryItem(store: PantryStore, id: string): PantryStore {
+  return { ...store, items: store.items.filter((item) => item.id !== id) }
+}
+
+export function addPantryPurchase(store: PantryStore, itemId: string, purchase: PantryPurchase): PantryStore | 'full' {
+  const item = store.items.find((entry) => entry.id === itemId)
+  if (!item || item.purchases.length >= PANTRY_PURCHASE_MAX) return 'full'
+  return updatePantryItem(store, itemId, (entry) => ({ ...entry, purchases: [...entry.purchases, purchase], updatedAt: purchase.createdAt }))
+}
+
+export function addPantryRecipe(store: PantryStore, recipe: PantryRecipe): PantryStore | 'full' {
+  return store.recipes.length >= PANTRY_RECIPE_MAX ? 'full' : { ...store, recipes: [...store.recipes, recipe] }
+}
+
+export function addPantryEvent(store: PantryStore, event: PantryEvent): PantryStore | 'full' {
+  return store.events.length >= PANTRY_EVENT_MAX ? 'full' : { ...store, events: [...store.events, event] }
+}
+
+/** 같은 단위 종류면 100g·100mL·1개당 가격. 화면에 보이는 숫자는 소수 둘째 자리 */
+export function pantryUnitPrice(purchase: PantryPurchase): { kind: ReturnType<typeof unitKind>; value: number; label: string } {
+  const kind = unitKind(purchase.unit)
+  const base = purchase.unit === 'kg' || purchase.unit === 'L' ? purchase.size * 1000 : purchase.size
+  const reference = kind === 'count' ? 1 : 100
+  const value = purchase.amountKrw * reference / base
+  return { kind, value, label: kind === 'weight' ? '100g' : kind === 'volume' ? '100mL' : '1개' }
+}
