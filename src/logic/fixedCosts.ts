@@ -60,6 +60,12 @@ export const FIXED_RESET_NOTE = '초기화하면 읽을 수 없는 고정비는 
 // PRD F46 무료 체험 끝나는 날
 export const TRIAL_LABEL = '무료 체험 끝나는 날 (선택)'
 export const TRIAL_HINT = '그날까지는 합계에 넣지 않고, 그날을 첫 결제일로 보여 드려요. 그 뒤에는 위 결제일로 계산해요.'
+export const TRIAL_CALENDAR_LABEL = '체험 끝나기 전날 캘린더에 넣기:'
+export const TRIAL_CALENDAR_HINT = '구글 캘린더를 누르면 고정비 이름과 날짜가 구글로 전달돼요. 체험 끝나는 날을 바꾸면 전에 넣은 일정은 바뀌지 않으니 고치거나 지우고 다시 넣어 주세요.'
+
+export function showsTrialCalendar(sub: Subscription, today: Date): boolean {
+  return !sub.cancelledOn && inTrial(sub, today) && sub.trialEndDate !== undefined && daysUntil(sub.trialEndDate, today) >= 1
+}
 
 /** 카드의 체험 줄(다음 결제 줄 바로 위). 체험 중이 아니면 null */
 export function trialLine(sub: Subscription, today: Date): string | null {

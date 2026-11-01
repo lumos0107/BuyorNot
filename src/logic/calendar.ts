@@ -1,4 +1,5 @@
-import { formatDate } from './dates'
+import { formatDate, parseDay } from './dates'
+import { toDayIso, type Subscription } from './subscriptions'
 import type { WishItem } from './wishlist'
 
 // PRD F35 고민 끝나는 날 캘린더에 넣기: 구글 캘린더 주소와 .ics 파일 내용을 만든다.
@@ -111,4 +112,40 @@ export function googleCalendarUrl(item: WishItem): string {
   const details = encodeURIComponent(`${OPEN_LINE}\n${APP_URL}`)
   // dates의 값은 숫자·T·Z·/ 뿐이라 따로 부호화하지 않는다
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}`
+}
+
+const TRIAL_DESCRIPTION = '체험이 끝나는 내일부터 요금이 나갈 수 있어요. 해지는 그 서비스에서 직접 해야 해요.'
+
+export function trialCalendarDay(sub: Pick<Subscription, 'trialEndDate'>): string | null {
+  const end = parseDay(sub.trialEndDate ?? '')
+  return end ? toDayIso(new Date(end.getFullYear(), end.getMonth(), end.getDate() - 1, 12)) : null
+}
+
+const trialTitle = (sub: Subscription) => `살까말까: ‘${sub.name}’ 무료 체험 내일 끝`
+const compactDay = (day: string) => day.replace(/-/g, '')
+
+export function buildTrialIcs(sub: Subscription, now: Date): string {
+  const day = trialCalendarDay(sub)
+  if (!day || !sub.trialEndDate) return ''
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BuyorNot//KO', 'BEGIN:VEVENT',
+    `UID:${sub.id}-trial-${sub.trialEndDate}@buyornot`,
+    `DTSTAMP:${utcStamp(now)}`,
+    `DTSTART;VALUE=DATE:${compactDay(day)}`,
+    `DTEND;VALUE=DATE:${compactDay(sub.trialEndDate)}`,
+    `SUMMARY:${escapeIcsText(trialTitle(sub))}`,
+    `DESCRIPTION:${escapeIcsText(TRIAL_DESCRIPTION)}\\n${escapeIcsText(APP_URL)}`,
+    'END:VEVENT', 'END:VCALENDAR',
+  ]
+  return lines.map((line) => `${foldIcsLine(line)}\r\n`).join('')
+}
+
+export function trialIcsFileName(sub: Subscription): string {
+  return `buyornot-trial-${trialCalendarDay(sub)}.ics`
+}
+
+export function trialGoogleCalendarUrl(sub: Subscription): string {
+  const day = trialCalendarDay(sub)
+  if (!day || !sub.trialEndDate) return ''
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(trialTitle(sub))}&dates=${compactDay(day)}/${compactDay(sub.trialEndDate)}&details=${encodeURIComponent(`${TRIAL_DESCRIPTION}\n${APP_URL}`)}`
 }

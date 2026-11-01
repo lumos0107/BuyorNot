@@ -8,6 +8,7 @@ import {
   PHONE_COMPARE_LINKS,
   resumeConfirmText,
   sortCancelled,
+  showsTrialCalendar,
   trialLine,
   trialSummaryLine,
   validateCancelDay,
@@ -99,6 +100,14 @@ describe('요금 바뀜 기록 (F50)', () => {
     expect(validateCancelDay('2026-10-15', TODAY, '2026-10-20').error).toBe('해지한 날은 마지막으로 요금이 바뀐 날(2026-10-20)과 같거나 그 뒤여야 해요')
     expect(validateCancelDay('2026-10-20', TODAY, '2026-10-20').value).toBe('2026-10-20')
   })
+})
+
+it('AC103: 체험이 내일 이후면 캘린더 줄을 보이고 오늘 끝나면 숨긴다', () => {
+  const trial = sub('넷플릭스', 13500, { trialEndDate: '2026-11-14' })
+  expect(showsTrialCalendar(trial, TODAY)).toBe(true)
+  expect(showsTrialCalendar({ ...trial, trialEndDate: '2026-11-01' }, TODAY)).toBe(false)
+  expect(showsTrialCalendar({ ...trial, cancelledOn: '2026-11-01' }, TODAY)).toBe(false)
+  expect(showsTrialCalendar(sub('넷플릭스', 13500), TODAY)).toBe(false)
 })
 
 describe('종류별 줄 (F45)', () => {

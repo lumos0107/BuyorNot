@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { buildIcs, escapeIcsText, foldIcsLine, googleCalendarUrl, icsFileName } from './calendar'
+import { buildIcs, buildTrialIcs, escapeIcsText, foldIcsLine, googleCalendarUrl, icsFileName, trialCalendarDay, trialGoogleCalendarUrl, trialIcsFileName } from './calendar'
 import { formatDate } from './dates'
 import type { WishItem } from './wishlist'
+import type { Subscription } from './subscriptions'
 
 // PRD F35 고민 끝나는 날 캘린더 (AC59). 화면은 src/App.calendar.test.tsx가 본다.
 // 계획 Task 15의 영어 테스트 이름은 해당 it 위 `// plan:` 주석에 있다.
@@ -35,6 +36,32 @@ const unfold = (ics: string) => ics.replace(/\r\n /g, '')
 const physicalLines = (ics: string) => ics.split('\r\n').slice(0, -1)
 const logicalLines = (ics: string) => physicalLines(unfold(ics))
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/
+
+const trialSub: Subscription = { id: 's1', name: '넷플릭스', priceKrw: 13500, cycle: 'monthly', billingDay: 14, trialEndDate: '2026-11-14', lastUsedDate: null, createdAt: NOW.toISOString(), updatedAt: NOW.toISOString() }
+
+describe('무료 체험 끝나기 전날 캘린더 (F46)', () => {
+  it('AC103: 체험 끝 11월 14일이면 종일 일정은 11월 13일이다', () => {
+    expect(trialCalendarDay(trialSub)).toBe('2026-11-13')
+    expect(trialCalendarDay({ trialEndDate: '2026-11-02' })).toBe('2026-11-01')
+    expect(trialIcsFileName(trialSub)).toBe('buyornot-trial-2026-11-13.ics')
+  })
+  it('AC103: 파일은 종일 일정이고 알림 요청은 없다', () => {
+    const ics = buildTrialIcs(trialSub, NOW)
+    expect(ics).toContain('DTSTART;VALUE=DATE:20261113\r\n')
+    expect(ics).toContain('DTEND;VALUE=DATE:20261114\r\n')
+    expect(ics).toContain('UID:s1-trial-2026-11-14@buyornot\r\n')
+    expect(ics).toContain('살까말까: ‘넷플릭스’ 무료 체험 내일 끝')
+    expect(ics).not.toContain('VALARM')
+    expect(ics.endsWith('\r\n')).toBe(true)
+    expect(ics.split('\r\n').every((line) => bytes(line) <= 75)).toBe(true)
+  })
+  it('AC103: 구글 일정 주소에는 날짜와 제목·설명이 들어간다', () => {
+    const url = new URL(trialGoogleCalendarUrl(trialSub))
+    expect(url.searchParams.get('dates')).toBe('20261113/20261114')
+    expect(url.searchParams.get('text')).toBe('살까말까: ‘넷플릭스’ 무료 체험 내일 끝')
+    expect(url.searchParams.get('details')).toContain('체험이 끝나는 내일부터 요금이 나갈 수 있어요.')
+  })
+})
 
 describe('escapeIcsText', () => {
   it('역슬래시·세미콜론·쉼표 앞에 역슬래시를 붙인다', () => {

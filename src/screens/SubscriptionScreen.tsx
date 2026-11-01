@@ -28,6 +28,8 @@ import {
   PRICE_DAY_LABEL,
   PRICE_REASON_LABEL,
   PRICE_REASON_LEGEND,
+  TRIAL_CALENDAR_HINT,
+  TRIAL_CALENDAR_LABEL,
   PHONE_COMPARE_LINKS,
   PHONE_COMPARE_NOTE,
   cancelConfirmLines,
@@ -45,11 +47,13 @@ import {
   resumeConfirmText,
   sortCancelled,
   skipLine,
+  showsTrialCalendar,
   trialLine,
   trialSummaryLine,
   validateCancelDay,
 } from '../logic/fixedCosts'
 import { formatWon } from '../logic/number'
+import { buildTrialIcs, trialGoogleCalendarUrl, trialIcsFileName } from '../logic/calendar'
 import { sameRecord } from '../logic/records'
 import { netflixRecord, parseNetflixCsv, type DayOrder } from '../logic/netflixCsv'
 import { usageInfo, validateUsageInput } from '../logic/usage'
@@ -84,6 +88,7 @@ import {
 } from '../logic/subscriptions'
 import type { StorageStatus } from '../store/useWishlist'
 import { Button } from '../ui/Button'
+import { downloadText } from '../ui/download'
 import { SelectField, TextAreaField, TextField } from '../ui/Field'
 import { ResetConfirm } from '../ui/ResetConfirm'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
@@ -604,6 +609,7 @@ function SubscriptionCard({
       <p className="price">{priceText}</p>
       {priceChangeLine(sub, today) ? <p className="card-meta">{priceChangeLine(sub, today)}</p> : null}
       {trialText ? <p className="card-meta">{trialText}</p> : null}
+      {showsTrialCalendar(sub, today) ? <TrialCalendarRow sub={sub} /> : null}
       <p className="card-meta">
         {nextLabel(sub)} {next} · D-{dday}
       </p>
@@ -695,6 +701,20 @@ function SubscriptionCard({
         />
       ) : null}
     </article>
+  )
+}
+
+function TrialCalendarRow({ sub }: { sub: Subscription }) {
+  const labelId = useId()
+  return (
+    <div className="stack" role="group" aria-labelledby={labelId}>
+      <p className="field-label" id={labelId}>{TRIAL_CALENDAR_LABEL}</p>
+      <div className="btn-row">
+        <a className="btn" href={trialGoogleCalendarUrl(sub)} target="_blank" rel="noopener noreferrer">구글 캘린더</a>
+        <Button onClick={() => downloadText(trialIcsFileName(sub), buildTrialIcs(sub, new Date()), 'text/calendar;charset=utf-8')}>캘린더 파일(.ics)</Button>
+      </div>
+      <p className="note">{TRIAL_CALENDAR_HINT}</p>
+    </div>
   )
 }
 

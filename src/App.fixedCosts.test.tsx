@@ -242,11 +242,13 @@ describe('무료 체험 끝나는 날 (F46)', () => {
     expect(summary().getByText('연 0원')).toBeInTheDocument()
   })
 
-  it('AC85: 체험 줄은 다음 결제 줄 바로 위에 있다', async () => {
+  it('AC85·AC103: 체험 줄 아래에 캘린더와 다음 결제 줄이 차례로 있다', async () => {
     seed(netflixTrial())
     await openFixed()
     const trial = card('넷플릭스').getByText(TRIAL_ON)
-    expect(trial.nextElementSibling).toHaveTextContent('다음 결제 2026-11-14 · D-13')
+    expect(trial.nextElementSibling).toHaveAttribute('role', 'group')
+    expect(trial.nextElementSibling).toHaveTextContent('체험 끝나기 전날 캘린더에 넣기:')
+    expect(trial.nextElementSibling?.nextElementSibling).toHaveTextContent('다음 결제 2026-11-14 · D-13')
   })
 
   it('AC85: 매년이면 그 뒤 연 요금과 월 10,000원이다', async () => {
