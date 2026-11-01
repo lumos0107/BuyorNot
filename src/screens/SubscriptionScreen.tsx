@@ -348,7 +348,7 @@ function SubscriptionForm({
   submitLabel: string
   today: Date
   initial?: SubscriptionRawInput
-  onSubmit: (input: SubscriptionInput) => void
+  onSubmit: (input: SubscriptionInput) => boolean | void
   onCancel?: () => void
   resetAfterSubmit?: boolean
   autoFocus?: boolean
@@ -377,7 +377,7 @@ function SubscriptionForm({
       focusFirstError()
       return
     }
-    onSubmit(value)
+    if (onSubmit(value) === false) return
     if (resetAfterSubmit) {
       setRaw(EMPTY)
       setAttempted(false)

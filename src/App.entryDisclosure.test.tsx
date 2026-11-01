@@ -34,3 +34,17 @@ it('AC150: 고정비 담기를 접었다 펼쳐도 입력 중인 이름이 남�
   await user.click(trigger)
   expect(form.getByLabelText('이름')).toHaveValue('넷플릭스')
 })
+
+it('AC150: 고정비를 추가하면 담기 폼이 다시 접힌다', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(screen.getByRole('tab', { name: '고정비' }))
+  const form = within(screen.getByRole('form', { name: '고정비 담기' }))
+  const trigger = form.getByText('고정비 담기')
+  await user.click(trigger)
+  await user.type(form.getByLabelText('이름'), '넷플릭스')
+  await user.type(form.getByLabelText('요금'), '9900')
+  await user.type(form.getByLabelText('결제일 (매월)'), '15')
+  await user.click(form.getByRole('button', { name: '고정비 추가' }))
+  expect(trigger.closest('details')).not.toHaveAttribute('open')
+})
