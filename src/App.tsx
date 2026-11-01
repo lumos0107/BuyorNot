@@ -10,6 +10,7 @@ import { HistoryScreen } from './screens/HistoryScreen'
 import { SavingsScreen } from './screens/SavingsScreen'
 import { SubscriptionScreen } from './screens/SubscriptionScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
+import { PantrySection } from './screens/PantrySection'
 import { useSavings } from './store/useSavings'
 import { useBills } from './store/useBills'
 import { usePantry } from './store/usePantry'
@@ -90,6 +91,7 @@ export default function App() {
             draft={draft}
             onDraftUsed={() => setDraft(null)}
           />
+          <PantrySection pantry={pantry} subscriptions={subscriptions.items} today={wishlist.now} />
         </TabPanel>
         <TabPanel id="compare" hidden={screen !== 'compare'}>
           <CompareScreen

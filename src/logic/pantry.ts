@@ -1,5 +1,5 @@
 import { isDay, isIntBetween, isRecord, isString, isTimestamp } from './guards'
-import { MAX_WON } from './number'
+import { josa, MAX_WON } from './number'
 import { unitKind, type Unit } from './bundle'
 
 // PRD F54~F58: 집에 있는 것, 산 값, 해 먹은 것과 건너뛴 구매를 한 키에 둔다.
@@ -21,6 +21,19 @@ export const PANTRY_PURCHASE_MAX = 5
 export const PANTRY_NAME_MAX = 40
 export const PANTRY_PLACE_MAX = 30
 export const PANTRY_ESTIMATE_MAX = 100000
+export const PANTRY_KIND_LABEL: Record<PantryKind, string> = { essential: '생필품', ingredient: '식재료' }
+export const PANTRY_LEVEL_LABEL: Record<PantryLevel, string> = { plenty: '넉넉', low: '조금', out: '떨어짐' }
+export const PANTRY_STORAGE_LABEL = '집에 있는 것 저장 상태'
+export const PANTRY_UNAVAILABLE = '이 브라우저에서는 집에 있는 것 기록을 저장할 수 없어요. 새로고침하면 사라져요.'
+export const PANTRY_SAVE_FAILED = '집에 있는 것 기록을 저장하지 못했어요. 브라우저 저장 공간이나 설정을 확인한 뒤 다시 저장해 주세요.'
+export const PANTRY_REPLACED = '다른 탭에서 저장한 집에 있는 것 기록을 불러왔어요. 이 탭에서 저장하지 않은 변경은 반영되지 않았어요.'
+export const PANTRY_CORRUPT = '저장된 집에 있는 것 기록을 읽을 수 없어요. 초기화하기 전까지는 새로 적은 기록이 저장되지 않아요.'
+export const PANTRY_RESET_NOTE = '초기화하면 읽을 수 없는 집에 있는 것 기록은 사라지고, 지금 화면의 기록만 저장돼요.'
+
+export const nextPantryLevel = (level: PantryLevel): PantryLevel => level === 'plenty' ? 'low' : level === 'low' ? 'out' : 'plenty'
+export const pantryAdded = (name: string) => `‘${name}’${josa(name, '을/를')} 적었어요.`
+export const pantryLevelChanged = (name: string, level: PantryLevel) => `‘${name}’의 남은 정도를 ${PANTRY_LEVEL_LABEL[level]}으로 바꿨어요.` // copy-check: ignore josa '의'는 받침과 관계없이 같다. 세 상태 이름은 모두 받침이 있다
+export const pantryDeleteConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 지울까요? 산 값 기록도 함께 지워져요.`
 
 export const normalizePantryName = (name: string) => name.trim().toLocaleLowerCase('ko')
 const nonEmpty = (v: unknown, max: number) => isString(v) && v.trim().length >= 1 && v.trim().length <= max
