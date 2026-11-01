@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -97,7 +97,8 @@ describe('화면 보완', () => {
     render(<App />)
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
-    await user.type(card('무선 헤드폰').getByLabelText('결정 메모 (선택)'), '가'.repeat(200))
+    // 200자 경계를 확인한다. 글자마다 키 이벤트를 합성하면 전체 실행 부하에서 시간 초과가 난다.
+    fireEvent.change(card('무선 헤드폰').getByLabelText('결정 메모 (선택)'), { target: { value: '가'.repeat(200) } })
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(card('무선 헤드폰').getByText('가'.repeat(200))).toBeInTheDocument()

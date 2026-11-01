@@ -34,6 +34,10 @@ export const SATISFACTION_TEXT: Record<Satisfaction, string> = {
 export type DesireLevel = 1 | 2 | 3 | 4 | 5
 /** 고민하는 동안 날마다 기록한 정도. day는 고른 순간의 기기 현지 날짜(YYYY-MM-DD) */
 export type DesireCheck = { day: string; level: DesireLevel }
+export type Installment = { months: number; monthlyKrw: number }
+export type BulkUse = { total: number; monthlyUse: number; expiresMonths?: number }
+export type PriceNote = { day: string; priceKrw: number }
+export type Resale = { listedOn: string; soldOn?: string; soldKrw?: number }
 
 export type WishItem = {
   id: string
@@ -65,6 +69,15 @@ export type WishItem = {
   // 2단계 선택 필드 (F44). schemaVersion 1 그대로
   /** 놓을 자리 확인에 저장한 놓을 곳·물건 치수(mm). 판정은 저장하지 않고 볼 때마다 계산한다 */
   fit?: Fit
+  // 절약·저축 3단계(P3). 없는 옛 기록은 그대로 읽는다.
+  installment?: Installment
+  usesPerYear?: number
+  bulkUse?: BulkUse
+  targetPriceKrw?: number
+  priceNotes?: PriceNote[]
+  returnBy?: string
+  returnedOn?: string
+  resale?: Resale
 }
 
 export const NOTE_MAX = 200
@@ -301,6 +314,9 @@ export function reconsiderItem(item: WishItem, now: Date): WishItem {
   delete next.decisionNote
   delete next.satisfaction
   delete next.reviewNote
+  delete next.returnBy
+  delete next.returnedOn
+  delete next.resale
   return next
 }
 

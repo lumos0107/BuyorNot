@@ -180,6 +180,16 @@ export function useWishlist(storage: Storage | null = getLocalStorage()) {
       updateConsidering(id, (item, now) => answerItem(item, key, value, now)),
     /** 놓을 자리 확인 저장·지우기(null) (F44). 고민 중인 물건에만 하고, 반영됐는지 돌려준다 */
     setFit: (id: string, fit: Fit | null): boolean => updateConsidering(id, (item, now) => setItemFit(item, fit, now)),
+    /** 절약·저축 3단계: 사기 전 선택 필드. 저장은 이 물건 키 하나만 쓰고 다른 탭이 먼저 저장했으면 false */
+    updateBefore: (id: string, change: (item: WishItem) => WishItem): boolean =>
+      updateConsidering(id, (item, now) => ({ ...change(item), updatedAt: now.toISOString() })),
+    /** 구매함의 반품·되팔기 선택 필드. 화면에 반영됐을 때만 true */
+    updateAfter: (id: string, change: (item: WishItem) => WishItem): boolean => {
+      const target = items.find((item) => item.id === id)
+      if (!target || target.status !== 'purchased') return false
+      const next = { ...change(target), updatedAt: new Date().toISOString() }
+      return commit(items.map((item) => item.id === id ? next : item))
+    },
     /** 결정을 되돌려 다시 고민 중으로 (F18) */
     reconsider: (id: string) =>
       commit(items.map((item) => (item.id === id ? reconsiderItem(item, new Date()) : item))),

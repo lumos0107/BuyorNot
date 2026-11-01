@@ -1,5 +1,6 @@
 import { DESIRE_RESTORE_MAX } from './desire'
 import { isFit } from './fit'
+import { isDay, isIntBetween, isRecord } from './guards'
 import { MAX_WON } from './number'
 import { parseDay } from './subscriptions'
 import { NAME_MAX, NOTE_MAX, REASON_MAX, type WishItem } from './wishlist'
@@ -78,8 +79,40 @@ function isNote(v: unknown): boolean {
   return v === undefined || (isString(v) && v.length <= NOTE_MAX)
 }
 
+const isPositiveAmount = (v: unknown) => isIntBetween(v, 1, MAX_WON)
+const isThousandth = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 10_000_000 && Math.round(v * 1000) === v * 1000
+
+function hasValidPurchaseFields(o: Record<string, unknown>): boolean {
+  if (o.installment !== undefined) {
+    if (!isRecord(o.installment) || !isIntBetween(o.installment.months, 2, 36) || !isPositiveAmount(o.installment.monthlyKrw)) return false
+  }
+  if (o.usesPerYear !== undefined && !isIntBetween(o.usesPerYear, 1, 365)) return false
+  if (o.bulkUse !== undefined) {
+    if (!isRecord(o.bulkUse) || !isThousandth(o.bulkUse.total) || !isThousandth(o.bulkUse.monthlyUse)) return false
+    if (o.bulkUse.expiresMonths !== undefined && !isIntBetween(o.bulkUse.expiresMonths, 1, 120)) return false
+  }
+  if (o.targetPriceKrw !== undefined && !isPositiveAmount(o.targetPriceKrw)) return false
+  if (o.priceNotes !== undefined) {
+    if (!Array.isArray(o.priceNotes) || o.priceNotes.length < 1 || o.priceNotes.length > 30) return false
+    let previous = ''
+    for (const note of o.priceNotes) {
+      if (!isRecord(note) || !isDay(note.day) || note.day <= previous || !isPositiveAmount(note.priceKrw)) return false
+      previous = note.day
+    }
+  }
+  if (o.returnBy !== undefined && (o.status !== 'purchased' || !isDay(o.returnBy))) return false
+  if (o.returnedOn !== undefined && (o.status !== 'purchased' || !isDay(o.returnedOn))) return false
+  if (o.resale !== undefined) {
+    if (o.status !== 'purchased' || !isRecord(o.resale) || !isDay(o.resale.listedOn)) return false
+    if ((o.resale.soldOn === undefined) !== (o.resale.soldKrw === undefined)) return false
+    if (o.resale.soldOn !== undefined && (!isDay(o.resale.soldOn) || o.resale.soldOn < o.resale.listedOn || !isPositiveAmount(o.resale.soldKrw))) return false
+  }
+  return true
+}
+
 // 2차 선택 필드(PRD #10). 없으면 1차 기록이고, 있으면 규칙에 맞아야 한다
 function hasValidOptionalFields(o: Record<string, unknown>): boolean {
+  if (!hasValidPurchaseFields(o)) return false
   if (o.extensions !== undefined && !(Number.isInteger(o.extensions) && (o.extensions as number) >= 0)) return false
   if (!isNote(o.decisionNote) || !isNote(o.reviewNote)) return false
   if (o.satisfaction !== undefined && !(isString(o.satisfaction) && SATISFACTIONS.has(o.satisfaction))) return false
