@@ -96,10 +96,10 @@ describe('구독: 여러 탭', () => {
     expect(names(SUBS_KEY)).toEqual(['넷플릭스', '왓챠'])
     expect(screen.getByRole('article', { name: '왓챠' })).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: '유튜브' })).not.toBeInTheDocument()
-    const banner = within(screen.getByRole('status', { name: '구독 저장 상태' }))
-    expect(banner.getByText(/다른 탭에서 저장한 구독을 불러왔어요/)).toBeInTheDocument()
+    const banner = within(screen.getByRole('status', { name: '고정비 저장 상태' }))
+    expect(banner.getByText(/다른 탭에서 저장한 고정비를 불러왔어요/)).toBeInTheDocument()
     await user.click(banner.getByRole('button', { name: '확인' }))
-    expect(screen.queryByRole('status', { name: '구독 저장 상태' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: '고정비 저장 상태' })).not.toBeInTheDocument()
   })
 
   it('저장하지 못한 변경이 있을 때 다른 탭이 저장하면, 그 내용을 불러오고 이 탭의 변경이 반영되지 않았다고 알린다', async () => {
@@ -111,14 +111,14 @@ describe('구독: 여러 탭', () => {
     spy.mockRestore()
     otherTabWrites(SUBS_KEY, store(sub({ name: '왓챠' })))
     expect(screen.getByRole('article', { name: '왓챠' })).toBeInTheDocument()
-    const banner = within(screen.getByRole('status', { name: '구독 저장 상태' }))
+    const banner = within(screen.getByRole('status', { name: '고정비 저장 상태' }))
     expect(banner.getByText(/저장하지 않은 변경은 반영되지 않았어요/)).toBeInTheDocument()
   })
 
   it('다른 탭이 읽을 수 없는 값을 저장하면 손상으로 알리고, 이후 추가해도 덮어쓰지 않는다', async () => {
     const user = await openSubs()
     otherTabWrites(SUBS_KEY, '{"schemaVersion":2}')
-    expect(within(screen.getByRole('status', { name: '구독 저장 상태' })).getByText(/저장된 구독을 읽을 수 없어요/)).toBeInTheDocument()
+    expect(within(screen.getByRole('status', { name: '고정비 저장 상태' })).getByText(/저장된 고정비를 읽을 수 없어요/)).toBeInTheDocument()
     await addMonthly(user, '유튜브')
     expect(localStorage.getItem(SUBS_KEY)).toBe('{"schemaVersion":2}')
   })
@@ -308,7 +308,7 @@ describe('손상 상태와 다른 탭', () => {
     await addMonthly(user, '유튜브')
     otherTabWrites(SUBS_KEY, store(sub({ name: '왓챠' })))
     expect(screen.getByRole('article', { name: '왓챠' })).toBeInTheDocument()
-    expect(within(screen.getByRole('status', { name: '구독 저장 상태' })).getByText(/저장하지 않은 변경은 반영되지 않았어요/)).toBeInTheDocument()
+    expect(within(screen.getByRole('status', { name: '고정비 저장 상태' })).getByText(/저장하지 않은 변경은 반영되지 않았어요/)).toBeInTheDocument()
   })
 
   it('손상 상태에서 아무것도 바꾸지 않았다면 다른 탭이 정상 저장했을 때 안내 없이 맞춘다', async () => {
@@ -336,8 +336,8 @@ describe('손상 상태와 다른 탭', () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('tab', { name: '고정비' }))
-    const banner = within(screen.getByRole('status', { name: '구독 저장 상태' }))
-    await user.click(banner.getByRole('button', { name: '구독 기록 초기화' }))
+    const banner = within(screen.getByRole('status', { name: '고정비 저장 상태' }))
+    await user.click(banner.getByRole('button', { name: '고정비 기록 초기화' }))
     otherTabWrites(SUBS_KEY, store(sub({ name: '왓챠' })), false)
     await user.click(banner.getByRole('button', { name: '초기화' }))
     expect(names(SUBS_KEY)).toEqual(['왓챠'])

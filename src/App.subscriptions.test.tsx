@@ -94,11 +94,11 @@ describe('구독 정리함 (F14)', () => {
   it('손상된 구독 데이터는 덮어쓰지 않고 알리며, 확인 후 초기화한다', async () => {
     localStorage.setItem(SUBS_KEY, '{bad')
     const { user } = await openSubs()
-    const banner = within(screen.getByRole('status', { name: '구독 저장 상태' }))
-    expect(banner.getByText(/저장된 구독을 읽을 수 없어요/)).toBeInTheDocument()
-    await user.click(banner.getByRole('button', { name: '구독 기록 초기화' }))
+    const banner = within(screen.getByRole('status', { name: '고정비 저장 상태' }))
+    expect(banner.getByText(/저장된 고정비를 읽을 수 없어요/)).toBeInTheDocument()
+    await user.click(banner.getByRole('button', { name: '고정비 기록 초기화' }))
     await user.click(banner.getByRole('button', { name: '초기화' }))
-    expect(screen.queryByRole('status', { name: '구독 저장 상태' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: '고정비 저장 상태' })).not.toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem(SUBS_KEY) ?? '{}').schemaVersion).toBe(1)
   })
 

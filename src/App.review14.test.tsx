@@ -150,7 +150,7 @@ describe('백업 불러오기 보완 (중간·낮음)', () => {
     await user.click(confirm.getByRole('button', { name: '바꾸기' }))
     expect(screen.getByRole('status', { name: '백업 상태' })).toHaveTextContent('백업 파일의 기록으로 바꿨지만 구독을 저장하지 못했어요. 각 화면의 저장 안내를 확인해 주세요.')
     await user.click(screen.getByRole('tab', { name: '고정비' }))
-    expect(screen.getByRole('status', { name: '구독 저장 상태' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '고정비 저장 상태' })).toBeInTheDocument()
   })
 
   it('손상 상태에서도 확인하면 백업으로 바꾸고 저장 안내가 사라진다', async () => {

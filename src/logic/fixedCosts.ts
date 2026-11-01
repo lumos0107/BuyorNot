@@ -49,6 +49,13 @@ export const NAME_PLACEHOLDER = '예: 넷플릭스, 배민클럽, 휴대폰 요�
 export const EMPTY_TITLE = '아직 등록한 고정비가 없어요.'
 export const EMPTY_NOTE = '구독·멤버십·통신·월세처럼 매월·매년 나가는 돈을 적어 두면 다음 결제일과 합계를 확인할 수 있어요.'
 export const STALE_NOTICE = '다른 탭에서 이 고정비가 바뀌었어요. 취소한 뒤 다시 열어 고쳐 주세요.'
+export const FIXED_STORAGE_LABEL = '고정비 저장 상태'
+export const FIXED_UNAVAILABLE = '이 브라우저에서는 고정비를 저장할 수 없어요. 새로고침하면 사라져요.'
+export const FIXED_SAVE_FAILED = '고정비를 저장하지 못했어요. 브라우저 저장 공간이나 설정을 확인한 뒤 다시 저장해 주세요.'
+export const FIXED_REPLACED = '다른 탭에서 저장한 고정비를 불러왔어요. 이 탭에서 저장하지 않은 변경은 반영되지 않았어요.'
+export const FIXED_CORRUPT = '저장된 고정비를 읽을 수 없어요. 초기화하기 전까지는 새로 넣은 고정비가 저장되지 않아요.'
+export const FIXED_RESET_LABEL = '고정비 기록 초기화'
+export const FIXED_RESET_NOTE = '초기화하면 읽을 수 없는 고정비는 사라지고, 지금 화면의 고정비만 저장돼요.'
 
 // PRD F46 무료 체험 끝나는 날
 export const TRIAL_LABEL = '무료 체험 끝나는 날 (선택)'

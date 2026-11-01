@@ -201,16 +201,16 @@ describe('GPT 10~11단계 검토 반영', () => {
   })
 
   describe('초기화 확인의 포커스', () => {
-    it('구독 기록 초기화: 확인으로 들어가면 "초기화"에, 취소하면 원래 버튼에, 초기화하면 화면 제목에 포커스가 간다', async () => {
+    it('고정비 기록 초기화: 확인으로 들어가면 "초기화"에, 취소하면 원래 버튼에, 초기화하면 화면 제목에 포커스가 간다', async () => {
       localStorage.setItem(SUBS_KEY, '{bad')
       const user = userEvent.setup()
       await openSubs(user)
-      const banner = within(screen.getByRole('status', { name: '구독 저장 상태' }))
-      await user.click(banner.getByRole('button', { name: '구독 기록 초기화' }))
+      const banner = within(screen.getByRole('status', { name: '고정비 저장 상태' }))
+      await user.click(banner.getByRole('button', { name: '고정비 기록 초기화' }))
       expect(banner.getByRole('button', { name: '초기화' })).toHaveFocus()
       await user.click(banner.getByRole('button', { name: '취소' }))
-      expect(banner.getByRole('button', { name: '구독 기록 초기화' })).toHaveFocus()
-      await user.click(banner.getByRole('button', { name: '구독 기록 초기화' }))
+      expect(banner.getByRole('button', { name: '고정비 기록 초기화' })).toHaveFocus()
+      await user.click(banner.getByRole('button', { name: '고정비 기록 초기화' }))
       await user.click(banner.getByRole('button', { name: '초기화' }))
       expect(screen.getByRole('heading', { level: 2, name: '고정비' })).toHaveFocus()
     })
@@ -238,11 +238,11 @@ describe('GPT 10~11단계 검토 반영', () => {
       const user = userEvent.setup()
       await openSubs(user)
       await addMonthly(user, '넷플릭스')
-      const banner = within(screen.getByRole('status', { name: '구독 저장 상태' }))
-      expect(banner.getByText(/구독을 저장하지 못했어요/)).toBeInTheDocument()
+      const banner = within(screen.getByRole('status', { name: '고정비 저장 상태' }))
+      expect(banner.getByText(/고정비를 저장하지 못했어요/)).toBeInTheDocument()
       spy.mockRestore()
       await user.click(banner.getByRole('button', { name: '다시 저장' }))
-      expect(screen.queryByRole('status', { name: '구독 저장 상태' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('status', { name: '고정비 저장 상태' })).not.toBeInTheDocument()
       expect(localStorage.getItem(SUBS_KEY)).toContain('넷플릭스')
     })
 

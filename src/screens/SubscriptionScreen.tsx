@@ -5,7 +5,14 @@ import {
   EDIT_FORM,
   EMPTY_NOTE,
   EMPTY_TITLE,
+  FIXED_CORRUPT,
+  FIXED_REPLACED,
+  FIXED_RESET_LABEL,
+  FIXED_RESET_NOTE,
+  FIXED_SAVE_FAILED,
+  FIXED_STORAGE_LABEL,
   FIXED_TITLE,
+  FIXED_UNAVAILABLE,
   KIND_LABEL,
   NAME_LABEL,
   NAME_PLACEHOLDER,
@@ -235,11 +242,11 @@ function SubsBanner({
 }) {
   if (status.kind === 'ok') return null
   return (
-    <div className="banner stack" role="status" aria-label="구독 저장 상태">
-      {status.kind === 'unavailable' ? <p>이 브라우저에서는 구독을 저장할 수 없어요. 새로고침하면 사라져요.</p> : null}
+    <div className="banner stack" role="status" aria-label={FIXED_STORAGE_LABEL}>
+      {status.kind === 'unavailable' ? <p>{FIXED_UNAVAILABLE}</p> : null}
       {status.kind === 'save-failed' ? (
         <>
-          <p>구독을 저장하지 못했어요. 브라우저 저장 공간이나 설정을 확인한 뒤 다시 저장해 주세요.</p>
+          <p>{FIXED_SAVE_FAILED}</p>
           <div className="btn-row">
             <Button onClick={onRetry}>다시 저장</Button>
           </div>
@@ -247,7 +254,7 @@ function SubsBanner({
       ) : null}
       {status.kind === 'replaced' ? (
         <>
-          <p>다른 탭에서 저장한 구독을 불러왔어요. 이 탭에서 저장하지 않은 변경은 반영되지 않았어요.</p>
+          <p>{FIXED_REPLACED}</p>
           <div className="btn-row">
             <Button onClick={onDismiss}>확인</Button>
           </div>
@@ -255,10 +262,10 @@ function SubsBanner({
       ) : null}
       {status.kind === 'corrupt' ? (
         <>
-          <p>저장된 구독을 읽을 수 없어요. 초기화하기 전까지는 새로 넣은 구독이 저장되지 않아요.</p>
+          <p>{FIXED_CORRUPT}</p>
           <ResetConfirm
-            label="구독 기록 초기화"
-            note="초기화하면 읽을 수 없는 구독은 사라지고, 지금 화면의 구독만 저장돼요."
+            label={FIXED_RESET_LABEL}
+            note={FIXED_RESET_NOTE}
             onReset={onReset}
           />
         </>
