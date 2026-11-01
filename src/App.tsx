@@ -149,7 +149,7 @@ export default function App() {
           <BillsSection bills={bills} today={wishlist.now} />
         </TabPanel>
         <TabPanel id="savings" hidden={screen !== 'savings'}>
-          <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} today={wishlist.now} />
+          <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} spending={spending} today={wishlist.now} />
         </TabPanel>
       </main>
 

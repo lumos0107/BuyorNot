@@ -39,6 +39,9 @@ import {
 } from '../logic/savings'
 import { formatWon } from '../logic/number'
 import { pantryAvoidedTotals, type PantryStore } from '../logic/pantry'
+import { skippedSpendingTotal } from '../logic/spending'
+import type { useSpending } from '../store/useSpending'
+import { SpendingSection } from './SpendingSection'
 import { sameRecord } from '../logic/records'
 import { toDayIso, yearsLater, type Subscription } from '../logic/subscriptions'
 import { newId, type WishItem } from '../logic/wishlist'
@@ -56,14 +59,16 @@ type Props = {
   subscriptions: readonly Subscription[]
   savings: ReturnType<typeof useSavings>
   pantry: PantryStore
+  spending: ReturnType<typeof useSpending>
   today: Date
 }
 
-export function SavingsScreen({ items, subscriptions, savings, pantry, today }: Props) {
+export function SavingsScreen({ items, subscriptions, savings, pantry, spending, today }: Props) {
   // 저장 안내가 사라지면 포커스를 화면 제목으로 옮긴다
   const headingRef = useRef<HTMLHeadingElement>(null)
   const n = savingsNumbers(items, subscriptions, savings.store)
   const avoided = pantryAvoidedTotals(pantry.events)
+  const smallSkipped = skippedSpendingTotal(spending.store.entries)
   const hasOriginalNumbers = !isSavingsEmpty(n)
   // 기록을 지우면 화면 제목으로 포커스를 옮긴다. 다른 탭 기록을 불러와 반영되지 않았으면 옮기지 않는다
   const removeTransfer = (id: string): boolean => {
@@ -89,7 +94,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, today }: 
           headingRef.current?.focus()
         }}
       />
-      {!hasOriginalNumbers && avoided.cookedCount + avoided.stockCount === 0 ? (
+      {!hasOriginalNumbers && avoided.cookedCount + avoided.stockCount + smallSkipped.count === 0 ? (
         <p>{SAVINGS_EMPTY}</p>
       ) : hasOriginalNumbers ? (
         <section className="card stack" aria-label="모으기 요약">
@@ -125,9 +130,14 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, today }: 
         {avoided.cookedCount > 0 ? <p className="note">해 먹었다고 적은 금액은 배달 대신 썼을 금액을 직접 적은 값이에요. 실제로 모은 돈은 아니에요.</p> : null}
         {avoided.stockCount > 0 ? <p className="note">있어서 안 샀다고 적은 금액은 마지막으로 산 값이에요. 실제로 모은 돈은 아니에요.</p> : null}
       </section> : null}
+      {smallSkipped.count > 0 ? <section className="card stack" aria-label="참았다고 적은 작은 지출">
+        <p className="card-row"><span>참았다고 적은 작은 지출</span><span className="price">{formatWon(smallSkipped.amountKrw)}</span></p>
+        <p className="note">참았다고 적은 금액은 실제로 옮긴 돈이 아니에요.</p>
+      </section> : null}
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />
       <TransferLog transfers={savings.store.transfers} onRemove={removeTransfer} onLostFocus={() => headingRef.current?.focus()} />
+      <SpendingSection spending={spending} today={today} />
     </div>
   )
 }
