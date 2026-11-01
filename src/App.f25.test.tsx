@@ -70,7 +70,7 @@ describe('구독 사용량 직접 적기 (F25, AC44)', () => {
     await user.click(usageForm('티빙').getByRole('button', { name: '저장' }))
     expect(card('티빙').getByText('사용량(10/11에 적음): 최근 30일 사용 없음')).toBeInTheDocument()
     expect(card('티빙').getByText('해지 후보')).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: '구독 요약' })).getByText('해지 후보 1개 · 월평균 9,500원')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: '고정비 요약' })).getByText('해지 후보 1개 · 월평균 9,500원')).toBeInTheDocument()
   })
 
   it('범위를 벗어나거나 숫자가 아니면 오류를 입력에 연결하고 저장하지 않는다', async () => {

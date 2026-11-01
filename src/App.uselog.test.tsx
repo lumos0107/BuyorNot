@@ -27,11 +27,11 @@ async function openSubs() {
 describe('오늘 썼어요 (F19)', () => {
   it('누르면 마지막 사용일이 오늘이 되고 확인 필요에서 빠지며, 직접 기록한 사용량이 보인다. 다시 누르면 취소된다', async () => {
     const user = await openSubs()
-    const form = within(screen.getByRole('form', { name: '구독 담기' }))
-    await user.type(form.getByLabelText('구독 이름'), '티빙')
+    const form = within(screen.getByRole('form', { name: '고정비 담기' }))
+    await user.type(form.getByLabelText('이름'), '티빙')
     await user.type(form.getByLabelText('요금'), '9500')
     await user.type(form.getByLabelText('결제일 (매월)'), '10')
-    await user.click(form.getByRole('button', { name: '구독 추가' }))
+    await user.click(form.getByRole('button', { name: '고정비 추가' }))
     // 사용 기록이 없으면 확인 필요 (F23)
     expect(card('티빙').getByText('확인 필요')).toBeInTheDocument()
 
@@ -68,7 +68,7 @@ describe('사용량 금액 안내 (문구 점검 C1, GPT 29번)', () => {
   it('금액이 보이는 사용량이 있으면 요약에 한 번 설명한다', async () => {
     localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub(['2026-10-10'])] }))
     await openSubs()
-    expect(within(screen.getByRole('region', { name: '구독 요약' })).getByText(NOTE)).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: '고정비 요약' })).getByText(NOTE)).toBeInTheDocument()
   })
 
   it('최근 30일 사용 기록 없음처럼 금액이 없으면 설명하지 않는다', async () => {

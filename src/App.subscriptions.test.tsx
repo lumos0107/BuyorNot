@@ -24,27 +24,27 @@ async function openSubs() {
   return { user, ...utils }
 }
 
-const form = () => within(screen.getByRole('form', { name: '구독 담기' }))
+const form = () => within(screen.getByRole('form', { name: '고정비 담기' }))
 const card = (name: string) => within(screen.getByRole('article', { name }))
-const summary = () => within(screen.getByRole('region', { name: '구독 요약' }))
+const summary = () => within(screen.getByRole('region', { name: '고정비 요약' }))
 
 type Fill = { name: string; price: string; cycle?: '매월' | '매년'; billingDay?: string; renewal?: string; lastUsed?: string }
 
 async function addSub(user: ReturnType<typeof userEvent.setup>, f: Fill) {
-  if (f.name) await user.type(form().getByLabelText('구독 이름'), f.name)
+  if (f.name) await user.type(form().getByLabelText('이름'), f.name)
   await user.type(form().getByLabelText('요금'), f.price)
   await user.click(form().getByRole('radio', { name: f.cycle ?? '매월' }))
   if ((f.cycle ?? '매월') === '매월') await user.type(form().getByLabelText('결제일 (매월)'), f.billingDay ?? '15')
   else fireEvent.change(form().getByLabelText('다음 결제일'), { target: { value: f.renewal ?? '' } })
   if (f.lastUsed) fireEvent.change(form().getByLabelText('마지막 사용일 (선택)'), { target: { value: f.lastUsed } })
-  await user.click(form().getByRole('button', { name: '구독 추가' }))
+  await user.click(form().getByRole('button', { name: '고정비 추가' }))
 }
 
 describe('구독 정리함 (F14)', () => {
   it('네 번째 메뉴로 열리고, 비어 있으면 안내한다', async () => {
     await openSubs()
     expect(screen.getByRole('tab', { name: '고정비', selected: true })).toBeInTheDocument()
-    expect(screen.getByText('아직 등록한 구독이 없어요.')).toBeInTheDocument()
+    expect(screen.getByText('아직 등록한 고정비가 없어요.')).toBeInTheDocument()
   })
 
   it('AC27: 월 구독을 넣으면 다음 결제일·D-n과 요약이 보인다', async () => {
@@ -69,7 +69,7 @@ describe('구독 정리함 (F14)', () => {
   it('잘못된 입력은 오류를 보여주고 추가하지 않는다', async () => {
     const { user } = await openSubs()
     await addSub(user, { name: '', price: '13500', billingDay: '32' })
-    expect(form().getByLabelText('구독 이름')).toHaveAccessibleDescription(/이름을 입력/)
+    expect(form().getByLabelText('이름')).toHaveAccessibleDescription(/이름을 입력/)
     expect(form().getByLabelText('결제일 (매월)')).toHaveAccessibleDescription(/1~31일/)
     expect(screen.queryByRole('article')).not.toBeInTheDocument()
   })
@@ -80,7 +80,7 @@ describe('구독 정리함 (F14)', () => {
     unmount()
     const again = await openSubs()
     await again.user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
-    const editor = within(screen.getByRole('form', { name: '구독 수정' }))
+    const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
     await again.user.clear(editor.getByLabelText('요금'))
     await again.user.type(editor.getByLabelText('요금'), '17000')
     await again.user.click(editor.getByRole('button', { name: '저장' }))
@@ -106,14 +106,14 @@ describe('구독 정리함 (F14)', () => {
     const { user } = await openSubs()
     await addSub(user, { name: '넷플릭스', price: '13500', billingDay: '15' })
     await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
-    expect(within(screen.getByRole('form', { name: '구독 수정' })).getByLabelText('구독 이름')).toHaveFocus()
-    await user.click(within(screen.getByRole('form', { name: '구독 수정' })).getByRole('button', { name: '취소' }))
+    expect(within(screen.getByRole('form', { name: '고정비 수정' })).getByLabelText('이름')).toHaveFocus()
+    await user.click(within(screen.getByRole('form', { name: '고정비 수정' })).getByRole('button', { name: '취소' }))
     await user.click(card('넷플릭스').getByRole('button', { name: '삭제' }))
     await user.click(card('넷플릭스').getByRole('button', { name: '취소' }))
     expect(card('넷플릭스').getByRole('button', { name: '삭제' })).toHaveFocus()
     await user.click(card('넷플릭스').getByRole('button', { name: '삭제' }))
     await user.click(card('넷플릭스').getByRole('button', { name: '지우기' }))
-    expect(screen.getByRole('heading', { level: 2, name: '구독' })).toHaveFocus()
+    expect(screen.getByRole('heading', { level: 2, name: '고정비' })).toHaveFocus()
   })
 
   it('예시 구독을 넣으면 월·연 구독, 배달·쇼핑 멤버십과 해지 후보가 함께 보인다', async () => {

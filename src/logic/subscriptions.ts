@@ -165,20 +165,21 @@ export type SubscriptionSummary = {
   yearlyTotal: number
   candidateCount: number
   candidateMonthly: number
-  /** 사용 기록이 없는 구독 수 (F23) */
+  /** 사용 기록이 없는 구독·멤버십 수 (F23) */
   unknownCount: number
 }
 
 export function subscriptionSummary(subs: readonly Subscription[], today: Date): SubscriptionSummary {
   const monthlyRaw = subs.filter((s) => s.cycle === 'monthly').reduce((sum, s) => sum + s.priceKrw, 0)
   const yearlyRaw = subs.filter((s) => s.cycle === 'yearly').reduce((sum, s) => sum + s.priceKrw, 0)
-  const candidates = subs.filter((s) => isCancelCandidate(s, today))
+  // 해지 후보·확인 필요는 구독·멤버십에만 센다 (F45)
+  const candidates = subs.filter((s) => tracksUsage(s) && isCancelCandidate(s, today))
   return {
     monthlyTotal: subs.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
     yearlyTotal: monthlyRaw * 12 + yearlyRaw,
     candidateCount: candidates.length,
     candidateMonthly: candidates.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
-    unknownCount: subs.filter(needsUsageCheck).length,
+    unknownCount: subs.filter((s) => tracksUsage(s) && needsUsageCheck(s)).length,
   }
 }
 
@@ -200,6 +201,8 @@ export type SubscriptionRawInput = {
   renewalDate: string
   lastUsedDate: string
   memo: string
+  /** 고정비 종류 (F45). 없으면 구독 */
+  kind?: FixedCostKind
 }
 export type SubscriptionInput = Pick<
   Subscription,
@@ -217,7 +220,7 @@ export function validateSubscriptionInput(
   const value: SubscriptionInput = { name: '', priceKrw: 0, cycle: raw.cycle, lastUsedDate: null }
 
   const name = raw.name.trim()
-  if (name.length === 0) errors.name = '구독 이름을 입력해 주세요'
+  if (name.length === 0) errors.name = '이름을 입력해 주세요'
   else if (name.length > SUB_NAME_MAX) errors.name = `이름은 ${SUB_NAME_MAX}자 이하로 적어 주세요`
   else value.name = name
 
@@ -242,7 +245,10 @@ export function validateSubscriptionInput(
     else value.renewalDate = raw.renewalDate.trim()
   }
 
-  const lastUsedRaw = raw.lastUsedDate.trim()
+  // 구독이면 kind를 넣지 않는다. 구독·멤버십이 아니면 마지막 사용일 칸을 보지 않고 비운다 (F45)
+  const kind = raw.kind ?? 'subscription'
+  if (kind !== 'subscription') value.kind = kind
+  const lastUsedRaw = tracksUsage({ kind }) ? raw.lastUsedDate.trim() : ''
   if (lastUsedRaw !== '') {
     const used = parseDay(lastUsedRaw)
     if (!used) errors.lastUsedDate = '올바른 날짜를 골라 주세요'

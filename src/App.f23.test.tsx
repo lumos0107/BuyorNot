@@ -58,17 +58,17 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     return user
   }
-  const summary = () => within(screen.getByRole('region', { name: '구독 요약' }))
+  const summary = () => within(screen.getByRole('region', { name: '고정비 요약' }))
   const NOTE = "사용 기록이 없는 구독 1개는 마지막으로 쓴 날을 적거나 '오늘 썼어요'를 누르면 해지 후보인지 알려 줘요."
 
   it('마지막 사용을 비워 두면 해지 후보가 아니라 확인 필요이고, 오늘 썼어요를 누르면 사라졌다가 다시 누르면 돌아온다', async () => {
     const user = await openSubs()
-    const form = within(screen.getByRole('form', { name: '구독 담기' }))
+    const form = within(screen.getByRole('form', { name: '고정비 담기' }))
     expect(form.getByLabelText('마지막 사용일 (선택)')).toHaveAccessibleDescription("기록된 마지막 사용일로부터 31일이 지나면 해지 후보로 표시해요. 마지막 사용일과 '오늘 썼어요' 기록이 모두 없으면 '확인 필요'로 표시해요")
-    await user.type(form.getByLabelText('구독 이름'), '티빙')
+    await user.type(form.getByLabelText('이름'), '티빙')
     await user.type(form.getByLabelText('요금'), '9500')
     await user.type(form.getByLabelText('결제일 (매월)'), '10')
-    await user.click(form.getByRole('button', { name: '구독 추가' }))
+    await user.click(form.getByRole('button', { name: '고정비 추가' }))
     expect(card('티빙').getByText('확인 필요')).toBeInTheDocument()
     expect(card('티빙').queryByText('해지 후보')).not.toBeInTheDocument()
     expect(summary().getByText(NOTE)).toBeInTheDocument()

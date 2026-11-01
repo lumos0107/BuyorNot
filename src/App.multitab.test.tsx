@@ -23,7 +23,7 @@ afterEach(() => {
 })
 
 const card = (name: string) => within(screen.getByRole('article', { name }))
-const subsForm = () => within(screen.getByRole('form', { name: '구독 담기' }))
+const subsForm = () => within(screen.getByRole('form', { name: '고정비 담기' }))
 const wishForm = () => within(screen.getByRole('form', { name: '물건 담기' }))
 const saved = (key: string) => JSON.parse(localStorage.getItem(key) ?? '{}')
 const names = (key: string) => saved(key).items.map((i: { name: string }) => i.name)
@@ -67,10 +67,10 @@ function otherTabWrites(key: string, value: string, event = true) {
 }
 
 async function addMonthly(user: ReturnType<typeof userEvent.setup>, name: string) {
-  await user.type(subsForm().getByLabelText('구독 이름'), name)
+  await user.type(subsForm().getByLabelText('이름'), name)
   await user.type(subsForm().getByLabelText('요금'), '9900')
   await user.type(subsForm().getByLabelText('결제일 (매월)'), '5')
-  await user.click(subsForm().getByRole('button', { name: '구독 추가' }))
+  await user.click(subsForm().getByRole('button', { name: '고정비 추가' }))
 }
 
 async function addWish(user: ReturnType<typeof userEvent.setup>, name: string) {
@@ -128,10 +128,10 @@ describe('구독: 여러 탭', () => {
     const user = await openSubs()
     await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
     otherTabWrites(SUBS_KEY, store(sub({ priceKrw: 17000, updatedAt: iso(T0.getTime()) })))
-    const editor = within(screen.getByRole('form', { name: '구독 수정' }))
+    const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
     await user.type(editor.getByLabelText('메모 (선택)'), '가족 공유')
     await user.click(editor.getByRole('button', { name: '저장' }))
-    expect(editor.getByRole('alert')).toHaveTextContent('다른 탭에서 이 구독이 바뀌었어요')
+    expect(editor.getByRole('alert')).toHaveTextContent('다른 탭에서 이 고정비가 바뀌었어요')
     expect(saved(SUBS_KEY).items[0]).toMatchObject({ priceKrw: 17000 })
     expect(saved(SUBS_KEY).items[0].memo).toBeUndefined()
   })
@@ -145,11 +145,11 @@ describe('구독: 여러 탭', () => {
     act(() => {
       window.dispatchEvent(new Event('focus'))
     })
-    const editor = within(screen.getByRole('form', { name: '구독 수정' }))
+    const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
     expect(editor.getByLabelText('다음 결제일')).toHaveValue('2026-10-11')
     await user.type(editor.getByLabelText('메모 (선택)'), '가족 공유')
     await user.click(editor.getByRole('button', { name: '저장' }))
-    expect(screen.queryByRole('form', { name: '구독 수정' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: '고정비 수정' })).not.toBeInTheDocument()
     expect(saved(SUBS_KEY).items[0]).toMatchObject({ renewalDate: '2025-10-11', memo: '가족 공유' })
   })
 })
@@ -279,10 +279,10 @@ it('수정 폼 저장 경고는 취소하면 사라지고, 다시 열면 바뀐 
   await user.click(screen.getByRole('tab', { name: '고정비' }))
   await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
   otherTabWrites(SUBS_KEY, store(sub({ priceKrw: 17000, updatedAt: iso(T0.getTime()) })))
-  await user.click(within(screen.getByRole('form', { name: '구독 수정' })).getByRole('button', { name: '저장' }))
-  await user.click(within(screen.getByRole('form', { name: '구독 수정' })).getByRole('button', { name: '취소' }))
+  await user.click(within(screen.getByRole('form', { name: '고정비 수정' })).getByRole('button', { name: '저장' }))
+  await user.click(within(screen.getByRole('form', { name: '고정비 수정' })).getByRole('button', { name: '취소' }))
   await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
-  const editor = within(screen.getByRole('form', { name: '구독 수정' }))
+  const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
   expect(editor.getByLabelText('요금')).toHaveValue('17000')
   fireEvent.change(editor.getByLabelText('메모 (선택)'), { target: { value: '가족 공유' } })
   await user.click(editor.getByRole('button', { name: '저장' }))
@@ -353,9 +353,9 @@ describe('수정 폼의 바뀜 판단과 처음 회고', () => {
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
     otherTabWrites(SUBS_KEY, store(sub({ priceKrw: 17000 })))
-    const editor = within(screen.getByRole('form', { name: '구독 수정' }))
+    const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
     await user.click(editor.getByRole('button', { name: '저장' }))
-    expect(editor.getByRole('alert')).toHaveTextContent('다른 탭에서 이 구독이 바뀌었어요')
+    expect(editor.getByRole('alert')).toHaveTextContent('다른 탭에서 이 고정비가 바뀌었어요')
     expect(saved(SUBS_KEY).items[0].priceKrw).toBe(17000)
   })
 

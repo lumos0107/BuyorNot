@@ -4,10 +4,13 @@ import {
   createSubscription,
   kindOf,
   parseSubscriptions,
+  subscriptionSummary,
   tracksUsage,
   updateSubscription,
+  validateSubscriptionInput,
   yearsLater,
   type Subscription,
+  type SubscriptionRawInput,
 } from './subscriptions'
 
 // PRD F45~F47 저장 (AC84): 고정비의 종류 kind, 무료 체험 끝나는 날 trialEndDate, 해지한 날 cancelledOn
@@ -103,5 +106,46 @@ describe('몇 해 뒤 같은 날 (F14·F46·F48)', () => {
     expect(iso(yearsLater(new Date(2026, 10, 1, 9), 10))).toBe('2036-11-01')
     expect(iso(yearsLater(new Date(2026, 10, 1, 9), -1))).toBe('2025-11-01')
     expect(yearsLater(new Date(2026, 10, 1, 9), 1).getHours()).toBe(12)
+  })
+})
+
+describe('고정비 입력 검사·요약 (F45)', () => {
+  const raw = (over: Partial<SubscriptionRawInput> = {}): SubscriptionRawInput => ({
+    name: '넷플릭스',
+    price: '13500',
+    cycle: 'monthly',
+    billingDay: '15',
+    renewalDate: '',
+    lastUsedDate: '',
+    memo: '',
+    ...over,
+  })
+
+  it('AC82: 통신으로 바꾸면 마지막 사용일을 비운다', () => {
+    // 마지막 사용일 칸에 값이 남아 있어도 통신이면 보지 않는다(잘못된 값이어도 오류가 아니다)
+    const phone = validateSubscriptionInput(raw({ kind: 'phone', lastUsedDate: '2026-10-20' }), NOW)
+    expect(phone.value).toMatchObject({ kind: 'phone', lastUsedDate: null })
+    expect(validateSubscriptionInput(raw({ kind: 'phone', lastUsedDate: '2099-01-01' }), NOW).errors).toEqual({})
+    // 구독이면 kind를 넣지 않고 마지막 사용일을 그대로 둔다
+    const sub = validateSubscriptionInput(raw({ kind: 'subscription', lastUsedDate: '2026-10-20' }), NOW)
+    expect('kind' in sub.value!).toBe(false)
+    expect(sub.value!.lastUsedDate).toBe('2026-10-20')
+    expect(validateSubscriptionInput(raw({ kind: 'membership', lastUsedDate: '2026-10-20' }), NOW).value).toMatchObject({ kind: 'membership', lastUsedDate: '2026-10-20' })
+  })
+
+  it('AC82: 통신은 해지 후보·확인 필요에 세지 않는다', () => {
+    const old = '2026-08-01'
+    const subs = [
+      { ...base, id: 'a', name: '구독', kind: undefined, lastUsedDate: old },
+      { ...base, id: 'b', name: '통신', kind: 'phone', lastUsedDate: old },
+      { ...base, id: 'c', name: '월세', kind: 'housing', lastUsedDate: null },
+      { ...base, id: 'd', name: '멤버십', kind: 'membership', lastUsedDate: null },
+    ] as Subscription[]
+    const s = subscriptionSummary(subs, NOW)
+    expect(s).toMatchObject({ candidateCount: 1, candidateMonthly: 55000, unknownCount: 1, monthlyTotal: 220000, yearlyTotal: 2640000 })
+  })
+
+  it('AC83: 이름이 비면 이름을 입력해 달라고 한다', () => {
+    expect(validateSubscriptionInput(raw({ name: '  ' }), NOW).errors.name).toBe('이름을 입력해 주세요')
   })
 })

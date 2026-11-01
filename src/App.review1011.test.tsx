@@ -17,7 +17,7 @@ afterEach(() => {
 })
 
 const card = (name: string) => within(screen.getByRole('article', { name }))
-const subsForm = () => within(screen.getByRole('form', { name: '구독 담기' }))
+const subsForm = () => within(screen.getByRole('form', { name: '고정비 담기' }))
 const wishForm = () => within(screen.getByRole('form', { name: '물건 담기' }))
 const summary = () => within(screen.getByRole('region', { name: '결정 기록 요약' }))
 
@@ -53,10 +53,10 @@ async function openSubs(user: ReturnType<typeof userEvent.setup>) {
 }
 
 async function addMonthly(user: ReturnType<typeof userEvent.setup>, name: string, price = '13500', day = '15') {
-  await user.type(subsForm().getByLabelText('구독 이름'), name)
+  await user.type(subsForm().getByLabelText('이름'), name)
   await user.type(subsForm().getByLabelText('요금'), price)
   await user.type(subsForm().getByLabelText('결제일 (매월)'), day)
-  await user.click(subsForm().getByRole('button', { name: '구독 추가' }))
+  await user.click(subsForm().getByRole('button', { name: '고정비 추가' }))
 }
 
 describe('GPT 10~11단계 검토 반영', () => {
@@ -101,11 +101,11 @@ describe('GPT 10~11단계 검토 반영', () => {
       await openSubs(user)
       expect(card('클라우드').getByText('다음 결제 2027-03-01 · D-141')).toBeInTheDocument()
       await user.click(card('클라우드').getByRole('button', { name: '수정' }))
-      const editor = within(screen.getByRole('form', { name: '구독 수정' }))
+      const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
       expect(editor.getByLabelText('다음 결제일')).toHaveValue('2027-03-01')
       await user.type(editor.getByLabelText('메모 (선택)'), '가족 공유')
       await user.click(editor.getByRole('button', { name: '저장' }))
-      expect(screen.queryByRole('form', { name: '구독 수정' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('form', { name: '고정비 수정' })).not.toBeInTheDocument()
       const saved = JSON.parse(localStorage.getItem(SUBS_KEY) ?? '{}').items[0]
       expect(saved.renewalDate).toBe('2026-03-01')
       expect(saved.memo).toBe('가족 공유')
@@ -116,7 +116,7 @@ describe('GPT 10~11단계 검토 반영', () => {
       const user = userEvent.setup()
       await openSubs(user)
       await user.click(card('클라우드').getByRole('button', { name: '수정' }))
-      const editor = within(screen.getByRole('form', { name: '구독 수정' }))
+      const editor = within(screen.getByRole('form', { name: '고정비 수정' }))
       fireEvent.change(editor.getByLabelText('다음 결제일'), { target: { value: '2027-01-15' } })
       await user.click(editor.getByRole('button', { name: '저장' }))
       expect(JSON.parse(localStorage.getItem(SUBS_KEY) ?? '{}').items[0].renewalDate).toBe('2027-01-15')
@@ -153,9 +153,9 @@ describe('GPT 10~11단계 검토 반영', () => {
     it('구독 담기도 저장에 실패하면 첫 오류 입력으로 포커스를 옮긴다', async () => {
       const user = userEvent.setup()
       await openSubs(user)
-      await user.type(subsForm().getByLabelText('구독 이름'), '넷플릭스')
+      await user.type(subsForm().getByLabelText('이름'), '넷플릭스')
       await user.type(subsForm().getByLabelText('결제일 (매월)'), '15')
-      await user.click(subsForm().getByRole('button', { name: '구독 추가' }))
+      await user.click(subsForm().getByRole('button', { name: '고정비 추가' }))
       expect(subsForm().getByLabelText('요금')).toHaveFocus()
     })
   })
@@ -212,7 +212,7 @@ describe('GPT 10~11단계 검토 반영', () => {
       expect(banner.getByRole('button', { name: '구독 기록 초기화' })).toHaveFocus()
       await user.click(banner.getByRole('button', { name: '구독 기록 초기화' }))
       await user.click(banner.getByRole('button', { name: '초기화' }))
-      expect(screen.getByRole('heading', { level: 2, name: '구독' })).toHaveFocus()
+      expect(screen.getByRole('heading', { level: 2, name: '고정비' })).toHaveFocus()
     })
 
     it('물건 기록 초기화도 같은 순서로 포커스를 옮기고, 초기화 뒤에는 사이트 제목으로 간다', async () => {
