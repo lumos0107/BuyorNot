@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { installmentLine, validateInstallment } from './beforeBuy'
+import { ALTERNATIVE_LINKS, installmentLine, usageCostLine, validateInstallment, validateUsesPerYear } from './beforeBuy'
 import type { WishItem } from './wishlist'
 
 const item: WishItem = { id: 'w1', name: '청소기', priceKrw: 300000, reason: '필요', url: null, createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', reviewAt: '2026-11-04T00:00:00.000Z', status: 'considering', decidedAt: null }
@@ -10,4 +10,17 @@ it('AC133: 12개월에 월 30,000원이면 총 360,000원·일시불보다 60,00
 it('AC134: 개월만 적으면 월 납입금 오류다', () => {
   expect(validateInstallment({ months: '12', monthly: '' }).errors.monthly).toBe('월 납입금을 적어 주세요.')
   expect(validateInstallment({ months: '1', monthly: '30000' }).errors.months).toBe('할부 개월은 2~36개월이어야 해요.')
+})
+it('AC135: 연 2번 쓰는 100,000원 물건은 한 번에 약 50,000원이다', () => {
+  expect(usageCostLine({ ...item, priceKrw: 100000, usesPerYear: 2 })).toBe('한 번 쓸 때 약 50,000원')
+  expect(usageCostLine({ ...item, usesPerYear: 3 })).toBeNull()
+  expect(validateUsesPerYear('0').error).toBe('1년에 쓰는 횟수는 1~365 사이여야 해요.')
+})
+it('AC136: 대안 링크는 상품명과 기록을 보내지 않는다', () => {
+  expect(ALTERNATIVE_LINKS).toHaveLength(2)
+  for (const link of ALTERNATIVE_LINKS) {
+    const url = new URL(link.href)
+    expect(url.search).toBe('')
+    expect(url.hash).toBe('')
+  }
 })

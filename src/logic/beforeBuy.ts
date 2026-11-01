@@ -25,3 +25,19 @@ export function installmentLine(item: Pick<WishItem, 'priceKrw' | 'installment'>
   const diff = total - item.priceKrw
   return `할부로 내면 총 ${formatWon(total)} · ${diff > 0 ? `일시불보다 ${formatWon(diff)} 더` : '일시불과 같아요'}`
 }
+
+export const ALTERNATIVE_NOTE = '빌리기·중고로 살펴볼 수도 있어요.'
+export const ALTERNATIVE_LINKS: readonly { name: string; href: string }[] = [
+  { name: '당근', href: 'https://www.daangn.com/' },
+  { name: '번개장터', href: 'https://m.bunjang.co.kr/' },
+]
+
+export function validateUsesPerYear(raw: string): { value?: number | null; error?: string } {
+  if (!raw.trim()) return { value: null }
+  const value = parseInteger(raw)
+  return value !== null && value >= 1 && value <= 365 ? { value } : { error: '1년에 쓰는 횟수는 1~365 사이여야 해요.' }
+}
+
+export function usageCostLine(item: Pick<WishItem, 'priceKrw' | 'usesPerYear'>): string | null {
+  return item.usesPerYear !== undefined && item.usesPerYear <= 2 ? `한 번 쓸 때 약 ${formatWon(Math.round(item.priceKrw / item.usesPerYear))}` : null
+}

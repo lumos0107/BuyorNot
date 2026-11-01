@@ -29,3 +29,16 @@ it('AC134: 월 납입금이 빠지면 오류가 연결되고 저장하지 않는
   expect(form.getByLabelText('월 납입금')).toHaveAccessibleDescription('월 납입금을 적어 주세요.')
   expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0]).not.toHaveProperty('installment')
 })
+
+it('AC135·AC136: 1년에 두 번 쓰는 물건은 사용당 금액과 중고 홈페이지 링크가 보인다', async () => {
+  const user = await open()
+  const form = within(screen.getByRole('form', { name: '청소기 사용 횟수' }))
+  await user.type(form.getByLabelText('1년에 몇 번 쓸까요? (선택)'), '2')
+  await user.click(form.getByRole('button', { name: '횟수 적기' }))
+  expect(screen.getByText('한 번 쓸 때 약 150,000원')).toBeInTheDocument()
+  const link = screen.getByRole('link', { name: '당근' })
+  expect(link).toHaveAttribute('href', 'https://www.daangn.com/')
+  expect(link).toHaveAttribute('target', '_blank')
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0].usesPerYear).toBe(2)
+})
