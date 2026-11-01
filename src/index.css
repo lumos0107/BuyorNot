@@ -681,6 +681,18 @@ details > summary {
   padding-top: 10px !important;
 }
 
+.benefit-item + .benefit-item {
+  border-top: 1px solid var(--line);
+}
+
+.benefit-item > summary {
+  min-height: 44px;
+}
+
+.benefit-item-content {
+  padding: 0 0 12px 16px;
+}
+
 /* 저축 목표 진행 막대 (F48): 색은 강조색 변수 */
 .goal-progress {
   width: 100%;

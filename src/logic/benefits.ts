@@ -1,4 +1,7 @@
+import { calendarDaysBetween, parseDay } from './dates'
 import { isDay, isIntBetween, isRecord, isString } from './guards'
+import { parseInteger } from './number'
+import { toDayIso } from './subscriptions'
 
 export type ProgramId = 'rent' | 'energy' | 'transport'
 export type ProgramStatus = 'checked' | 'applied' | 'receiving' | 'not-applicable'
@@ -13,6 +16,13 @@ export const BENEFITS_KEY = 'buyornot.benefits.v1'
 export const EMPTY_BENEFITS: BenefitsStore = { schemaVersion: 1, programs: [], cards: [], expiries: [], settlements: [] }
 export const PROGRAM_IDS: readonly ProgramId[] = ['rent', 'energy', 'transport']
 export const PROGRAM_STATUSES: readonly ProgramStatus[] = ['checked', 'applied', 'receiving', 'not-applicable']
+export const PROGRAM_STATUS_LABEL: Record<ProgramStatus, string> = { checked: '확인함', applied: '신청함', receiving: '받는 중', 'not-applicable': '해당 없음' }
+export const PROGRAMS: readonly { id: ProgramId; name: string; description: string; url: string }[] = [
+  { id: 'rent', name: '청년 월세 지원', description: '주거비 지원 안내', url: 'https://www.bokjiro.go.kr/' },
+  { id: 'energy', name: '에너지바우처', description: '냉난방비 지원 안내', url: 'https://www.energyv.or.kr/info/support_info.do' },
+  { id: 'transport', name: '교통비 환급', description: '모두의카드·K-패스 대중교통 환급 안내', url: 'https://korea-pass.kr/' },
+]
+export const PROGRAM_LIST_CHECKED_ON = '2026-11-02'
 export const CARD_MAX = 20
 export const EXPIRY_MAX = 50
 export const SETTLEMENT_MAX = 50
@@ -65,4 +75,21 @@ export function parseBenefits(raw: string | null): BenefitsLoadResult {
   } catch {
     return { ok: false, reason: 'corrupt' }
   }
+}
+
+export function validateProgramInput(programId: ProgramId, checkedOn: string, status: ProgramStatus, amount: string, today: Date): ProgramCheck | null {
+  if (!PROGRAM_IDS.includes(programId) || !isDay(checkedOn) || checkedOn > toDayIso(today) || !PROGRAM_STATUSES.includes(status)) return null
+  if (status !== 'receiving') return amount.trim() === '' ? { id: programId, checkedOn, status } : null
+  if (amount.trim() === '') return { id: programId, checkedOn, status }
+  const receivedKrw = parseInteger(amount)
+  return isIntBetween(receivedKrw, 1, MAX_KRW) ? { id: programId, checkedOn, status, receivedKrw } : null
+}
+
+export function programIncome(rows: readonly ProgramCheck[]): number {
+  return rows.reduce((total, row) => total + (row.status === 'receiving' ? row.receivedKrw ?? 0 : 0), 0)
+}
+
+export function programListStale(today: Date): boolean {
+  const checked = parseDay(PROGRAM_LIST_CHECKED_ON)
+  return checked !== null && calendarDaysBetween(checked, today) > 180
 }

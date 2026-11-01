@@ -15,6 +15,7 @@ import { WishlistScreen } from './screens/WishlistScreen'
 import { PantrySection } from './screens/PantrySection'
 import { BeforeBuySection } from './screens/BeforeBuySection'
 import { AfterBuySection } from './screens/AfterBuySection'
+import { BenefitsSection } from './screens/BenefitsSection'
 import { useSavings } from './store/useSavings'
 import { useBills } from './store/useBills'
 import { useBenefits } from './store/useBenefits'
@@ -157,7 +158,8 @@ export default function App() {
           <BillsSection bills={bills} today={wishlist.now} />
         </TabPanel>
         <TabPanel id="savings" hidden={screen !== 'savings'}>
-          <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} spending={spending} today={wishlist.now} />
+          <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} spending={spending} benefits={benefits.store} today={wishlist.now} />
+          <BenefitsSection benefits={benefits} today={wishlist.now} />
         </TabPanel>
       </main>
 
