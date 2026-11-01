@@ -4,6 +4,7 @@ import evalSummaryJson from './ai/evalSummary.json'
 import type { FormDraft } from './logic/draft'
 import { EvalReport } from './screens/ai/EvalReport'
 import { BackupSection } from './screens/BackupSection'
+import { BillsSection } from './screens/BillsSection'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { SavingsScreen } from './screens/SavingsScreen'
@@ -130,6 +131,7 @@ export default function App() {
             onReset={subscriptions.resetStorage}
             onDismiss={subscriptions.dismissNotice}
           />
+          <BillsSection bills={bills} today={wishlist.now} />
         </TabPanel>
         <TabPanel id="savings" hidden={screen !== 'savings'}>
           <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} today={wishlist.now} />

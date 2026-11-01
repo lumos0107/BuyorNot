@@ -1,4 +1,5 @@
 import { isIntBetween, isRecord, isString, isTimestamp } from './guards'
+import { formatWon, parseInteger } from './number'
 
 // PRD F53: 청구 월별 공과금. 고정비 합계와 분리해 저장한다.
 export type BillKind = 'electric' | 'gas' | 'water'
@@ -67,4 +68,95 @@ export function updateBill(store: BillsStore, id: string, value: BillValue, now:
 
 export function removeBill(store: BillsStore, id: string): BillsStore {
   return { schemaVersion: 1, items: store.items.filter((item) => item.id !== id) }
+}
+
+export type BillRawInput = { kind: BillKind; year: string; month: string; amount: string; twoMonths: boolean }
+export type BillFieldErrors = Partial<Record<'amount' | 'month', string>>
+
+export const BILLS_TITLE = '수도·가스·전기 요금'
+export const BILLS_INTRO = '고지서나 앱에서 본 금액과 청구 월만 적으면 돼요.'
+export const BILLS_SEASON_NOTE = '전기·가스는 계절마다 크게 달라서, 작년 같은 달 기록이 있으면 그 달과 비교해요.'
+export const BILLS_FULL = '기록이 너무 많아 더 적을 수 없어요. 백업한 뒤 오래된 기록을 지워 주세요.'
+export const BILL_DELETE_CONFIRM = '이 기록을 지울까요? 비교에서도 빠져요.'
+export const BILL_AMOUNT_NOT_NUMBER = '금액을 숫자로 입력해 주세요'
+export const BILL_AMOUNT_RANGE = '금액은 1원~1,000만 원 사이여야 해요'
+export const BILL_MONTH_FUTURE = '청구 월은 이번 달이거나 그 전이어야 해요'
+export const BILLS_STORAGE_LABEL = '공과금 저장 상태'
+export const BILLS_UNAVAILABLE = '이 브라우저에서는 공과금 기록을 저장할 수 없어요. 새로고침하면 사라져요.'
+export const BILLS_SAVE_FAILED = '공과금 기록을 저장하지 못했어요. 브라우저 저장 공간이나 설정을 확인한 뒤 다시 저장해 주세요.'
+export const BILLS_REPLACED = '다른 탭에서 저장한 공과금 기록을 불러왔어요. 이 탭에서 저장하지 않은 변경은 반영되지 않았어요.'
+export const BILLS_CORRUPT = '저장된 공과금 기록을 읽을 수 없어요. 초기화하기 전까지는 새로 적은 기록이 저장되지 않아요.'
+export const BILLS_RESET_LABEL = '공과금 기록 초기화'
+export const BILLS_RESET_NOTE = '초기화하면 읽을 수 없는 공과금 기록은 사라지고, 지금 화면의 기록만 저장돼요.'
+
+export function billYearOptions(today: Date): number[] {
+  return Array.from({ length: 6 }, (_, i) => today.getFullYear() - i)
+}
+
+export function validateBillInput(raw: BillRawInput, today: Date): { value?: BillValue; errors: BillFieldErrors } {
+  const errors: BillFieldErrors = {}
+  const amount = parseInteger(raw.amount)
+  if (amount === null) errors.amount = BILL_AMOUNT_NOT_NUMBER
+  else if (!isIntBetween(amount, 1, BILL_AMOUNT_MAX)) errors.amount = BILL_AMOUNT_RANGE
+  const month = `${raw.year}-${raw.month.padStart(2, '0')}`
+  const current = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+  if (!isBillMonth(month) || !billYearOptions(today).includes(Number(raw.year)) || month > current) errors.month = BILL_MONTH_FUTURE
+  if (Object.keys(errors).length || amount === null) return { errors }
+  return { value: { kind: raw.kind, month, amountKrw: amount, ...(raw.twoMonths ? { months: 2 } : {}) }, errors }
+}
+
+export function monthValue(b: Pick<Bill, 'amountKrw' | 'months'>): number {
+  return b.months === 2 ? Math.round(b.amountKrw / 2) : b.amountKrw
+}
+
+const monthNumber = (month: string) => Number(month.slice(5, 7))
+const monthIndex = (month: string) => Number(month.slice(0, 4)) * 12 + monthNumber(month)
+
+export function billCompareLine(items: readonly Bill[], kind: BillKind): string | null {
+  const ofKind = items.filter((item) => item.kind === kind).sort((a, b) => b.month.localeCompare(a.month))
+  const latest = ofKind[0]
+  if (!latest) return null
+  const two = latest.months === 2
+  const prefix = `${monthNumber(latest.month)}월 ${BILL_KIND_LABEL[kind]}${two ? '(두 달 치)' : ''} ${formatWon(latest.amountKrw)}${two ? ` · 한 달에 약 ${formatWon(monthValue(latest))}` : ''}`
+  const priorYear = ofKind.find((item) => monthIndex(latest.month) - monthIndex(item.month) === 12)
+  const recent = ofKind.filter((item) => { const gap = monthIndex(latest.month) - monthIndex(item.month); return gap >= 1 && gap <= 6 }).slice(0, 3)
+  const reference = priorYear ? [priorYear] : recent
+  if (reference.length === 0) return prefix
+  const baseline = Math.round(reference.reduce((sum, item) => sum + monthValue(item), 0) / reference.length)
+  const delta = monthValue(latest) - baseline
+  const frame = priorYear
+    ? `작년 ${monthNumber(latest.month)}월`
+    : reference.length === 1
+      ? `지난번(${monthNumber(reference[0].month)}월${two ? '' : `, ${formatWon(baseline)}`})`
+      : `최근 ${reference.length}번 평균(${two ? `한 달에 약 ${formatWon(baseline)}` : formatWon(baseline)})`
+  if (delta === 0) return `${prefix} · ${frame}${two ? '과 한 달 값이 같아요' : '과 같아요'}`
+  return `${prefix} · ${frame}보다 ${two ? '한 달에 약 ' : ''}${formatWon(Math.abs(delta))} ${delta > 0 ? '많아요' : '적어요'}`
+}
+
+export function billCompareLines(items: readonly Bill[]): string[] {
+  return BILL_KINDS.flatMap((kind) => billCompareLine(items, kind) ?? [])
+}
+
+export function billLogLine(b: Bill): string {
+  return `${b.month} · ${BILL_KIND_LABEL[b.kind]} · ${formatWon(b.amountKrw)}${b.months === 2 ? ' · 두 달 치' : ''}`
+}
+
+export function billDeleteName(b: Bill): string {
+  return `${b.month} ${BILL_KIND_LABEL[b.kind]} ${formatWon(b.amountKrw)} 기록 지우기`
+}
+
+export function sortBillsForLog(items: readonly Bill[]): Bill[] {
+  return [...items].sort((a, b) => BILL_KINDS.indexOf(a.kind) - BILL_KINDS.indexOf(b.kind) || b.month.localeCompare(a.month))
+}
+
+export function sameMonthConfirm(existing: Bill): string {
+  return `${Number(existing.month.slice(0, 4))}년 ${monthNumber(existing.month)}월 ${BILL_KIND_LABEL[existing.kind]} 요금이 이미 있어요(${formatWon(existing.amountKrw)}). 새 금액으로 바꿀까요?`
+}
+
+export function billSavedMessage(value: BillValue): string {
+  return `${Number(value.month.slice(0, 4))}년 ${monthNumber(value.month)}월 ${BILL_KIND_LABEL[value.kind]} 요금 ${formatWon(value.amountKrw)}을 적었어요.` // copy-check: ignore josa formatWon은 늘 원으로 끝난다
+}
+
+export function billReplacedMessage(value: BillValue): string {
+  return `${Number(value.month.slice(0, 4))}년 ${monthNumber(value.month)}월 ${BILL_KIND_LABEL[value.kind]} 요금을 ${formatWon(value.amountKrw)}으로 바꿨어요.` // copy-check: ignore josa formatWon은 늘 원으로 끝난다
 }
