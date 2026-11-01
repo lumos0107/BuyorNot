@@ -1,6 +1,6 @@
 import { calendarDaysBetween } from './dates'
 import { formatWon, josa } from './number'
-import { daysUntil, inTrial, kindOf, monthlyEquivalent, parseDay, type FixedCostKind, type Subscription, type SubscriptionSummary } from './subscriptions'
+import { daysUntil, inTrial, kindOf, monthlyEquivalent, nextBillingDate, parseDay, type FixedCostKind, type Subscription, type SubscriptionSummary } from './subscriptions'
 
 // PRD F45 고정비 정리함: 종류 이름, 요약의 종류별 줄, 화면 문장
 
@@ -79,7 +79,18 @@ export function trialSummaryLine(s: SubscriptionSummary): string | null {
 
 /** 카드의 요금 표시 (F14): 매월이면 "월 13,500원", 매년이면 "연 120,000원 · 월평균 10,000원" */
 export function priceText(sub: Subscription): string {
+  if (sub.cycle === 'weekly') return `${sub.intervalWeeks}주마다 ${formatWon(sub.priceKrw)} · 월평균 약 ${formatWon(monthlyEquivalent(sub))}`
   return sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월평균 ${formatWon(monthlyEquivalent(sub))}`
+}
+
+export function nextLabel(sub: Subscription): '다음 배송' | '다음 결제' {
+  return kindOf(sub) === 'delivery' ? '다음 배송' : '다음 결제'
+}
+
+export function skipLine(sub: Subscription, today: Date): string | null {
+  if (kindOf(sub) !== 'delivery' || sub.cycle !== 'weekly') return null
+  const left = daysUntil(nextBillingDate(sub, today), today)
+  return left >= 0 && left <= 3 ? '건너뛰기·해지는 그 서비스에서 해요.' : null
 }
 
 /** 해지 확인 문장(카드 안): 첫 줄, 둘째 줄, 통신·보험은 셋째 줄 */

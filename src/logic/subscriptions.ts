@@ -5,7 +5,7 @@ import { isUsageRecords, latestUseDay, type UsageRecord } from './usageRecords'
 import { NOTE_MAX, validateNote } from './wishlist'
 
 // PRD F14 구독 정리함. 날짜는 'YYYY-MM-DD'(현지 달력), 시각은 ISO.
-export type Cycle = 'monthly' | 'yearly'
+export type Cycle = 'monthly' | 'yearly' | 'weekly'
 
 // PRD F45 고정비 종류. 구독이면 저장하지 않는다(없으면 구독)
 export type FixedCostKind = 'subscription' | 'membership' | 'delivery' | 'phone' | 'housing' | 'insurance' | 'other'
@@ -21,6 +21,8 @@ export type Subscription = {
   billingDay?: number
   /** 연 구독: 다음(또는 지난) 갱신일. 지났으면 1년씩 더해 계산한다 */
   renewalDate?: string
+  /** 정기배송 주마다: 1~12주 간격 (F45 보강) */
+  intervalWeeks?: number
   /** 마지막으로 쓴 날. 비어 있고 오늘 썼어요 기록도 없으면 "확인 필요"(해지 후보 아님, F23) */
   lastUsedDate: string | null
   memo?: string
@@ -53,6 +55,7 @@ export const CANCEL_AFTER_DAYS = 31
 /** 예시 사용량의 범위: 30일 = 43,200분, 횟수 999번 */
 export const USAGE_MAX_MINUTES = 30 * 24 * 60
 export const USE_COUNT_MAX = 999
+export const INTERVAL_WEEKS_MAX = 12
 /** "오늘 썼어요" 기록을 남기는 기간 (F19) */
 export const USE_LOG_KEEP_DAYS = 90
 
@@ -83,8 +86,12 @@ export function daysUntil(iso: string, today: Date): number {
 }
 
 /** 연 요금은 ÷12를 원 미만 반올림한 값으로 표시만 한다. 합계는 원액으로 계산한다 */
+export function monthlyOf(sub: Pick<Subscription, 'cycle' | 'intervalWeeks'>, price: number): number {
+  return sub.cycle === 'monthly' ? price : sub.cycle === 'yearly' ? Math.round(price / 12) : Math.round((price * 52) / 12 / (sub.intervalWeeks ?? 1))
+}
+
 export function monthlyEquivalent(sub: Subscription): number {
-  return sub.cycle === 'monthly' ? sub.priceKrw : Math.round(sub.priceKrw / 12)
+  return monthlyOf(sub, sub.priceKrw)
 }
 
 /** 무료 체험 중: 오늘이 체험 끝나는 날이거나 그 전 (F46) */
@@ -113,6 +120,12 @@ export function nextBillingDate(sub: Subscription, today: Date): string {
   }
   const base = parseDay(sub.renewalDate ?? '')
   if (!base) return toIso(y, m, d)
+  if (sub.cycle === 'weekly') {
+    const periodDays = (sub.intervalWeeks ?? 1) * 7
+    const passed = calendarDaysBetween(base, today)
+    const cycles = passed <= 0 ? 0 : Math.ceil(passed / periodDays)
+    return toDayIso(new Date(base.getFullYear(), base.getMonth(), base.getDate() + cycles * periodDays, 12))
+  }
   const bm = base.getMonth() + 1
   const bd = base.getDate()
   // 원래 월·일을 유지하고 해마다 말일로 맞춘다 (2월 29일 → 평년 2월 28일)
@@ -183,11 +196,12 @@ export function subscriptionSummary(allSubs: readonly Subscription[], today: Dat
   const paying = subs.filter((s) => !inTrial(s, today))
   const monthlyRaw = paying.filter((s) => s.cycle === 'monthly').reduce((sum, s) => sum + s.priceKrw, 0)
   const yearlyRaw = paying.filter((s) => s.cycle === 'yearly').reduce((sum, s) => sum + s.priceKrw, 0)
+  const weeklyYearly = paying.filter((s) => s.cycle === 'weekly').reduce((sum, s) => sum + Math.round((s.priceKrw * 52) / (s.intervalWeeks ?? 1)), 0)
   // 해지 후보·확인 필요는 구독·멤버십에만 센다 (F45)
   const candidates = subs.filter((s) => tracksUsage(s) && isCancelCandidate(s, today))
   return {
     monthlyTotal: paying.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
-    yearlyTotal: monthlyRaw * 12 + yearlyRaw,
+    yearlyTotal: monthlyRaw * 12 + yearlyRaw + weeklyYearly,
     candidateCount: candidates.length,
     candidateMonthly: candidates.reduce((sum, s) => sum + monthlyEquivalent(s), 0),
     unknownCount: subs.filter((s) => tracksUsage(s) && needsUsageCheck(s)).length,
@@ -218,10 +232,11 @@ export type SubscriptionRawInput = {
   kind?: FixedCostKind
   /** 무료 체험 끝나는 날 (F46). 비우면 체험이 아니다 */
   trialEndDate?: string
+  intervalWeeks?: string
 }
 export type SubscriptionInput = Pick<
   Subscription,
-  'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'lastUsedDate' | 'memo' | 'kind' | 'trialEndDate'
+  'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'intervalWeeks' | 'lastUsedDate' | 'memo' | 'kind' | 'trialEndDate'
 >
 export type SubscriptionFieldErrors = Partial<Record<Exclude<keyof SubscriptionRawInput, 'cycle'>, string>>
 
@@ -236,7 +251,9 @@ export function validateSubscriptionInput(
   unchangedTrial?: string,
 ): { value?: SubscriptionInput; errors: SubscriptionFieldErrors } {
   const errors: SubscriptionFieldErrors = {}
-  const value: SubscriptionInput = { name: '', priceKrw: 0, cycle: raw.cycle, lastUsedDate: null }
+  const kind = raw.kind ?? 'subscription'
+  const cycle = raw.cycle === 'weekly' && kind !== 'delivery' ? 'monthly' : raw.cycle
+  const value: SubscriptionInput = { name: '', priceKrw: 0, cycle, lastUsedDate: null }
 
   const name = raw.name.trim()
   if (name.length === 0) errors.name = '이름을 입력해 주세요'
@@ -248,24 +265,28 @@ export function validateSubscriptionInput(
   else if (price < 1 || price > MAX_WON) errors.price = '요금은 1원~10억 원 사이여야 해요'
   else value.priceKrw = price
 
-  if (raw.cycle === 'monthly') {
+  if (cycle === 'monthly') {
     const billingDay = parseInteger(raw.billingDay)
     if (billingDay === null || billingDay < 1 || billingDay > 31) errors.billingDay = '결제일은 1~31일 사이여야 해요'
     else value.billingDay = billingDay
   } else {
+    const intervalWeeks = cycle === 'weekly' ? parseInteger(raw.intervalWeeks ?? '') : null
+    if (cycle === 'weekly') {
+      if (intervalWeeks === null || !isIntBetween(intervalWeeks, 1, INTERVAL_WEEKS_MAX)) errors.intervalWeeks = '몇 주마다는 1~12 사이 정수여야 해요'
+      else value.intervalWeeks = intervalWeeks
+    }
     const renewal = parseDay(raw.renewalDate.trim())
     const until = renewal ? calendarDaysBetween(today, renewal) : -1
     // 1년 뒤 같은 날. 없는 날(2월 29일)은 연 갱신 규칙처럼 그 달 말일로 맞춘다
     const yearLater = calendarDaysBetween(today, yearsLater(today, 1))
-    if (!renewal) errors.renewalDate = '다음 결제일을 골라 주세요'
-    else if (raw.renewalDate.trim() !== unchangedRenewal && (until < 0 || until > yearLater)) {
-      errors.renewalDate = '다음 결제일은 오늘부터 1년 안이어야 해요'
+    if (!renewal) errors.renewalDate = cycle === 'weekly' ? '다음 배송일을 골라 주세요' : '다음 결제일을 골라 주세요'
+    else if (raw.renewalDate.trim() !== unchangedRenewal && (until < 0 || until > (cycle === 'weekly' ? (intervalWeeks ?? 1) * 7 : yearLater))) {
+      errors.renewalDate = cycle === 'weekly' ? `다음 배송일은 오늘부터 ${intervalWeeks ?? 1}주 안이어야 해요` : '다음 결제일은 오늘부터 1년 안이어야 해요'
     }
     else value.renewalDate = raw.renewalDate.trim()
   }
 
   // 구독이면 kind를 넣지 않는다. 구독·멤버십이 아니면 마지막 사용일 칸을 보지 않고 비운다 (F45)
-  const kind = raw.kind ?? 'subscription'
   if (kind !== 'subscription') value.kind = kind
   const lastUsedRaw = tracksUsage({ kind }) ? raw.lastUsedDate.trim() : ''
   if (lastUsedRaw !== '') {
@@ -310,6 +331,7 @@ function cleanSub(sub: Subscription): Subscription {
   const out: Subscription = { ...sub }
   if (out.cycle === 'monthly') delete out.renewalDate
   else delete out.billingDay
+  if (out.cycle !== 'weekly') delete out.intervalWeeks
   if (!out.memo) delete out.memo
   if (out.exampleUsageMinutes === undefined) delete out.exampleUsageMinutes
   if (out.exampleUseCount === undefined) delete out.exampleUseCount
@@ -401,11 +423,13 @@ function isSubscription(v: unknown): v is Subscription {
   // 주기와 맞지 않는 필드가 있으면 손상으로 본다. 날짜가 오늘보다 앞인지 뒤인지는 따지지 않는다
   // (지난 갱신일은 1년씩 더해 쓰고, 시계·시간대가 바뀌어도 멀쩡한 기록을 손상으로 보지 않기 위해)
   if (o.cycle === 'monthly') {
-    if (o.renewalDate !== undefined) return false
+    if (o.renewalDate !== undefined || o.intervalWeeks !== undefined) return false
     if (!Number.isInteger(o.billingDay) || (o.billingDay as number) < 1 || (o.billingDay as number) > 31) return false
   } else if (o.cycle === 'yearly') {
-    if (o.billingDay !== undefined) return false
+    if (o.billingDay !== undefined || o.intervalWeeks !== undefined) return false
     if (!isDay(o.renewalDate)) return false
+  } else if (o.cycle === 'weekly') {
+    if (o.kind !== 'delivery' || o.billingDay !== undefined || !isDay(o.renewalDate) || !isIntBetween(o.intervalWeeks, 1, INTERVAL_WEEKS_MAX)) return false
   } else return false
   if (o.lastUsedDate !== null && !isDay(o.lastUsedDate)) return false
   if (o.memo !== undefined && !(isString(o.memo) && o.memo.length <= NOTE_MAX)) return false

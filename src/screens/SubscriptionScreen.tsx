@@ -24,9 +24,11 @@ import {
   cancelledLine,
   cancelledNotice,
   kindTotalsLine,
+  nextLabel,
   priceText as priceLabel,
   resumeConfirmText,
   sortCancelled,
+  skipLine,
   trialLine,
   trialSummaryLine,
   validateCancelDay,
@@ -274,7 +276,7 @@ function SubsBanner({
   )
 }
 
-const EMPTY: SubscriptionRawInput = { name: '', price: '', cycle: 'monthly', billingDay: '', renewalDate: '', lastUsedDate: '', memo: '' }
+const EMPTY: SubscriptionRawInput = { name: '', price: '', cycle: 'monthly', billingDay: '', renewalDate: '', intervalWeeks: '', lastUsedDate: '', memo: '' }
 
 // 연 구독은 저장한 기준일이 지났을 수 있으므로, 수정 폼에는 카드에 보이는 다음 갱신일을 채운다
 function toRaw(sub: Subscription, nextRenewal: string): SubscriptionRawInput {
@@ -283,7 +285,8 @@ function toRaw(sub: Subscription, nextRenewal: string): SubscriptionRawInput {
     price: String(sub.priceKrw),
     cycle: sub.cycle,
     billingDay: sub.billingDay ? String(sub.billingDay) : '',
-    renewalDate: sub.cycle === 'yearly' ? nextRenewal : '',
+    renewalDate: sub.cycle !== 'monthly' ? nextRenewal : '',
+    intervalWeeks: sub.intervalWeeks ? String(sub.intervalWeeks) : '',
     lastUsedDate: sub.lastUsedDate ?? '',
     memo: sub.memo ?? '',
     kind: kindOf(sub),
@@ -343,7 +346,10 @@ function SubscriptionForm({
   return (
     <form className="card stack" aria-label={label} onSubmit={submit} noValidate ref={formRef}>
       <p className="card-title">{label}</p>
-      <SelectField label="종류" value={raw.kind ?? 'subscription'} onChange={(e) => set('kind', e.target.value as FixedCostKind)}>
+      <SelectField label="종류" value={raw.kind ?? 'subscription'} onChange={(e) => {
+        const kind = e.target.value as FixedCostKind
+        setRaw((r) => ({ ...r, kind, cycle: kind !== 'delivery' && r.cycle === 'weekly' ? 'monthly' : r.cycle }))
+      }}>
         {FIXED_COST_KINDS.map((kind) => (
           <option key={kind} value={kind}>
             {KIND_LABEL[kind]}
@@ -358,6 +364,7 @@ function SubscriptionForm({
           {([
             ['monthly', '매월'],
             ['yearly', '매년'],
+            ...(raw.kind === 'delivery' ? [['weekly', '주마다'] as [Cycle, string]] : []),
           ] as [Cycle, string][]).map(([cycle, text]) => (
             <label key={cycle}>
               <input type="radio" name={`${label}-cycle`} checked={raw.cycle === cycle} onChange={() => set('cycle', cycle)} /> {text}
@@ -375,6 +382,11 @@ function SubscriptionForm({
           error={shown.billingDay}
           onChange={(e) => set('billingDay', e.target.value)}
         />
+      ) : raw.cycle === 'weekly' ? (
+        <>
+          <TextField label="몇 주마다" inputMode="numeric" placeholder="1~12" value={raw.intervalWeeks ?? ''} error={shown.intervalWeeks} onChange={(e) => set('intervalWeeks', e.target.value)} />
+          <TextField label="다음 배송일" type="date" min={toDayIso(today)} value={raw.renewalDate} error={shown.renewalDate} onChange={(e) => set('renewalDate', e.target.value)} />
+        </>
       ) : (
         <TextField
           label="다음 결제일"
@@ -497,7 +509,7 @@ function SubscriptionCard({
           submitLabel="저장"
           today={today}
           initial={toRaw(sub, base.renewal)}
-          keepRenewal={sub.cycle === 'yearly' ? base.renewal : undefined}
+          keepRenewal={sub.cycle !== 'monthly' ? base.renewal : undefined}
           keepTrial={sub.trialEndDate}
           notice={stale ? STALE_NOTICE : undefined}
           autoFocus
@@ -507,7 +519,7 @@ function SubscriptionCard({
               return
             }
             // 다음 갱신일을 바꾸지 않았으면 원래 기준일을 유지한다 (2월 29일 같은 기준을 잃지 않게)
-            const keepBase = sub.cycle === 'yearly' && input.cycle === 'yearly' && input.renewalDate === base.renewal
+            const keepBase = sub.cycle !== 'monthly' && input.cycle === sub.cycle && input.renewalDate === base.renewal && input.intervalWeeks === sub.intervalWeeks
             onEdit(sub.id, keepBase ? { ...input, renewalDate: sub.renewalDate } : input)
             close('edit')
           }}
@@ -531,8 +543,9 @@ function SubscriptionCard({
       <p className="price">{priceText}</p>
       {trialText ? <p className="card-meta">{trialText}</p> : null}
       <p className="card-meta">
-        다음 결제 {next} · D-{dday}
+        {nextLabel(sub)} {next} · D-{dday}
       </p>
+      {skipLine(sub, today) ? <p className="note">{skipLine(sub, today)}</p> : null}
       {tracked ? <p className="card-meta">{lastUsed ? `마지막 사용 ${lastUsed}` : '사용 기록 없음'}</p> : null}
       {usage ? <p className="card-meta">{`사용량(${usageLabel(usage)}): ${usage.text}`}</p> : null}
       {(tracked ? sub.usageRecords ?? [] : []).map((record) => (
