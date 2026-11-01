@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { ALTERNATIVE_LINKS, bulkUseLine, installmentLine, pantryDuplicateLine, usageCostLine, validateBulkUse, validateInstallment, validateUsesPerYear } from './beforeBuy'
+import { ALTERNATIVE_LINKS, addPriceNote, bulkUseLine, installmentLine, pantryDuplicateLine, priceHistoryLine, priceTargetMetLine, usageCostLine, validateBulkUse, validateInstallment, validateUsesPerYear } from './beforeBuy'
 import type { PantryItem } from './pantry'
 import type { WishItem } from './wishlist'
 
@@ -37,4 +37,14 @@ it('AC139·AC140: 대용량을 다 쓰는 달이 유통기한보다 길 때만 �
 it('AC140: 총량과 한 달 사용량은 함께 적고 소수 셋째 자리까지만 받는다', () => {
   expect(validateBulkUse({ total: '10', monthlyUse: '' }).errors.monthlyUse).toBe('한 달 사용량을 적어 주세요.')
   expect(validateBulkUse({ total: '10.0001', monthlyUse: '1' }).errors.total).toBe('총량은 0보다 크고 소수 셋째 자리까지 적어 주세요.')
+})
+it('AC141: 목표가·마지막 본 값·적은 값 중 가장 낮은 값은 날짜와 함께 보인다', () => {
+  const changed = { ...item, targetPriceKrw: 30000, priceNotes: [{ day: '2026-10-20', priceKrw: 29900 }, { day: '2026-11-03', priceKrw: 34900 }] }
+  expect(priceHistoryLine(changed)).toBe('목표가 30,000원 · 마지막으로 본 값 34,900원(11/3) · 본 값 가운데 가장 낮은 값 29,900원(10/20)')
+  expect(priceTargetMetLine(changed)).toBe('적어 둔 값 가운데 목표가 이하가 있어요.')
+})
+it('AC142: 본 값 30건 뒤 다른 날짜는 막고 같은 날짜는 바꾼다', () => {
+  const notes = Array.from({ length: 30 }, (_, i) => ({ day: `2026-10-${String(i + 1).padStart(2, '0')}`, priceKrw: 30000 }))
+  expect(addPriceNote(notes, { day: '2026-11-01', priceKrw: 29000 })).toBe('full')
+  expect(addPriceNote(notes, { day: '2026-10-30', priceKrw: 29000 })).toHaveLength(30)
 })

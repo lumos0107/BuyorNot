@@ -1,5 +1,7 @@
 import { formatWon, josa, MAX_WON, parseDecimal, parseInteger } from './number'
 import type { BulkUse, Installment, WishItem } from './wishlist'
+import type { PriceNote } from './wishlist'
+import { parseDay } from './dates'
 import { PANTRY_LEVEL_LABEL, normalizePantryName, type PantryItem } from './pantry'
 
 // PRD F61: 카드사가 안내한 월 납입금을 곱한다. 이자율·수수료는 추측하지 않는다.
@@ -74,4 +76,45 @@ export function bulkUseLine(item: Pick<WishItem, 'bulkUse'>): { line: string; wa
   const months = Math.ceil(item.bulkUse.total / item.bulkUse.monthlyUse)
   const warning = item.bulkUse.expiresMonths !== undefined && months > item.bulkUse.expiresMonths
   return { line: `다 쓰는 데 약 ${months}개월${warning ? ` · 유통기한 ${item.bulkUse.expiresMonths}개월` : ''}`, warning }
+}
+
+export function validateTargetPrice(raw: string): { value?: number | null; error?: string } {
+  if (!raw.trim()) return { value: null }
+  const value = parseInteger(raw)
+  return value !== null && value >= 1 && value <= MAX_WON ? { value } : { error: '목표가는 1원~10억 원 사이여야 해요.' }
+}
+
+export function validateSeenPrice(raw: { day: string; price: string }, today: Date): { value?: PriceNote; errors: Partial<Record<'day' | 'price', string>> } {
+  const errors: Partial<Record<'day' | 'price', string>> = {}
+  if (!parseDay(raw.day) || raw.day > `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`) errors.day = '본 날은 오늘이거나 그 전이어야 해요.'
+  const price = parseInteger(raw.price)
+  if (price === null || price < 1 || price > MAX_WON) errors.price = '본 가격은 1원~10억 원 사이여야 해요.'
+  return Object.keys(errors).length ? { errors } : { value: { day: raw.day, priceKrw: price! }, errors }
+}
+
+export function addPriceNote(existing: readonly PriceNote[] | undefined, next: PriceNote): PriceNote[] | 'full' {
+  const notes = [...(existing ?? [])]
+  const index = notes.findIndex((note) => note.day === next.day)
+  if (index >= 0) notes[index] = next
+  else if (notes.length >= 30) return 'full'
+  else notes.push(next)
+  return notes.sort((a, b) => a.day.localeCompare(b.day))
+}
+
+const shortDay = (day: string) => `${Number(day.slice(5, 7))}/${Number(day.slice(8, 10))}`
+export function priceHistoryLine(item: Pick<WishItem, 'targetPriceKrw' | 'priceNotes'>): string | null {
+  const parts: string[] = []
+  if (item.targetPriceKrw !== undefined) parts.push(`목표가 ${formatWon(item.targetPriceKrw)}`)
+  const notes = item.priceNotes ?? []
+  if (notes.length) {
+    const latest = notes[notes.length - 1]
+    const lowest = notes.reduce((best, note) => note.priceKrw < best.priceKrw ? note : best)
+    parts.push(`마지막으로 본 값 ${formatWon(latest.priceKrw)}(${shortDay(latest.day)})`)
+    parts.push(`본 값 가운데 가장 낮은 값 ${formatWon(lowest.priceKrw)}(${shortDay(lowest.day)})`)
+  }
+  return parts.length ? parts.join(' · ') : null
+}
+
+export function priceTargetMetLine(item: Pick<WishItem, 'targetPriceKrw' | 'priceNotes'>): string | null {
+  return item.targetPriceKrw !== undefined && item.priceNotes?.some((note) => note.priceKrw <= item.targetPriceKrw!) ? '적어 둔 값 가운데 목표가 이하가 있어요.' : null
 }

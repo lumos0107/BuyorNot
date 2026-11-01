@@ -53,3 +53,15 @@ it('AC139: 총량 10·월 사용량 1·기한 6개월은 다 쓰는 데 10개월
   expect(screen.getByText('다 쓰는 데 약 10개월 · 유통기한 6개월')).toBeInTheDocument()
   expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0].bulkUse).toEqual({ total: 10, monthlyUse: 1, expiresMonths: 6 })
 })
+
+it('AC141: 목표가와 직접 본 값을 적으면 마지막·가장 낮은 값이 보인다', async () => {
+  const user = await open()
+  const target = within(screen.getByRole('form', { name: '청소기 목표가' }))
+  await user.type(target.getByLabelText('목표가 (선택)'), '30000')
+  await user.click(target.getByRole('button', { name: '목표가 적기' }))
+  const note = within(screen.getByRole('form', { name: '청소기 본 값 적기' }))
+  await user.type(note.getByLabelText('본 가격'), '29900')
+  await user.click(note.getByRole('button', { name: '본 값 적기' }))
+  expect(screen.getByText(/목표가 30,000원 · 마지막으로 본 값 29,900원/)).toBeInTheDocument()
+  expect(screen.getByText('적어 둔 값 가운데 목표가 이하가 있어요.')).toBeInTheDocument()
+})
