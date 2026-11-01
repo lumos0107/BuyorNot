@@ -13,6 +13,7 @@ import { SavingsScreen } from './screens/SavingsScreen'
 import { SubscriptionScreen } from './screens/SubscriptionScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
 import { PantrySection } from './screens/PantrySection'
+import { BeforeBuySection } from './screens/BeforeBuySection'
 import { useSavings } from './store/useSavings'
 import { useBills } from './store/useBills'
 import { usePantry } from './store/usePantry'
@@ -95,6 +96,7 @@ export default function App() {
             draft={draft}
             onDraftUsed={() => setDraft(null)}
           />
+          <BeforeBuySection wishlist={wishlist} pantry={pantry.store} />
           <PantrySection pantry={pantry} subscriptions={subscriptions.items} today={wishlist.now} onCompare={(purchase: PantryPurchase) => {
             setPantryDraft({ form: { price: String(purchase.amountKrw), unit: purchase.unit, size: purchase.unit === 'ea' ? '' : String(purchase.size), count: purchase.unit === 'ea' ? String(purchase.size) : '1' }, token: ++pantryDraftSeq.current })
             setScreen('compare')
