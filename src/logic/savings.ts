@@ -1,4 +1,5 @@
 import { calendarDaysBetween } from './dates'
+import { isDay, isIntBetween, isRecord, isString, isTimestamp } from './guards'
 import { formatWon, parseInteger } from './number'
 import { kindOf, monthlyEquivalent, parseDay, toDayIso, yearsLater, type Subscription } from './subscriptions'
 import { historySummary } from './summary'
@@ -38,12 +39,6 @@ export const MEMO_MAX = 30
 export const GOAL_NAME_MAX = 20
 export const GOAL_MIN = 10_000
 export const GOAL_MAX = 100_000_000
-
-const isString = (v: unknown): v is string => typeof v === 'string'
-const isDay = (v: unknown) => isString(v) && parseDay(v) !== null
-const isTimestamp = (v: unknown) => isString(v) && Number.isFinite(Date.parse(v))
-const isIntBetween = (v: unknown, min: number, max: number) => Number.isInteger(v) && (v as number) >= min && (v as number) <= max
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
 function isTransfer(v: unknown): v is Transfer {
   if (!isRecord(v)) return false

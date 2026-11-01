@@ -1,4 +1,5 @@
-import { calendarDaysBetween } from './dates'
+import { calendarDaysBetween, daysInMonth, parseDay } from './dates'
+import { isDay, isIntBetween, isString, isTimestamp } from './guards'
 import { MAX_WON, parseInteger } from './number'
 import { isUsageRecords, latestUseDay, type UsageRecord } from './usageRecords'
 import { NOTE_MAX, validateNote } from './wishlist'
@@ -57,7 +58,7 @@ export const USE_LOG_KEEP_DAYS = 90
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const toIso = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`
-const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate()
+export { parseDay } from './dates'
 
 /** 종류. 없으면 구독 (F45) */
 export function kindOf(sub: Pick<Subscription, 'kind'>): FixedCostKind {
@@ -75,16 +76,6 @@ export function yearsLater(today: Date, years: number): Date {
   const y = today.getFullYear() + years
   const month = today.getMonth()
   return new Date(y, month, Math.min(today.getDate(), daysInMonth(y, month + 1)), 12)
-}
-
-/** 'YYYY-MM-DD'가 실제로 있는 날짜면 현지 Date(정오), 아니면 null */
-export function parseDay(iso: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  if (!m) return null
-  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
-  // 1900년 이전은 받지 않는다 (Date가 0~99년을 1900년대로 바꾸기 때문)
-  if (y < 1900 || mo < 1 || mo > 12 || d < 1 || d > daysInMonth(y, mo)) return null
-  return new Date(y, mo - 1, d, 12)
 }
 
 export function daysUntil(iso: string, today: Date): number {
@@ -401,11 +392,6 @@ export function demoSubscriptions(today: Date, nextId: () => string): Subscripti
 export type SubscriptionStore = { schemaVersion: 1; items: Subscription[] }
 export type SubsLoadResult = { ok: true; store: SubscriptionStore } | { ok: false; reason: 'corrupt' | 'unavailable' }
 
-const isString = (v: unknown): v is string => typeof v === 'string'
-const isDay = (v: unknown) => isString(v) && parseDay(v) !== null
-const isTimestamp = (v: unknown) => isString(v) && Number.isFinite(Date.parse(v))
-const isIntIn = (v: unknown, max: number) => Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max
-
 function isSubscription(v: unknown): v is Subscription {
   if (typeof v !== 'object' || v === null) return false
   const o = v as Record<string, unknown>
@@ -428,14 +414,14 @@ function isSubscription(v: unknown): v is Subscription {
   if (o.trialEndDate !== undefined && !(isDay(o.trialEndDate) && tracksUsage({ kind: o.kind as FixedCostKind | undefined }))) return false
   if (o.cancelledOn !== undefined && !isDay(o.cancelledOn)) return false
   // 예시 사용량(F16): 시간과 횟수 중 하나만, 범위 안의 정수
-  if (o.exampleUsageMinutes !== undefined && !isIntIn(o.exampleUsageMinutes, USAGE_MAX_MINUTES)) return false
-  if (o.exampleUseCount !== undefined && !isIntIn(o.exampleUseCount, USE_COUNT_MAX)) return false
+  if (o.exampleUsageMinutes !== undefined && !isIntBetween(o.exampleUsageMinutes, 0, USAGE_MAX_MINUTES)) return false
+  if (o.exampleUseCount !== undefined && !isIntBetween(o.exampleUseCount, 0, USE_COUNT_MAX)) return false
   if (o.exampleUsageMinutes !== undefined && o.exampleUseCount !== undefined) return false
   // 직접 적은 사용량(F25): 사용 시간(분)은 0~43,200, 횟수는 0~999 정수, 적은 날은 실제 날짜
   if (o.usageEntry !== undefined) {
     const e = o.usageEntry as Record<string, unknown> | null
     if (typeof e !== 'object' || e === null || !isDay(e.day)) return false
-    if (e.kind === 'minutes' ? !isIntIn(e.value, USAGE_MAX_MINUTES) : e.kind === 'count' ? !isIntIn(e.value, USE_COUNT_MAX) : true) return false
+    if (e.kind === 'minutes' ? !isIntBetween(e.value, 0, USAGE_MAX_MINUTES) : e.kind === 'count' ? !isIntBetween(e.value, 0, USE_COUNT_MAX) : true) return false
   }
   // 가져온 출처 기록(F26)
   if (o.usageRecords !== undefined && !isUsageRecords(o.usageRecords)) return false
