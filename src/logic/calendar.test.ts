@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildIcs, buildTrialIcs, escapeIcsText, foldIcsLine, googleCalendarUrl, icsFileName, trialCalendarDay, trialGoogleCalendarUrl, trialIcsFileName } from './calendar'
+import { buildIcs, buildReturnIcs, buildTrialIcs, escapeIcsText, foldIcsLine, googleCalendarUrl, icsFileName, returnGoogleCalendarUrl, returnIcsFileName, trialCalendarDay, trialGoogleCalendarUrl, trialIcsFileName } from './calendar'
 import { formatDate } from './dates'
 import type { WishItem } from './wishlist'
 import type { Subscription } from './subscriptions'
@@ -61,6 +61,16 @@ describe('무료 체험 끝나기 전날 캘린더 (F46)', () => {
     expect(url.searchParams.get('text')).toBe('살까말까: ‘넷플릭스’ 무료 체험 내일 끝')
     expect(url.searchParams.get('details')).toContain('체험이 끝나는 내일부터 요금이 나갈 수 있어요.')
   })
+})
+
+it('AC144: 반품 기한은 그 날짜의 종일 일정이고 알림 요청이 없다', () => {
+  const bought = { ...headphones(), status: 'purchased' as const, decidedAt: NOW.toISOString(), returnBy: '2026-11-15' }
+  const ics = buildReturnIcs(bought, NOW)
+  expect(ics).toContain('DTSTART;VALUE=DATE:20261115\r\n')
+  expect(ics).toContain('DTEND;VALUE=DATE:20261116\r\n')
+  expect(ics).not.toContain('VALARM')
+  expect(returnIcsFileName(bought)).toBe('buyornot-return-2026-11-15.ics')
+  expect(new URL(returnGoogleCalendarUrl(bought)).searchParams.get('dates')).toBe('20261115/20261116')
 })
 
 describe('escapeIcsText', () => {

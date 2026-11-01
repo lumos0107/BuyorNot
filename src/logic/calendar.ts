@@ -149,3 +149,33 @@ export function trialGoogleCalendarUrl(sub: Subscription): string {
   if (!day || !sub.trialEndDate) return ''
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(trialTitle(sub))}&dates=${compactDay(day)}/${compactDay(sub.trialEndDate)}&details=${encodeURIComponent(`${TRIAL_DESCRIPTION}\n${APP_URL}`)}`
 }
+
+const returnTitle = (item: WishItem) => `살까말까: ‘${item.name}’ 반품 기한`
+const RETURN_DESCRIPTION = '판매처의 반품 기준을 확인해 주세요.'
+function returnDays(item: WishItem): { start: string; end: string } | null {
+  const day = parseDay(item.returnBy ?? '')
+  if (!day || !item.returnBy) return null
+  const next = toDayIso(new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 12))
+  return { start: compactDay(item.returnBy), end: compactDay(next) }
+}
+export function buildReturnIcs(item: WishItem, now: Date): string {
+  const dates = returnDays(item)
+  if (!dates) return ''
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BuyorNot//KO', 'BEGIN:VEVENT',
+    `UID:${item.id}-return-${item.returnBy}@buyornot`, `DTSTAMP:${utcStamp(now)}`,
+    `DTSTART;VALUE=DATE:${dates.start}`, `DTEND;VALUE=DATE:${dates.end}`,
+    `SUMMARY:${escapeIcsText(returnTitle(item))}`,
+    `DESCRIPTION:${escapeIcsText(RETURN_DESCRIPTION)}\\n${escapeIcsText(APP_URL)}`,
+    'END:VEVENT', 'END:VCALENDAR',
+  ]
+  return lines.map((line) => `${foldIcsLine(line)}\r\n`).join('')
+}
+export function returnIcsFileName(item: WishItem): string {
+  return `buyornot-return-${item.returnBy}.ics`
+}
+export function returnGoogleCalendarUrl(item: WishItem): string {
+  const dates = returnDays(item)
+  if (!dates) return ''
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(returnTitle(item))}&dates=${dates.start}/${dates.end}&details=${encodeURIComponent(`${RETURN_DESCRIPTION}\n${APP_URL}`)}`
+}

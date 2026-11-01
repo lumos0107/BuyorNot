@@ -14,6 +14,7 @@ import { SubscriptionScreen } from './screens/SubscriptionScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
 import { PantrySection } from './screens/PantrySection'
 import { BeforeBuySection } from './screens/BeforeBuySection'
+import { AfterBuySection } from './screens/AfterBuySection'
 import { useSavings } from './store/useSavings'
 import { useBills } from './store/useBills'
 import { usePantry } from './store/usePantry'
@@ -130,6 +131,7 @@ export default function App() {
             onReconsider={wishlist.reconsider}
             onRemove={wishlist.remove}
           />
+          <AfterBuySection wishlist={wishlist} today={wishlist.now} />
         </TabPanel>
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
           <SubscriptionScreen
