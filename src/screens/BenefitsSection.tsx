@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { CARD_MAX, PROGRAMS, PROGRAM_STATUSES, PROGRAM_STATUS_LABEL, cardGapLine, cardMonthLine, programListStale, validateCardInput, validateProgramInput, type CardRawInput, type ProgramCheck, type ProgramId, type ProgramStatus } from '../logic/benefits'
+import { CARD_MAX, EXPIRY_MAX, PROGRAMS, PROGRAM_STATUSES, PROGRAM_STATUS_LABEL, cardGapLine, cardMonthLine, expiryLine, programListStale, sortExpiries, validateCardInput, validateExpiryInput, validateProgramInput, type CardRawInput, type ProgramCheck, type ProgramId, type ProgramStatus } from '../logic/benefits'
+import { buildExpiryIcs, expiryGoogleCalendarUrl, expiryIcsFileName } from '../logic/calendar'
 import { formatWon } from '../logic/number'
 import { toDayIso } from '../logic/subscriptions'
 import { newId } from '../logic/wishlist'
 import type { useBenefits } from '../store/useBenefits'
 import { Button } from '../ui/Button'
+import { downloadText } from '../ui/download'
 import { SelectField, TextField } from '../ui/Field'
 import { ResetConfirm } from '../ui/ResetConfirm'
 
@@ -28,6 +30,44 @@ export function BenefitsSection({ benefits, today }: { benefits: Benefits; today
       </div> : null}
       {PROGRAMS.map((program) => <ProgramRow key={program.id} program={program} saved={benefits.store.programs.find((row) => row.id === program.id)} today={today} onSave={saveProgram} />)}
       <CardProgressSection benefits={benefits} today={today} />
+      <ExpirySection benefits={benefits} today={today} />
+    </div>
+  </details>
+}
+
+function ExpirySection({ benefits, today }: { benefits: Benefits; today: Date }) {
+  const [name, setName] = useState('')
+  const [amount, setAmount] = useState('')
+  const [day, setDay] = useState('')
+  const [error, setError] = useState('')
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const value = validateExpiryInput(name, amount, day)
+    if (!value) { setError('이름·금액·만료일을 확인해 주세요.'); return }
+    if (benefits.store.expiries.length >= EXPIRY_MAX) { setError('포인트·쿠폰은 50건까지 적을 수 있어요.'); return }
+    if (!benefits.change((current) => ({ ...current, expiries: [...current.expiries, { id: newId(), ...value }] }))) return
+    setName(''); setAmount(''); setDay(''); setError('')
+  }
+  return <details className="benefit-item">
+    <summary className="field-label">포인트·쿠폰</summary>
+    <div className="stack benefit-item-content">
+      <form className="stack" aria-label="포인트·쿠폰 적기" onSubmit={submit} noValidate>
+        <TextField label="이름" maxLength={40} value={name} onChange={(event) => setName(event.target.value)} />
+        <TextField label="금액 (선택)" inputMode="numeric" placeholder="원" value={amount} onChange={(event) => setAmount(event.target.value)} />
+        <TextField label="만료일" type="date" value={day} onChange={(event) => setDay(event.target.value)} />
+        {error ? <p className="field-error" role="alert">{error}</p> : null}
+        <Button variant="primary" type="submit">적기</Button>
+      </form>
+      {sortExpiries(benefits.store.expiries).map((entry) => <article className="benefit-record" aria-label={entry.name} key={entry.id}>
+        <p>{expiryLine(entry, today)}</p>
+        {entry.amountKrw !== undefined ? <p className="note">{formatWon(entry.amountKrw)}</p> : null}
+        <div className="btn-row">
+          <a className="btn" href={expiryGoogleCalendarUrl(entry)} target="_blank" rel="noopener noreferrer">구글 캘린더</a>
+          <Button onClick={() => downloadText(expiryIcsFileName(entry), buildExpiryIcs(entry, new Date()), 'text/calendar;charset=utf-8')}>캘린더 파일</Button>
+          {confirmId === entry.id ? <><Button variant="danger" onClick={() => { if (benefits.change((current) => ({ ...current, expiries: current.expiries.filter((row) => row.id !== entry.id) }))) setConfirmId(null) }}>지우기 확인</Button><Button onClick={() => setConfirmId(null)}>취소</Button></> : <Button onClick={() => setConfirmId(entry.id)}>지우기</Button>}
+        </div>
+      </article>)}
     </div>
   </details>
 }

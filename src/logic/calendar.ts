@@ -1,6 +1,7 @@
 import { formatDate, parseDay } from './dates'
 import { toDayIso, type Subscription } from './subscriptions'
 import type { WishItem } from './wishlist'
+import type { Expiry } from './benefits'
 
 // PRD F35 고민 끝나는 날 캘린더에 넣기: 구글 캘린더 주소와 .ics 파일 내용을 만든다.
 // 서버도 알림 약속도 없다. 알림은 캘린더 앱의 설정과 지원에 따른다.
@@ -178,4 +179,30 @@ export function returnGoogleCalendarUrl(item: WishItem): string {
   const dates = returnDays(item)
   if (!dates) return ''
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(returnTitle(item))}&dates=${dates.start}/${dates.end}&details=${encodeURIComponent(`${RETURN_DESCRIPTION}\n${APP_URL}`)}`
+}
+
+const expiryTitle = (entry: Expiry) => `살까말까: ‘${entry.name}’ 만료일`
+function expiryDays(entry: Expiry): { start: string; end: string } {
+  const day = parseDay(entry.expiresOn)!
+  const next = toDayIso(new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 12))
+  return { start: compactDay(entry.expiresOn), end: compactDay(next) }
+}
+export function buildExpiryIcs(entry: Expiry, now: Date): string {
+  const dates = expiryDays(entry)
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BuyorNot//KO', 'BEGIN:VEVENT',
+    `UID:${entry.id}-expiry-${entry.expiresOn}@buyornot`, `DTSTAMP:${utcStamp(now)}`,
+    `DTSTART;VALUE=DATE:${dates.start}`, `DTEND;VALUE=DATE:${dates.end}`,
+    `SUMMARY:${escapeIcsText(expiryTitle(entry))}`,
+    `DESCRIPTION:${escapeIcsText(APP_URL)}`,
+    'END:VEVENT', 'END:VCALENDAR',
+  ]
+  return lines.map((line) => `${foldIcsLine(line)}\r\n`).join('')
+}
+export function expiryIcsFileName(entry: Expiry): string {
+  return `buyornot-expiry-${entry.expiresOn}.ics`
+}
+export function expiryGoogleCalendarUrl(entry: Expiry): string {
+  const dates = expiryDays(entry)
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(expiryTitle(entry))}&dates=${dates.start}/${dates.end}&details=${encodeURIComponent(APP_URL)}`
 }

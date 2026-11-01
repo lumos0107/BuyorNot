@@ -114,3 +114,20 @@ export function cardGapLine(card: CardProgress): string {
 export function cardMonthLine(card: CardProgress, today: Date): string {
   return card.month === toDayIso(today).slice(0, 7) ? '' : `${card.month} 기록`
 }
+
+export function validateExpiryInput(rawName: string, rawAmount: string, expiresOn: string): Omit<Expiry, 'id'> | null {
+  const amountKrw = rawAmount.trim() === '' ? undefined : parseInteger(rawAmount)
+  if (!name(rawName, 40) || !isDay(expiresOn) || (amountKrw !== undefined && !isIntBetween(amountKrw, 0, MAX_KRW))) return null
+  return { name: rawName.trim(), expiresOn, ...(amountKrw === undefined ? {} : { amountKrw }) }
+}
+
+export function sortExpiries(rows: readonly Expiry[]): Expiry[] {
+  return [...rows].sort((a, b) => a.expiresOn.localeCompare(b.expiresOn) || a.name.localeCompare(b.name, 'ko'))
+}
+
+export function expiryLine(row: Expiry, today: Date): string {
+  const expiry = parseDay(row.expiresOn)
+  if (!expiry) return ''
+  const days = calendarDaysBetween(today, expiry)
+  return days < 0 ? `${row.name} · 만료일이 지났어요 (${row.expiresOn})` : `${row.name} · 만료일 ${row.expiresOn} · D-${days}`
+}

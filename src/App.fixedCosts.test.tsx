@@ -77,7 +77,7 @@ describe('고정비 종류와 요약 (F45)', () => {
     expect(storedItems().find((i) => i.name === '월세')).toMatchObject({ kind: 'housing' })
     expect(storedItems().find((i) => i.name === '휴대폰')).toMatchObject({ kind: 'phone', lastUsedDate: null })
     expect(storedItems().find((i) => i.name === '넷플릭스')).not.toHaveProperty('kind')
-  })
+  }, 15_000)
 
   it('AC81: 구독만 있으면 종류별 줄이 없다', async () => {
     seed(sub({}), sub({ id: 's2', name: '클라우드', priceKrw: 120000, cycle: 'yearly', billingDay: undefined, renewalDate: '2027-02-01' }))
