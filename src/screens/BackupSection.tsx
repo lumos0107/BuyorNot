@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type ChangeEvent } from 'react'
-import { NO_BILLS_NOTE, NO_PANTRY_NOTE, NO_SAVINGS_NOTE, NO_SPENDING_NOTE, backupFileName, describeBackup, makeBackup, parseBackup, type BackupData, type BackupInput } from '../logic/backup'
+import { NO_BENEFITS_NOTE, NO_BILLS_NOTE, NO_PANTRY_NOTE, NO_SAVINGS_NOTE, NO_SPENDING_NOTE, backupFileName, describeBackup, makeBackup, parseBackup, type BackupData, type BackupInput } from '../logic/backup'
 import { josa } from '../logic/number'
 import { Button } from '../ui/Button'
 
@@ -111,6 +111,7 @@ export function BackupSection({ data, onImport }: Props) {
             {pending.bills === null ? <p className="note">{NO_BILLS_NOTE}</p> : null}
             {pending.pantry === null ? <p className="note">{NO_PANTRY_NOTE}</p> : null}
             {pending.spending === null ? <p className="note">{NO_SPENDING_NOTE}</p> : null}
+            {pending.benefits === null ? <p className="note">{NO_BENEFITS_NOTE}</p> : null}
             <div className="btn-row">
               <Button
                 variant="danger"

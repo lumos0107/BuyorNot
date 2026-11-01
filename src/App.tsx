@@ -17,6 +17,7 @@ import { BeforeBuySection } from './screens/BeforeBuySection'
 import { AfterBuySection } from './screens/AfterBuySection'
 import { useSavings } from './store/useSavings'
 import { useBills } from './store/useBills'
+import { useBenefits } from './store/useBenefits'
 import { usePantry } from './store/usePantry'
 import { useSpending } from './store/useSpending'
 import { useSettings } from './store/useSettings'
@@ -47,6 +48,7 @@ export default function App() {
   const subscriptions = useSubscriptions()
   const savings = useSavings()
   const bills = useBills()
+  const benefits = useBenefits()
   const pantry = usePantry()
   const spending = useSpending()
   // 손상된 기록을 초기화하면 배너가 사라지므로 바로 위의 사이트 제목으로 포커스를 옮긴다
@@ -160,7 +162,7 @@ export default function App() {
       </main>
 
       <BackupSection
-        data={{ items: wishlist.items, hourlyWage: settings.hourlyWage, subscriptions: subscriptions.items, savings: savings.store, bills: bills.store, pantry: pantry.store, spending: spending.store }}
+        data={{ items: wishlist.items, hourlyWage: settings.hourlyWage, subscriptions: subscriptions.items, savings: savings.store, bills: bills.store, pantry: pantry.store, spending: spending.store, benefits: benefits.store }}
         onImport={(data) => {
           // 저장하지 못한 부분의 이름을 돌려준다. 물건 기록·구독은 각 화면의 저장 안내에서 다시 저장할 수 있다
           const failed: string[] = []
@@ -171,6 +173,7 @@ export default function App() {
           if (data.bills !== null && bills.replaceAll(data.bills).kind !== 'ok') failed.push('공과금 기록')
           if (data.pantry !== null && pantry.replaceAll(data.pantry).kind !== 'ok') failed.push('집에 있는 것 기록')
           if (data.spending !== null && spending.replaceAll(data.spending).kind !== 'ok') failed.push('자잘한 지출 기록')
+          if (data.benefits !== null && benefits.replaceAll(data.benefits).kind !== 'ok') failed.push('받을 수 있는 돈 기록')
           return failed
         }}
       />
