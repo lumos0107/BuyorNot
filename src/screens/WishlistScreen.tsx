@@ -3,7 +3,8 @@ import { aiServerUrl } from '../ai/config'
 import type { VoiceFillResponse } from '../ai/types'
 import { buildIcs, googleCalendarUrl, icsFileName } from '../logic/calendar'
 import { formatDate } from '../logic/dates'
-import { DESIRE_LEVELS, DESIRE_TEXT, desireDueToday, desireTrend } from '../logic/desire'
+import { DESIRE_LEVELS, DESIRE_TEXT, desireTrend } from '../logic/desire'
+import type { Expiry } from '../logic/benefits'
 import { PHOTO_LINK_CLEARED, isStaleLink, mergePhotoDraft, photoDraftNotice, type DraftMerge, type FormDraft, type PhotoLink } from '../logic/draft'
 import type { Fit } from '../logic/fit'
 import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
@@ -14,6 +15,8 @@ import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, has
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
 import { RETRO_NOTICE, SKIPPED_NOTICE } from '../logic/summary'
+import type { Subscription } from '../logic/subscriptions'
+import { collectTodayActions } from '../logic/todayActions'
 import { applyVoiceFill, voiceStatusLines, type VoiceField } from '../logic/voiceFill'
 import {
   COOLING_PRESETS,
@@ -80,6 +83,9 @@ type Props = {
   /** 놓을 자리 확인 저장·지우기(null) (F44). 반영됐는지 돌려준다 */
   onSetFit?: (id: string, fit: Fit | null) => boolean
   pantryItems?: readonly PantryItem[]
+  subscriptions?: readonly Subscription[]
+  expiries?: readonly Expiry[]
+  onJump?: (screen: 'subscriptions' | 'history' | 'savings', id: string) => void
 }
 
 const NOT_APPLIED = () => false
@@ -106,6 +112,9 @@ export function WishlistScreen({
   onAnswer = NOT_APPLIED,
   onSetFit = NOT_APPLIED,
   pantryItems = [],
+  subscriptions = [],
+  expiries = [],
+  onJump,
 }: Props) {
   const considering = sortConsidering(items, now)
   const exampleCount = items.filter((item) => isExample(item.name)).length
@@ -202,7 +211,7 @@ export function WishlistScreen({
           </Button>
         </div>
       ) : null}
-      <TodayNudge items={considering} now={now} />
+      <TodayPanel items={items} subscriptions={subscriptions} expiries={expiries} now={now} onJump={onJump} />
       {/* 담기 폼은 짧아서 고민 중인 물건이 있어도 맨 위에 둔다 (F24) */}
       <AddForm
         onAdd={onAdd}
@@ -248,11 +257,30 @@ export function WishlistScreen({
 
 // 오늘의 고민으로 이동 (2026-10-13 G): 담기 폼 위 한 줄. 오늘 갖고 싶은 정도를 안 적은 물건 수를 알리고,
 // 목록 순서상 첫 물건의 "오늘의 고민" 제목으로 옮긴다. 모두 적었으면 숨긴다(앱 밖에서 부르는 알림이 아니다)
-function TodayNudge({ items, now }: { items: WishItem[]; now: Date }) {
+function TodayPanel({ items, subscriptions, expiries, now, onJump }: {
+  items: readonly WishItem[]
+  subscriptions: readonly Subscription[]
+  expiries: readonly Expiry[]
+  now: Date
+  onJump?: (screen: 'subscriptions' | 'history' | 'savings', id: string) => void
+}) {
+  const actions = collectTodayActions(items, subscriptions, expiries, now)
+  const empty = actions.desire.length + actions.ready.length + actions.payments.length + actions.returns.length + actions.expiries.length === 0
+  return <section className={empty ? 'stack today-actions today-actions-empty' : 'card stack today-actions'} aria-label="오늘 확인할 것">
+    <div className="card-row"><p className="card-title">오늘 확인할 것</p><span className="note">오늘·7일 안</span></div>
+    <TodayNudge due={actions.desire} />
+    {actions.ready.length > 0 ? <div className="today-action"><span>{`고민 기간이 끝난 물건 ${actions.ready.length}개`}</span><button type="button" className="link-btn" onClick={() => document.getElementById(cardNameId(actions.ready[0].id))?.focus()}>물건 보기</button></div> : null}
+    {actions.payments.length > 0 ? <div className="today-action"><span>{`7일 안에 결제할 고정비 ${actions.payments.length}개`}</span><button type="button" className="link-btn" onClick={() => onJump?.('subscriptions', actions.payments[0].id)}>고정비 보기</button></div> : null}
+    {actions.returns.length > 0 ? <div className="today-action"><span>{`7일 안에 반품 기한이 오는 물건 ${actions.returns.length}개`}</span><button type="button" className="link-btn" onClick={() => onJump?.('history', actions.returns[0].id)}>반품 기한 보기</button></div> : null}
+    {actions.expiries.length > 0 ? <div className="today-action"><span>{`7일 안에 만료될 포인트·쿠폰 ${actions.expiries.length}개`}</span><button type="button" className="link-btn" onClick={() => onJump?.('savings', actions.expiries[0].id)}>만료일 보기</button></div> : null}
+    {empty ? <p className="note">오늘과 7일 안에 확인할 기록이 없어요.</p> : null}
+  </section>
+}
+
+function TodayNudge({ due }: { due: WishItem[] }) {
   // 알림 칸(status)에는 문장만 둔다. 수가 바뀔 때 버튼 이름까지 함께 읽히지 않게 버튼은 칸 밖에 둔다 (GPT 28번)
-  const due = items.filter((item) => desireDueToday(item, now))
   return (
-    <div className={due.length > 0 ? 'example-bar' : 'similar-empty'}>
+    <div className={due.length > 0 ? 'today-action' : 'similar-empty'}>
       <span role="status" aria-label="오늘 적을 물건" className="note">
         {due.length > 0 ? `오늘 갖고 싶은 정도를 안 적은 물건 ${due.length}개` : null}
       </span>

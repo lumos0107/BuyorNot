@@ -12,12 +12,14 @@ import { ResetConfirm } from '../ui/ResetConfirm'
 
 type Benefits = ReturnType<typeof useBenefits>
 
-export function BenefitsSection({ benefits, today }: { benefits: Benefits; today: Date }) {
+export function BenefitsSection({ benefits, today, focusExpiryId, onFocusDone }: { benefits: Benefits; today: Date; focusExpiryId?: string; onFocusDone?: () => void }) {
+  const rootRef = useRef<HTMLDetailsElement>(null)
+  useEffect(() => { if (focusExpiryId && rootRef.current) rootRef.current.open = true }, [focusExpiryId])
   const saveProgram = (value: ProgramCheck) => benefits.change((current) => ({
     ...current,
     programs: [...current.programs.filter((row) => row.id !== value.id), value],
   }))
-  return <details className="card guide">
+  return <details className="card guide" ref={rootRef}>
     <summary className="card-title">받을 수 있는 돈</summary>
     <div className="stack">
       <p className="note">조건은 자주 바뀌어요. 받을 수 있는지는 공식 사이트에서 확인해 주세요.</p>
@@ -30,7 +32,7 @@ export function BenefitsSection({ benefits, today }: { benefits: Benefits; today
       </div> : null}
       {PROGRAMS.map((program) => <ProgramRow key={program.id} program={program} saved={benefits.store.programs.find((row) => row.id === program.id)} today={today} onSave={saveProgram} />)}
       <CardProgressSection benefits={benefits} today={today} />
-      <ExpirySection benefits={benefits} today={today} />
+      <ExpirySection benefits={benefits} today={today} focusId={focusExpiryId} onFocusDone={onFocusDone} />
       <SettlementSection benefits={benefits} today={today} />
     </div>
   </details>
@@ -84,7 +86,16 @@ function SettlementSection({ benefits, today }: { benefits: Benefits; today: Dat
   </details>
 }
 
-function ExpirySection({ benefits, today }: { benefits: Benefits; today: Date }) {
+function ExpirySection({ benefits, today, focusId, onFocusDone }: { benefits: Benefits; today: Date; focusId?: string; onFocusDone?: () => void }) {
+  const detailsRef = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    if (!focusId) return
+    if (detailsRef.current) detailsRef.current.open = true
+    const parent = detailsRef.current?.parentElement?.closest('details')
+    if (parent) parent.open = true
+    const card = document.getElementById(`expiry-card-${focusId}`)
+    if (card) { card.focus(); onFocusDone?.() }
+  }, [focusId, onFocusDone])
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
   const [day, setDay] = useState('')
@@ -98,7 +109,7 @@ function ExpirySection({ benefits, today }: { benefits: Benefits; today: Date })
     if (!benefits.change((current) => ({ ...current, expiries: [...current.expiries, { id: newId(), ...value }] }))) return
     setName(''); setAmount(''); setDay(''); setError('')
   }
-  return <details className="benefit-item">
+  return <details className="benefit-item" ref={detailsRef}>
     <summary className="field-label">포인트·쿠폰</summary>
     <div className="stack benefit-item-content">
       <form className="stack" aria-label="포인트·쿠폰 적기" onSubmit={submit} noValidate>
@@ -108,7 +119,7 @@ function ExpirySection({ benefits, today }: { benefits: Benefits; today: Date })
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <Button variant="primary" type="submit">적기</Button>
       </form>
-      {sortExpiries(benefits.store.expiries).map((entry) => <article className="benefit-record" aria-label={entry.name} key={entry.id}>
+      {sortExpiries(benefits.store.expiries).map((entry) => <article className="benefit-record" aria-label={entry.name} id={`expiry-card-${entry.id}`} tabIndex={-1} key={entry.id}>
         <p>{expiryLine(entry, today)}</p>
         {entry.amountKrw !== undefined ? <p className="note">{formatWon(entry.amountKrw)}</p> : null}
         <div className="btn-row">

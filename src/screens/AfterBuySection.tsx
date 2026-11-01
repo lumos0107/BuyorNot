@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { resaleLines, returnDeadlineLine, returnReviewLine, validateResale, validateReturnBy } from '../logic/afterBuy'
 import { buildReturnIcs, returnGoogleCalendarUrl, returnIcsFileName } from '../logic/calendar'
 import { toDayIso } from '../logic/subscriptions'
@@ -8,10 +8,20 @@ import { Button } from '../ui/Button'
 import { downloadText } from '../ui/download'
 import { TextField } from '../ui/Field'
 
-export function AfterBuySection({ wishlist, today }: { wishlist: WishlistApi; today: Date }) {
+export function AfterBuySection({ wishlist, today, focusItemId, onFocusDone }: { wishlist: WishlistApi; today: Date; focusItemId?: string; onFocusDone?: () => void }) {
   const [open, setOpen] = useState(false)
+  const detailsRef = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    if (!focusItemId) return
+    if (detailsRef.current) detailsRef.current.open = true
+  }, [focusItemId])
+  useEffect(() => {
+    if (!open || !focusItemId) return
+    const card = document.getElementById(`after-card-${focusItemId}`)
+    if (card) { card.focus(); onFocusDone?.() }
+  }, [open, focusItemId, onFocusDone])
   const bought = wishlist.items.filter((item) => item.status === 'purchased')
-  return <details className="card guide" onToggle={(event) => setOpen(event.currentTarget.open)}>
+  return <details className="card guide" ref={detailsRef} onToggle={(event) => setOpen(event.currentTarget.open)}>
     <summary className="card-title">산 뒤에</summary>
     {open ? <div className="stack">{bought.length ? bought.map((item) => <AfterCard key={item.id} item={item} wishlist={wishlist} today={today} />) : <p className="note">구매함에 있는 물건이 없어요.</p>}</div> : null}
   </details>
@@ -47,7 +57,7 @@ function AfterCard({ item, wishlist, today }: { item: WishItem; wishlist: Wishli
       return next
     })) setResaleErrors({})
   }
-  return <section className="card stack" aria-label={`${item.name} 산 뒤 확인`}>
+  return <section className="card stack" aria-label={`${item.name} 산 뒤 확인`} id={`after-card-${item.id}`} tabIndex={-1}>
     <p className="card-title">{item.name}</p>
     <form className="stack" aria-label={`${item.name} 반품 기한`} onSubmit={saveReturn} noValidate>
       <TextField label="반품 기한 (선택)" type="date" value={returnRaw} error={returnError || undefined} onChange={(event) => { setReturnRaw(event.target.value); setReturnError('') }} />

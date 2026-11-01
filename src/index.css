@@ -392,6 +392,32 @@ a.btn {
   margin: 0 auto;
 }
 
+.today-actions .card-title {
+  margin-bottom: 0;
+}
+
+.today-actions-empty {
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.today-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 14px;
+}
+
+.today-action > span:first-child {
+  min-width: 0;
+}
+
+.today-action .link-btn {
+  flex: none;
+}
+
 /* 카드 아래 작은 글자 동작(수정·삭제): 글자처럼 보이지만 44px 높이는 유지한다 */
 .card-actions {
   display: flex;

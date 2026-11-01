@@ -41,6 +41,8 @@ const SCREENS: readonly TabItem<Screen>[] = [
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('wishlist')
+  const [jump, setJump] = useState<{ screen: 'subscriptions' | 'history' | 'savings'; id: string } | null>(null)
+  const jumpTo = (target: 'subscriptions' | 'history' | 'savings', id: string) => { setJump({ screen: target, id }); setScreen(target) }
   // 가격 비교에서 고른 쪽(F21)이나 가격표 사진에서 읽은 값(F31)을 고민 목록의 담기 폼에 채운다
   const [draft, setDraft] = useState<FormDraft | null>(null)
   const [pantryDraft, setPantryDraft] = useState<{ form: BundleRawInput; token: number } | null>(null)
@@ -79,7 +81,7 @@ export default function App() {
         }}
       />
 
-      <Tabs label="주요 메뉴" tabs={SCREENS} value={screen} onChange={setScreen} />
+      <Tabs label="주요 메뉴" tabs={SCREENS} value={screen} onChange={(next) => { setJump(null); setScreen(next) }} />
 
       <main>
         <TabPanel id="wishlist" hidden={screen !== 'wishlist'}>
@@ -87,6 +89,9 @@ export default function App() {
             active={screen === 'wishlist'}
             items={wishlist.items}
             pantryItems={pantry.store.items}
+            subscriptions={subscriptions.items}
+            expiries={benefits.store.expiries}
+            onJump={jumpTo}
             now={wishlist.now}
             onAdd={wishlist.add}
             onEdit={wishlist.edit}
@@ -136,7 +141,7 @@ export default function App() {
             onReconsider={wishlist.reconsider}
             onRemove={wishlist.remove}
           />
-          <AfterBuySection wishlist={wishlist} today={wishlist.now} />
+          <AfterBuySection wishlist={wishlist} today={wishlist.now} focusItemId={screen === 'history' && jump?.screen === 'history' ? jump.id : undefined} onFocusDone={() => setJump(null)} />
         </TabPanel>
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
           <SubscriptionScreen
@@ -156,12 +161,14 @@ export default function App() {
             onRetry={subscriptions.retrySave}
             onReset={subscriptions.resetStorage}
             onDismiss={subscriptions.dismissNotice}
+            focusId={screen === 'subscriptions' && jump?.screen === 'subscriptions' ? jump.id : undefined}
+            onFocusDone={() => setJump(null)}
           />
           <BillsSection bills={bills} today={wishlist.now} />
         </TabPanel>
         <TabPanel id="savings" hidden={screen !== 'savings'}>
           <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} spending={spending} benefits={benefits.store} today={wishlist.now} />
-          <BenefitsSection benefits={benefits} today={wishlist.now} />
+          <BenefitsSection benefits={benefits} today={wishlist.now} focusExpiryId={screen === 'savings' && jump?.screen === 'savings' ? jump.id : undefined} onFocusDone={() => setJump(null)} />
         </TabPanel>
       </main>
 

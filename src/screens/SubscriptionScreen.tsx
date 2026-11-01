@@ -120,9 +120,11 @@ type Props = {
   onRetry: () => void
   onReset: () => void
   onDismiss: () => void
+  focusId?: string
+  onFocusDone?: () => void
 }
 
-export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onCancel, onResume, onAddDemo, onRemoveExamples, onToggleUse, onSetUsage, onImportUsage, onRetry, onReset, onDismiss }: Props) {
+export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onCancel, onResume, onAddDemo, onRemoveExamples, onToggleUse, onSetUsage, onImportUsage, onRetry, onReset, onDismiss, focusId, onFocusDone }: Props) {
   // 해지한 것은 쓰는 중인 목록·요약에서 빼고 접힌 '해지한 것'에 둔다 (F47)
   const active = items.filter((sub) => !isCancelled(sub))
   const cancelled = sortCancelled(items.filter(isCancelled))
@@ -135,6 +137,11 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
   const exampleCount = items.filter((sub) => isExample(sub.name)).length
   // 삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다
   const headingRef = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    if (!focusId) return
+    const card = document.getElementById(`fixed-card-${focusId}`)
+    if (card) { card.focus(); onFocusDone?.() }
+  }, [focusId, onFocusDone])
   const remove = (id: string) => {
     onRemove(id)
     headingRef.current?.focus()
@@ -607,7 +614,7 @@ function SubscriptionCard({
   }
 
   return (
-    <article className="card stack" aria-label={sub.name}>
+    <article className="card stack" aria-label={sub.name} id={`fixed-card-${sub.id}`} tabIndex={-1}>
       <div className="card-row">
         <p className="card-title">{sub.name}</p>
         {candidate ? (
