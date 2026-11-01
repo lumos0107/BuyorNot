@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ALTERNATIVE_LINKS, ALTERNATIVE_NOTE, installmentLine, usageCostLine, validateInstallment, validateUsesPerYear } from '../logic/beforeBuy'
+import { ALTERNATIVE_LINKS, ALTERNATIVE_NOTE, installmentLine, pantryDuplicateLine, usageCostLine, validateInstallment, validateUsesPerYear } from '../logic/beforeBuy'
 import { formatWon } from '../logic/number'
 import type { PantryStore } from '../logic/pantry'
 import type { WishItem } from '../logic/wishlist'
@@ -19,7 +19,7 @@ export function BeforeBuySection({ wishlist, pantry }: { wishlist: WishlistApi; 
   </details>
 }
 
-function BeforeCard({ item, wishlist }: { item: WishItem; wishlist: WishlistApi; pantry: PantryStore }) {
+function BeforeCard({ item, wishlist, pantry }: { item: WishItem; wishlist: WishlistApi; pantry: PantryStore }) {
   const [months, setMonths] = useState(item.installment ? String(item.installment.months) : '')
   const [monthly, setMonthly] = useState(item.installment ? String(item.installment.monthlyKrw) : '')
   const [errors, setErrors] = useState<ReturnType<typeof validateInstallment>['errors']>({})
@@ -52,6 +52,7 @@ function BeforeCard({ item, wishlist }: { item: WishItem; wishlist: WishlistApi;
   return <section className="card stack" aria-label={`${item.name} 사기 전 확인`}>
     <p className="card-title">{item.name}</p>
     <p className="note">{`일시불 ${formatWon(item.priceKrw)}`}</p>
+    {pantryDuplicateLine(item.name, pantry.items) ? <p>{pantryDuplicateLine(item.name, pantry.items)}</p> : null}
     <form className="stack" aria-label={`${item.name} 할부`} ref={ref} onSubmit={save} noValidate>
       <p className="field-label">할부 (선택)</p>
       <TextField label="할부 개월" inputMode="numeric" value={months} error={errors.months} onChange={(e) => { setMonths(e.target.value); setErrors({}) }} />

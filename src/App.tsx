@@ -80,6 +80,7 @@ export default function App() {
           <WishlistScreen
             active={screen === 'wishlist'}
             items={wishlist.items}
+            pantryItems={pantry.store.items}
             now={wishlist.now}
             onAdd={wishlist.add}
             onEdit={wishlist.edit}

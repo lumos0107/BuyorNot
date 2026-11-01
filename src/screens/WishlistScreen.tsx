@@ -8,6 +8,8 @@ import { PHOTO_LINK_CLEARED, isStaleLink, mergePhotoDraft, photoDraftNotice, typ
 import type { Fit } from '../logic/fit'
 import { impulseSignals, otherAnswers, priceInHours, unansweredQuestions, type ImpulseSignal } from '../logic/impulse'
 import { formatWon, josa } from '../logic/number'
+import { pantryDuplicateLine } from '../logic/beforeBuy'
+import type { PantryItem } from '../logic/pantry'
 import { CHOICES, QUESTION_ORDER, QUESTION_TEXT, answerLabel, cardQuestions, hasAnswer, validateProblem, type ChoiceKey, type QuestionKey } from '../logic/questions'
 import { sameRecord } from '../logic/records'
 import { compareLinks, describeSimilar, findSimilar } from '../logic/similar'
@@ -76,6 +78,7 @@ type Props = {
   onAnswer?: (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => boolean
   /** 놓을 자리 확인 저장·지우기(null) (F44). 반영됐는지 돌려준다 */
   onSetFit?: (id: string, fit: Fit | null) => boolean
+  pantryItems?: readonly PantryItem[]
 }
 
 const NOT_APPLIED = () => false
@@ -101,6 +104,7 @@ export function WishlistScreen({
   onCheckDesire = NOT_APPLIED,
   onAnswer = NOT_APPLIED,
   onSetFit = NOT_APPLIED,
+  pantryItems = [],
 }: Props) {
   const considering = sortConsidering(items, now)
   const exampleCount = items.filter((item) => isExample(item.name)).length
@@ -203,6 +207,7 @@ export function WishlistScreen({
         onAdd={onAdd}
         onJustAdded={setJustAdded}
         items={items}
+        pantryItems={pantryItems}
         now={now}
         draft={draft}
         onDraftUsed={onDraftUsed}
@@ -321,6 +326,7 @@ function AddForm({
   onAdd,
   onJustAdded,
   items,
+  pantryItems,
   now,
   draft,
   onDraftUsed,
@@ -331,6 +337,7 @@ function AddForm({
   /** 담은 직후 안내가 있는 동안 그 물건의 id(없으면 null)를 알린다. 부모는 그 카드로 포커스를 옮기고 줄을 보인다 (F24) */
   onJustAdded: (id: string | null) => void
   items: WishItem[]
+  pantryItems: readonly PantryItem[]
   now: Date
   draft: FormDraft | null
   onDraftUsed?: () => void
@@ -447,6 +454,7 @@ function AddForm({
     setAdded(null)
   }
   const similar = findSimilar(raw.name, items, now)
+  const pantryMatch = pantryDuplicateLine(raw.name, pantryItems)
   const days = raw.preset === 'custom' ? raw.customDays : String(raw.preset)
   const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url })
   const shown: WishFieldErrors = attempted ? errors : {}
@@ -558,6 +566,7 @@ function AddForm({
           </ul>
         ) : null}
       </div>
+      <div role="status" aria-label="집에 있는 것 확인" className={pantryMatch ? 'similar-notice' : 'similar-empty'}>{pantryMatch}</div>
       <TextField
         label="가격"
         inputMode="numeric"

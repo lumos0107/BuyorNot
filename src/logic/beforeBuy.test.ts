@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
-import { ALTERNATIVE_LINKS, installmentLine, usageCostLine, validateInstallment, validateUsesPerYear } from './beforeBuy'
+import { ALTERNATIVE_LINKS, installmentLine, pantryDuplicateLine, usageCostLine, validateInstallment, validateUsesPerYear } from './beforeBuy'
+import type { PantryItem } from './pantry'
 import type { WishItem } from './wishlist'
 
 const item: WishItem = { id: 'w1', name: '청소기', priceKrw: 300000, reason: '필요', url: null, createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', reviewAt: '2026-11-04T00:00:00.000Z', status: 'considering', decidedAt: null }
@@ -23,4 +24,9 @@ it('AC136: 대안 링크는 상품명과 기록을 보내지 않는다', () => {
     expect(url.search).toBe('')
     expect(url.hash).toBe('')
   }
+})
+it('AC137·AC138: 집에 있는 것과 이름이 정확히 같을 때만 알려 준다', () => {
+  const pantry: PantryItem[] = [{ id: 'p1', name: '세탁 세제', kind: 'essential', level: 'plenty', purchases: [], createdAt: item.createdAt, updatedAt: item.updatedAt }]
+  expect(pantryDuplicateLine(' 세탁 세제 ', pantry)).toBe('집에 있는 것에 ‘세탁 세제’가 있어요 (넉넉)')
+  expect(pantryDuplicateLine('세제', pantry)).toBeNull()
 })

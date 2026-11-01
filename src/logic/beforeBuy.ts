@@ -1,5 +1,6 @@
-import { formatWon, MAX_WON, parseInteger } from './number'
+import { formatWon, josa, MAX_WON, parseInteger } from './number'
 import type { Installment, WishItem } from './wishlist'
+import { PANTRY_LEVEL_LABEL, normalizePantryName, type PantryItem } from './pantry'
 
 // PRD F61: 카드사가 안내한 월 납입금을 곱한다. 이자율·수수료는 추측하지 않는다.
 export type InstallmentRaw = { months: string; monthly: string }
@@ -40,4 +41,11 @@ export function validateUsesPerYear(raw: string): { value?: number | null; error
 
 export function usageCostLine(item: Pick<WishItem, 'priceKrw' | 'usesPerYear'>): string | null {
   return item.usesPerYear !== undefined && item.usesPerYear <= 2 ? `한 번 쓸 때 약 ${formatWon(Math.round(item.priceKrw / item.usesPerYear))}` : null
+}
+
+export function pantryDuplicateLine(name: string, pantry: readonly PantryItem[]): string | null {
+  const normalized = normalizePantryName(name)
+  if (!normalized) return null
+  const matching = pantry.find((item) => normalizePantryName(item.name) === normalized)
+  return matching ? `집에 있는 것에 ‘${matching.name}’${josa(matching.name, '이/가')} 있어요 (${PANTRY_LEVEL_LABEL[matching.level]})` : null
 }
