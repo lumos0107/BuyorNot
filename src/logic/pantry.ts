@@ -1,6 +1,7 @@
 import { isDay, isIntBetween, isRecord, isString, isTimestamp } from './guards'
 import { josa, MAX_WON } from './number'
 import { unitKind, type Unit } from './bundle'
+import { calendarDaysBetween, parseDay } from './dates'
 
 // PRD F54~F58: 집에 있는 것, 산 값, 해 먹은 것과 건너뛴 구매를 한 키에 둔다.
 export type PantryKind = 'essential' | 'ingredient'
@@ -34,6 +35,7 @@ export const nextPantryLevel = (level: PantryLevel): PantryLevel => level === 'p
 export const pantryAdded = (name: string) => `‘${name}’${josa(name, '을/를')} 적었어요.`
 export const pantryLevelChanged = (name: string, level: PantryLevel) => `‘${name}’의 남은 정도를 ${PANTRY_LEVEL_LABEL[level]}으로 바꿨어요.` // copy-check: ignore josa '의'는 받침과 관계없이 같다. 세 상태 이름은 모두 받침이 있다
 export const pantryDeleteConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 지울까요? 산 값 기록도 함께 지워져요.`
+export const pantryDiscardConfirm = (name: string) => `‘${name}’${josa(name, '을/를')} 버린 기록으로 옮길까요?`
 
 export const normalizePantryName = (name: string) => name.trim().toLocaleLowerCase('ko')
 const nonEmpty = (v: unknown, max: number) => isString(v) && v.trim().length >= 1 && v.trim().length <= max
@@ -113,6 +115,24 @@ export function addPantryRecipe(store: PantryStore, recipe: PantryRecipe): Pantr
 
 export function addPantryEvent(store: PantryStore, event: PantryEvent): PantryStore | 'full' {
   return store.events.length >= PANTRY_EVENT_MAX ? 'full' : { ...store, events: [...store.events, event] }
+}
+
+export function latestPantryPurchase(item: PantryItem): PantryPurchase | undefined {
+  return [...item.purchases].sort((a, b) => b.day.localeCompare(a.day) || b.createdAt.localeCompare(a.createdAt))[0]
+}
+
+export function expiringPantryItems(items: readonly PantryItem[], today: Date): PantryItem[] {
+  return items.filter((item) => {
+    if (item.kind !== 'ingredient' || !item.expiresOn) return false
+    const day = parseDay(item.expiresOn)
+    return day !== null && calendarDaysBetween(today, day) <= 3
+  }).sort((a, b) => (a.expiresOn ?? '').localeCompare(b.expiresOn ?? '') || a.name.localeCompare(b.name, 'ko'))
+}
+
+export function discardedThisMonth(events: readonly PantryEvent[], today: Date): { count: number; amountKrw: number } {
+  const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+  const discarded = events.filter((event) => event.action === 'discarded' && event.day.slice(0, 7) === month)
+  return { count: discarded.length, amountKrw: discarded.reduce((sum, event) => sum + event.amountKrw, 0) }
 }
 
 /** 같은 단위 종류면 100g·100mL·1개당 가격. 화면에 보이는 숫자는 소수 둘째 자리 */

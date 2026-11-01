@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import { fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
@@ -41,4 +42,32 @@ it('AC117: 정기배송과 이름이 같으면 카드에 도착 안내가 보인
   localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [delivery] }))
   await open()
   expect(screen.getByText('정기배송으로 와요.')).toBeInTheDocument()
+})
+
+it('AC119: 유통기한이 3일 남은 식재료는 먼저 쓸 것으로 보인다', async () => {
+  seed(item({ name: '두부', kind: 'ingredient', expiresOn: '2026-11-04' }))
+  await open()
+  expect(screen.getByText('먼저 쓸 것')).toBeInTheDocument()
+  expect(screen.getByText('유통기한 2026-11-04')).toBeInTheDocument()
+})
+
+it('AC120: 버렸어요를 확인하면 식재료와 마지막 산 값을 기록으로 옮긴다', async () => {
+  seed(item({ name: '두부', kind: 'ingredient', purchases: [{ id: 'a1', day: '2026-10-31', place: '마트', amountKrw: 2500, size: 1, unit: 'ea', createdAt: stamp }] }))
+  const user = await open()
+  await user.click(screen.getByRole('button', { name: '두부 버렸어요' }))
+  const confirm = within(screen.getByRole('group', { name: '식재료 버리기 확인' }))
+  expect(confirm.getByText('‘두부’를 버린 기록으로 옮길까요?')).toBeInTheDocument()
+  await user.click(confirm.getByRole('button', { name: '버렸어요' }))
+  expect(screen.getByText('버린 식재료 1개 · 2,500원')).toBeInTheDocument()
+  expect(JSON.parse(localStorage.getItem(PANTRY_KEY) ?? '{}').items).toEqual([])
+})
+
+it('AC119: 식재료를 적을 때 유통기한을 고를 수 있다', async () => {
+  const user = await open()
+  const form = within(screen.getByRole('form', { name: '집에 있는 것 적기' }))
+  await user.selectOptions(form.getByLabelText('종류'), 'ingredient')
+  await user.type(form.getByLabelText('이름'), '두부')
+  fireEvent.change(form.getByLabelText('유통기한 (선택)'), { target: { value: '2026-11-04' } })
+  await user.click(form.getByRole('button', { name: '적기' }))
+  expect(JSON.parse(localStorage.getItem(PANTRY_KEY) ?? '{}').items[0].expiresOn).toBe('2026-11-04')
 })
