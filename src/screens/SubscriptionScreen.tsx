@@ -20,9 +20,13 @@ import {
   TRIAL_HINT,
   TRIAL_LABEL,
   CANCEL_BACK_DAYS,
+  CONTRACT_LABEL,
+  PHONE_COMPARE_LINKS,
+  PHONE_COMPARE_NOTE,
   cancelConfirmLines,
   cancelledLine,
   cancelledNotice,
+  contractLines,
   kindTotalsLine,
   nextLabel,
   priceText as priceLabel,
@@ -53,6 +57,7 @@ import {
   subscriptionSummary,
   toDayIso,
   tracksUsage,
+  tracksContract,
   validateSubscriptionInput,
   type Cycle,
   type Subscription,
@@ -291,6 +296,7 @@ function toRaw(sub: Subscription, nextRenewal: string): SubscriptionRawInput {
     memo: sub.memo ?? '',
     kind: kindOf(sub),
     trialEndDate: sub.trialEndDate ?? '',
+    contractEndDate: sub.contractEndDate ?? '',
   }
 }
 
@@ -305,6 +311,7 @@ function SubscriptionForm({
   autoFocus,
   keepRenewal,
   keepTrial,
+  base,
   notice,
 }: {
   label: string
@@ -319,13 +326,14 @@ function SubscriptionForm({
   keepRenewal?: string
   /** 수정 폼에 채워 둔 체험 끝나는 날. 그대로 두면 범위를 다시 따지지 않는다 (F46) */
   keepTrial?: string
+  base?: Subscription
   /** 저장하지 못한 이유(다른 탭에서 바뀜 등) */
   notice?: string
 }) {
   const [raw, setRaw] = useState<SubscriptionRawInput>(initial)
   const [attempted, setAttempted] = useState(false)
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
-  const { value, errors } = validateSubscriptionInput(raw, today, keepRenewal, keepTrial)
+  const { value, errors } = validateSubscriptionInput(raw, today, keepRenewal, keepTrial, base)
   const shown: SubscriptionFieldErrors = attempted ? errors : {}
   const set = <K extends keyof SubscriptionRawInput>(key: K, v: SubscriptionRawInput[K]) => setRaw((r) => ({ ...r, [key]: v }))
 
@@ -419,6 +427,9 @@ function SubscriptionForm({
           onChange={(e) => set('lastUsedDate', e.target.value)}
         />
       ) : null}
+      {tracksContract({ kind: raw.kind }) ? (
+        <TextField label={CONTRACT_LABEL} type="date" value={raw.contractEndDate ?? ''} error={shown.contractEndDate} onChange={(e) => set('contractEndDate', e.target.value)} />
+      ) : null}
       <TextAreaField label="메모 (선택)" value={raw.memo} error={shown.memo} onChange={(e) => set('memo', e.target.value)} />
       {notice ? (
         <p className="field-error" role="alert">
@@ -511,6 +522,7 @@ function SubscriptionCard({
           initial={toRaw(sub, base.renewal)}
           keepRenewal={sub.cycle !== 'monthly' ? base.renewal : undefined}
           keepTrial={sub.trialEndDate}
+          base={sub}
           notice={stale ? STALE_NOTICE : undefined}
           autoFocus
           onSubmit={(input) => {
@@ -546,6 +558,7 @@ function SubscriptionCard({
         {nextLabel(sub)} {next} · D-{dday}
       </p>
       {skipLine(sub, today) ? <p className="note">{skipLine(sub, today)}</p> : null}
+      {contractLines(sub, today).map((line) => <p key={line} className="card-meta">{line}</p>)}
       {tracked ? <p className="card-meta">{lastUsed ? `마지막 사용 ${lastUsed}` : '사용 기록 없음'}</p> : null}
       {usage ? <p className="card-meta">{`사용량(${usageLabel(usage)}): ${usage.text}`}</p> : null}
       {(tracked ? sub.usageRecords ?? [] : []).map((record) => (
@@ -554,6 +567,14 @@ function SubscriptionCard({
         </p>
       ))}
       {sub.memo ? <p>{sub.memo}</p> : null}
+      {kindOf(sub) === 'phone' ? (
+        <div className="stack">
+          <p className="note">{PHONE_COMPARE_NOTE}</p>
+          <div className="btn-row">
+            {PHONE_COMPARE_LINKS.map((link) => <a key={link.href} className="btn" href={link.href} target="_blank" rel="noopener noreferrer">{link.name}</a>)}
+          </div>
+        </div>
+      ) : null}
       {tracked ? (
         <div className="btn-row">
           <Button aria-pressed={usedToday} onClick={() => onToggleUse(sub.id)}>

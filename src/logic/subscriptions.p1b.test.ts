@@ -29,3 +29,20 @@ it('AC101: weekly 저장은 정기배송에만 유효하고 예전 매월 기록
   expect(saved([{ ...monthly, intervalWeeks: 4 }]).ok).toBe(false)
   expect(createSubscription({ name: '넷플릭스', priceKrw: 13500, cycle: 'monthly', billingDay: 15, lastUsedDate: null }, today, 'new')).not.toHaveProperty('intervalWeeks')
 })
+
+it('AC112: 약정 끝은 1년 전부터 5년 뒤까지이고 채워 둔 값은 유지한다', () => {
+  const raw = { name: '휴대폰', price: '55000', kind: 'phone' as const, cycle: 'monthly' as const, billingDay: '10', renewalDate: '', lastUsedDate: '', memo: '', contractEndDate: '2025-11-01' }
+  expect(validateSubscriptionInput(raw, today).value?.contractEndDate).toBe('2025-11-01')
+  expect(validateSubscriptionInput({ ...raw, contractEndDate: '2031-11-01' }, today).value?.contractEndDate).toBe('2031-11-01')
+  expect(validateSubscriptionInput({ ...raw, contractEndDate: '2025-10-31' }, today).errors.contractEndDate).toBe('약정·계약 끝나는 날은 1년 전부터 5년 뒤 사이여야 해요')
+  expect(validateSubscriptionInput({ ...raw, contractEndDate: '2031-11-02' }, today).errors.contractEndDate).toBe('약정·계약 끝나는 날은 1년 전부터 5년 뒤 사이여야 해요')
+  const base: Subscription = { ...monthly, kind: 'phone', contractEndDate: '2025-06-30' }
+  expect(validateSubscriptionInput({ ...raw, contractEndDate: '2025-06-30' }, today, undefined, undefined, base).value?.contractEndDate).toBe('2025-06-30')
+})
+
+it('AC112: 구독의 약정 끝 저장값은 손상이고 구독 입력에는 남지 않는다', () => {
+  const saved = parseSubscriptions(JSON.stringify({ schemaVersion: 1, items: [{ ...monthly, contractEndDate: '2026-12-01' }] }))
+  expect(saved.ok).toBe(false)
+  const raw = { name: '넷플릭스', price: '13500', kind: 'subscription' as const, cycle: 'monthly' as const, billingDay: '15', renewalDate: '', lastUsedDate: '', memo: '', contractEndDate: '2026-12-01' }
+  expect(validateSubscriptionInput(raw, today).value?.contractEndDate).toBeUndefined()
+})

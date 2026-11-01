@@ -23,6 +23,8 @@ export type Subscription = {
   renewalDate?: string
   /** 정기배송 주마다: 1~12주 간격 (F45 보강) */
   intervalWeeks?: number
+  /** 통신·월세·보험·기타의 약정 또는 계약 끝나는 날 (F52) */
+  contractEndDate?: string
   /** 마지막으로 쓴 날. 비어 있고 오늘 썼어요 기록도 없으면 "확인 필요"(해지 후보 아님, F23) */
   lastUsedDate: string | null
   memo?: string
@@ -72,6 +74,11 @@ export function kindOf(sub: Pick<Subscription, 'kind'>): FixedCostKind {
 export function tracksUsage(sub: Pick<Subscription, 'kind'>): boolean {
   const kind = kindOf(sub)
   return kind === 'subscription' || kind === 'membership'
+}
+
+export function tracksContract(sub: Pick<Subscription, 'kind'>): boolean {
+  const kind = kindOf(sub)
+  return kind === 'phone' || kind === 'housing' || kind === 'insurance' || kind === 'other'
 }
 
 /** 오늘부터 years년 뒤 같은 월·일(정오). 그날이 없으면(2월 29일) 그 달 말일. years가 음수면 그만큼 전 */
@@ -233,10 +240,11 @@ export type SubscriptionRawInput = {
   /** 무료 체험 끝나는 날 (F46). 비우면 체험이 아니다 */
   trialEndDate?: string
   intervalWeeks?: string
+  contractEndDate?: string
 }
 export type SubscriptionInput = Pick<
   Subscription,
-  'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'intervalWeeks' | 'lastUsedDate' | 'memo' | 'kind' | 'trialEndDate'
+  'name' | 'priceKrw' | 'cycle' | 'billingDay' | 'renewalDate' | 'intervalWeeks' | 'lastUsedDate' | 'memo' | 'kind' | 'trialEndDate' | 'contractEndDate'
 >
 export type SubscriptionFieldErrors = Partial<Record<Exclude<keyof SubscriptionRawInput, 'cycle'>, string>>
 
@@ -249,6 +257,7 @@ export function validateSubscriptionInput(
   today: Date,
   unchangedRenewal?: string,
   unchangedTrial?: string,
+  base?: Subscription,
 ): { value?: SubscriptionInput; errors: SubscriptionFieldErrors } {
   const errors: SubscriptionFieldErrors = {}
   const kind = raw.kind ?? 'subscription'
@@ -307,6 +316,15 @@ export function validateSubscriptionInput(
     } else value.trialEndDate = trialRaw
   }
 
+  const contractRaw = tracksContract({ kind }) ? (raw.contractEndDate ?? '').trim() : ''
+  if (contractRaw !== '') {
+    const contract = parseDay(contractRaw)
+    if (!contract) errors.contractEndDate = '올바른 날짜를 골라 주세요'
+    else if (contractRaw !== base?.contractEndDate && (calendarDaysBetween(yearsLater(today, -1), contract) < 0 || calendarDaysBetween(contract, yearsLater(today, 5)) < 0)) {
+      errors.contractEndDate = '약정·계약 끝나는 날은 1년 전부터 5년 뒤 사이여야 해요'
+    } else value.contractEndDate = contractRaw
+  }
+
   const memo = validateNote(raw.memo)
   if (memo.error) errors.memo = memo.error
   else if (memo.value) value.memo = memo.value
@@ -341,6 +359,7 @@ function cleanSub(sub: Subscription): Subscription {
   // 구독이면 kind를 저장하지 않고, 구독·멤버십이 아니면 체험 끝나는 날도 저장하지 않는다 (F45·F46)
   if (out.kind === undefined || out.kind === 'subscription') delete out.kind
   if (out.trialEndDate === undefined || !tracksUsage(out)) delete out.trialEndDate
+  if (out.contractEndDate === undefined || !tracksContract(out)) delete out.contractEndDate
   if (out.cancelledOn === undefined) delete out.cancelledOn
   return out
 }
@@ -437,6 +456,7 @@ function isSubscription(v: unknown): v is Subscription {
   if (o.kind !== undefined && !FIXED_COST_KINDS.includes(o.kind as FixedCostKind)) return false
   if (o.trialEndDate !== undefined && !(isDay(o.trialEndDate) && tracksUsage({ kind: o.kind as FixedCostKind | undefined }))) return false
   if (o.cancelledOn !== undefined && !isDay(o.cancelledOn)) return false
+  if (o.contractEndDate !== undefined && !(isDay(o.contractEndDate) && tracksContract({ kind: o.kind as FixedCostKind | undefined }))) return false
   // 예시 사용량(F16): 시간과 횟수 중 하나만, 범위 안의 정수
   if (o.exampleUsageMinutes !== undefined && !isIntBetween(o.exampleUsageMinutes, 0, USAGE_MAX_MINUTES)) return false
   if (o.exampleUseCount !== undefined && !isIntBetween(o.exampleUseCount, 0, USE_COUNT_MAX)) return false

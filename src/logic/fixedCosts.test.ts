@@ -3,12 +3,17 @@ import {
   cancelConfirmLines,
   cancelledLine,
   cancelledNotice,
+  contractLines,
   kindTotalsLine,
+  PHONE_COMPARE_LINKS,
   resumeConfirmText,
   sortCancelled,
   trialLine,
   trialSummaryLine,
   validateCancelDay,
+  nextLabel,
+  priceText,
+  skipLine,
 } from './fixedCosts'
 import { subscriptionSummary, type FixedCostKind, type Subscription } from './subscriptions'
 
@@ -26,6 +31,29 @@ const sub = (id: string, priceKrw: number, over: Partial<Subscription> = {}): Su
   ...over,
 })
 const kinded = (id: string, priceKrw: number, kind: FixedCostKind) => sub(id, priceKrw, { kind })
+
+describe('정기배송과 약정 (F45·F52)', () => {
+  it('AC100: 주마다 요금과 배송 안내를 만든다', () => {
+    const delivery = sub('생수', 18900, { kind: 'delivery', cycle: 'weekly', intervalWeeks: 4, renewalDate: '2026-11-05', billingDay: undefined })
+    expect(priceText(delivery)).toBe('4주마다 18,900원 · 월평균 약 20,475원')
+    expect(nextLabel(delivery)).toBe('다음 배송')
+    expect(skipLine(delivery, TODAY)).toBeNull()
+    expect(skipLine(delivery, new Date(2026, 10, 3))).toBe('건너뛰기·해지는 그 서비스에서 해요.')
+  })
+  it('AC111: 약정은 남은 날·만료·해지 여부에 따라 줄이 다르다', () => {
+    const phone = sub('휴대폰', 55000, { kind: 'phone', contractEndDate: '2026-12-16' })
+    expect(contractLines(phone, TODAY)).toEqual(['약정 끝나는 날 2026-12-16 (D-45)', '약정이 끝나면 요금이나 할인이 바뀔 수 있어요. 통신사 앱에서 확인해 보세요.'])
+    expect(contractLines({ ...phone, contractEndDate: '2027-01-01' }, TODAY)).toEqual(['약정 끝나는 날 2027-01-01 (D-61)'])
+    expect(contractLines({ ...phone, contractEndDate: '2026-10-31' }, TODAY)).toEqual(['약정이 끝났어요 (2026-10-31)'])
+    expect(contractLines({ ...phone, cancelledOn: '2026-11-01' }, TODAY)).toEqual([])
+  })
+  it('AC112: 통신 비교 링크에는 기록을 붙이지 않는다', () => {
+    expect(PHONE_COMPARE_LINKS).toHaveLength(1)
+    expect(PHONE_COMPARE_LINKS[0].name).toBe('알뜰폰허브')
+    expect(new URL(PHONE_COMPARE_LINKS[0].href).search).toBe('')
+    expect(new URL(PHONE_COMPARE_LINKS[0].href).hash).toBe('')
+  })
+})
 
 describe('종류별 줄 (F45)', () => {
   it('AC81: 묶음이 셋이면 종류별 줄을 PRD 순서로 만든다', () => {

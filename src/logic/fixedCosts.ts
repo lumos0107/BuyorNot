@@ -1,6 +1,6 @@
 import { calendarDaysBetween } from './dates'
 import { formatWon, josa } from './number'
-import { daysUntil, inTrial, kindOf, monthlyEquivalent, nextBillingDate, parseDay, type FixedCostKind, type Subscription, type SubscriptionSummary } from './subscriptions'
+import { daysUntil, inTrial, kindOf, monthlyEquivalent, nextBillingDate, parseDay, tracksContract, type FixedCostKind, type Subscription, type SubscriptionSummary } from './subscriptions'
 
 // PRD F45 고정비 정리함: 종류 이름, 요약의 종류별 줄, 화면 문장
 
@@ -91,6 +91,23 @@ export function skipLine(sub: Subscription, today: Date): string | null {
   if (kindOf(sub) !== 'delivery' || sub.cycle !== 'weekly') return null
   const left = daysUntil(nextBillingDate(sub, today), today)
   return left >= 0 && left <= 3 ? '건너뛰기·해지는 그 서비스에서 해요.' : null
+}
+
+export const CONTRACT_LABEL = '약정·계약 끝나는 날 (선택)'
+export const PHONE_COMPARE_NOTE = '통신 요금 비교 사이트예요. 추천 아님. 새 창으로 열려요.'
+export const PHONE_COMPARE_LINKS: readonly { name: string; href: string }[] = [
+  { name: '알뜰폰허브', href: 'https://www.mvnohub.kr/' },
+]
+
+export function contractLines(sub: Subscription, today: Date): string[] {
+  if (!tracksContract(sub) || !sub.contractEndDate || sub.cancelledOn) return []
+  const phone = kindOf(sub) === 'phone'
+  const noun = phone ? '약정' : '계약'
+  const left = daysUntil(sub.contractEndDate, today)
+  if (left < 0) return [`${noun}이 끝났어요 (${sub.contractEndDate})`] // copy-check: ignore josa noun은 약정 또는 계약으로 둘 다 받침이 있다
+  const lines = [`${noun} 끝나는 날 ${sub.contractEndDate} (D-${left})`]
+  if (left <= 60) lines.push(phone ? '약정이 끝나면 요금이나 할인이 바뀔 수 있어요. 통신사 앱에서 확인해 보세요.' : '계약이 끝나면 요금이나 조건이 바뀔 수 있어요. 계약한 곳에 확인해 보세요.')
+  return lines
 }
 
 /** 해지 확인 문장(카드 안): 첫 줄, 둘째 줄, 통신·보험은 셋째 줄 */
