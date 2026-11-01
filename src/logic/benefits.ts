@@ -1,6 +1,6 @@
 import { calendarDaysBetween, parseDay } from './dates'
 import { isDay, isIntBetween, isRecord, isString } from './guards'
-import { parseInteger } from './number'
+import { formatWon, parseInteger } from './number'
 import { toDayIso } from './subscriptions'
 
 export type ProgramId = 'rent' | 'energy' | 'transport'
@@ -92,4 +92,25 @@ export function programIncome(rows: readonly ProgramCheck[]): number {
 export function programListStale(today: Date): boolean {
   const checked = parseDay(PROGRAM_LIST_CHECKED_ON)
   return checked !== null && calendarDaysBetween(checked, today) > 180
+}
+
+export type CardRawInput = { name: string; month: string; target: string; spent: string; benefit: string }
+
+export function validateCardInput(raw: CardRawInput, today: Date): Omit<CardProgress, 'id'> | null {
+  const targetKrw = parseInteger(raw.target)
+  const spentKrw = parseInteger(raw.spent)
+  const benefitKrw = raw.benefit.trim() === '' ? undefined : parseInteger(raw.benefit)
+  if (!name(raw.name, 40) || !month(raw.month) || raw.month > toDayIso(today).slice(0, 7)) return null
+  if (!isIntBetween(targetKrw, 0, MAX_KRW) || !isIntBetween(spentKrw, 0, MAX_KRW)) return null
+  if (benefitKrw !== undefined && !isIntBetween(benefitKrw, 0, MAX_KRW)) return null
+  return { name: raw.name.trim(), month: raw.month, targetKrw, spentKrw, ...(benefitKrw === undefined ? {} : { benefitKrw }) }
+}
+
+export function cardGapLine(card: CardProgress): string {
+  const gap = card.targetKrw - card.spentKrw
+  return gap > 0 ? `실적까지 ${formatWon(gap)}` : '적은 기준을 채웠어요'
+}
+
+export function cardMonthLine(card: CardProgress, today: Date): string {
+  return card.month === toDayIso(today).slice(0, 7) ? '' : `${card.month} 기록`
 }

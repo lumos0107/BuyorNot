@@ -693,6 +693,14 @@ details > summary {
   padding: 0 0 12px 16px;
 }
 
+.benefit-record {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
 /* 저축 목표 진행 막대 (F48): 색은 강조색 변수 */
 .goal-progress {
   width: 100%;
