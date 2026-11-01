@@ -1,12 +1,12 @@
 import { useId, useRef, useState, type ChangeEvent } from 'react'
-import { NO_SAVINGS_NOTE, backupFileName, describeBackup, makeBackup, parseBackup, type BackupData } from '../logic/backup'
+import { NO_SAVINGS_NOTE, backupFileName, describeBackup, makeBackup, parseBackup, type BackupData, type BackupInput } from '../logic/backup'
 import { josa } from '../logic/number'
 import { Button } from '../ui/Button'
 
 // PRD F20 백업·복원: 기록은 이 브라우저에만 있으므로 파일로 받아 옮기거나 보관한다.
 // 불러오기는 파일 내용을 확인한 뒤에만 지금 기록을 바꾼다.
 type Props = {
-  data: BackupData
+  data: BackupInput
   /** 저장하지 못한 부분의 이름 (모두 저장했으면 빈 목록) */
   onImport: (data: BackupData) => string[]
 }

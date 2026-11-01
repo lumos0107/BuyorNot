@@ -68,10 +68,10 @@ type Props = {
   onAdd: (input: SubscriptionInput) => void
   onEdit: (id: string, input: SubscriptionInput) => void
   onRemove: (id: string) => void
-  /** 해지했어요 (F47): 해지한 날은 검사를 마친 날 */
-  onCancel: (id: string, day: string) => void
-  /** 다시 쓰기·되돌리기 (F47) */
-  onResume: (id: string) => void
+  /** 해지했어요 (F47): 해지한 날은 검사를 마친 날. 화면에 반영됐는지 돌려준다(다른 탭이 먼저 저장했으면 false) */
+  onCancel: (id: string, day: string) => boolean
+  /** 다시 쓰기·되돌리기 (F47). 화면에 반영됐는지 돌려준다 */
+  onResume: (id: string) => boolean
   onAddDemo: () => void
   onRemoveExamples: () => void
   /** "오늘 썼어요" (F19) */
@@ -103,14 +103,17 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
   // 해지 알림 (F47): 그 고정비가 같은 해지한 날로 지금 기록에 있을 때만 보인다. 저장하지 않는다
   const [cancelNotice, setCancelNotice] = useState<{ id: string; name: string; day: string } | null>(null)
   const noticeActive = cancelNotice !== null && items.some((sub) => sub.id === cancelNotice.id && sub.cancelledOn === cancelNotice.day)
-  const cancel = (sub: Subscription, day: string) => {
-    onCancel(sub.id, day)
+  // 반영되지 않았으면(다른 탭이 먼저 저장) 알림도 제목 포커스도 없이 false를 돌려주고, 카드가 확인을 닫는다
+  const cancel = (sub: Subscription, day: string): boolean => {
+    if (!onCancel(sub.id, day)) return false
     setCancelNotice({ id: sub.id, name: sub.name, day })
     headingRef.current?.focus()
+    return true
   }
-  const resume = (id: string) => {
-    onResume(id)
+  const resume = (id: string): boolean => {
+    if (!onResume(id)) return false
     headingRef.current?.focus()
+    return true
   }
   return (
     <div className="stack">
@@ -427,7 +430,7 @@ function SubscriptionCard({
   today: Date
   onEdit: (id: string, input: SubscriptionInput) => void
   onRemove: (id: string) => void
-  onCancel: (sub: Subscription, day: string) => void
+  onCancel: (sub: Subscription, day: string) => boolean
   onToggleUse: (id: string) => void
   onSetUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) => void
   onImportUsage: (id: string, record: UsageRecord) => void
@@ -554,7 +557,14 @@ function SubscriptionCard({
       {mode === 'confirm-delete' ? (
         <DeleteConfirm name={sub.name} onConfirm={() => onRemove(sub.id)} onCancel={() => close('delete')} />
       ) : mode === 'confirm-cancel' ? (
-        <CancelConfirm sub={sub} today={today} onConfirm={(day) => onCancel(sub, day)} onCancel={() => close('cancel')} />
+        <CancelConfirm
+          sub={sub}
+          today={today}
+          onConfirm={(day) => {
+            if (!onCancel(sub, day)) close('cancel')
+          }}
+          onCancel={() => close('cancel')}
+        />
       ) : (
         <div className="card-actions">
           <button
@@ -641,7 +651,7 @@ function CancelConfirm({ sub, today, onConfirm, onCancel }: { sub: Subscription;
 }
 
 // 해지한 카드 (F47): 수정·오늘 썼어요·사용량·체험 줄·해지 후보 표시 없이 다시 쓰기와 삭제만 둔다
-function CancelledCard({ sub, onResume, onRemove }: { sub: Subscription; onResume: (id: string) => void; onRemove: (id: string) => void }) {
+function CancelledCard({ sub, onResume, onRemove }: { sub: Subscription; onResume: (id: string) => boolean; onRemove: (id: string) => void }) {
   const [mode, setMode] = useState<'view' | 'confirm-resume' | 'confirm-delete'>('view')
   const resumeRef = useRef<HTMLButtonElement>(null)
   const deleteRef = useRef<HTMLButtonElement>(null)
@@ -665,7 +675,13 @@ function CancelledCard({ sub, onResume, onRemove }: { sub: Subscription; onResum
         <div className="stack" role="group" aria-label="다시 쓰기 확인">
           <p className="field-label">{resumeConfirmText(sub)}</p>
           <div className="btn-row">
-            <Button variant="primary" autoFocus onClick={() => onResume(sub.id)}>
+            <Button
+              variant="primary"
+              autoFocus
+              onClick={() => {
+                if (!onResume(sub.id)) close('resume')
+              }}
+            >
               옮기기
             </Button>
             <Button onClick={() => close('resume')}>취소</Button>

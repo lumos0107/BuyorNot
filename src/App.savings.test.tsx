@@ -283,6 +283,19 @@ describe('옮긴 돈 적기 (F48)', () => {
     expect(stored().transfers[0].id).toBe('t0')
   })
 
+  it('AC92: 너무 많다는 경고는 다른 탭이 기록을 줄이면 사라진다', async () => {
+    const full = Array.from({ length: 2000 }, (_, i) => transfer({ id: `t${i}`, amountKrw: 1000 }))
+    seed({ savings: savingsWith(full) })
+    const user = await openSavings()
+    await writeTransfer(user, { amount: '5000' })
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    localStorage.setItem(SAVINGS_KEY, JSON.stringify(savingsWith(full.slice(0, 1999))))
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: SAVINGS_KEY }))
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('AC92: 적은 뒤 다른 탭이 그 기록을 없애면 적었다는 알림도 사라진다', async () => {
     const user = await openSavings()
     await writeTransfer(user, { amount: '100000' })
@@ -482,6 +495,13 @@ describe('저축 목표 (F48)', () => {
     expect(stored().goal).toMatchObject({ targetKrw: 600000, targetDate: '2026-11-10' })
   })
 
+  it('AC95: 목표 지우기를 누르면 확인의 지우기에 포커스가 간다', async () => {
+    seed({ savings: savingsWith([], goalOf()) })
+    const user = await openSavings()
+    await user.click(goalCard().getByRole('button', { name: '목표 지우기' }))
+    expect(within(screen.getByRole('group', { name: '목표 지우기 확인' })).getByRole('button', { name: '지우기' })).toHaveFocus()
+  })
+
   it('AC95: 목표를 지워도 옮긴 돈 기록은 그대로다', async () => {
     seed({ savings: savingsWith([transfer({ id: 'in1' })], goalOf()) })
     const user = await openSavings()
@@ -553,8 +573,8 @@ describe('모으기 저장·여러 탭 (F48)', () => {
     expect(banner().getByText(REPLACED)).toBeInTheDocument()
     expect(localStorage.getItem(SAVINGS_KEY)).toBe(other)
     expect(goalCard().getByText('비상금 · 500,000원 중 100,000원 (20%)')).toBeInTheDocument()
-    // 반영되지 않았으니 카드 제목으로 포커스를 옮기지 않는다
-    expect(goalCard().getByText('저축 목표')).not.toHaveFocus()
+    // 정하기 폼이 사라져 포커스가 body로 빠지므로 카드 제목으로 옮긴다 (saving 1a 최종 검토 M3). 저장 성공 때의 이동과는 다른 길이다
+    expect(goalCard().getByText('저축 목표')).toHaveFocus()
   })
 
   it('AC96: 기록 지우기 확인 중 다른 탭이 먼저 저장했으면 덮어쓰지 않고 불러왔다고 알린다', async () => {
@@ -571,6 +591,39 @@ describe('모으기 저장·여러 탭 (F48)', () => {
     expect(screen.queryByRole('group', { name: '기록 지우기 확인' })).not.toBeInTheDocument()
     expect(heading()).not.toHaveFocus()
     expect(screen.getByRole('button', { name: '2026-11-02 넣었어요 100,000원 기록 지우기' })).toHaveFocus()
+  })
+
+  it('AC96: 목표 정하기 중 다른 탭이 목표를 정했다 지워도 폼이 다시 열리지 않고 포커스는 카드 제목에 있다', async () => {
+    const user = await openSavings()
+    await user.click(goalCard().getByRole('button', { name: '목표 정하기' }))
+    expect(screen.getByLabelText('목표 이름')).toHaveFocus()
+    const tabEvent = () =>
+      act(() => {
+        window.dispatchEvent(new StorageEvent('storage', { key: SAVINGS_KEY }))
+      })
+    localStorage.setItem(SAVINGS_KEY, JSON.stringify(savingsWith([], goalOf())))
+    tabEvent()
+    expect(screen.queryByRole('form', { name: '저축 목표 정하기' })).not.toBeInTheDocument()
+    expect(goalCard().getByText('비상금 · 500,000원 중 0원 (0%)')).toBeInTheDocument()
+    expect(goalCard().getByText('저축 목표')).toHaveFocus()
+    // 다른 탭이 다시 지워도 정하기 폼이 저절로 열리지 않는다
+    localStorage.setItem(SAVINGS_KEY, JSON.stringify(savingsWith([], null)))
+    tabEvent()
+    expect(screen.queryByRole('form', { name: '저축 목표 정하기' })).not.toBeInTheDocument()
+    expect(goalCard().getByRole('button', { name: '목표 정하기' })).toBeInTheDocument()
+  })
+
+  it('AC96: 기록 지우기 확인 중 다른 탭이 그 기록을 지우면 포커스가 화면 제목으로 간다', async () => {
+    seed({ savings: savingsWith([transfer({ id: 'in1' }), transfer({ id: 'in2', day: '2026-11-03', amountKrw: 7000 })]) })
+    const user = await openSavings()
+    await user.click(screen.getByRole('button', { name: '2026-11-02 넣었어요 100,000원 기록 지우기' }))
+    expect(within(screen.getByRole('group', { name: '기록 지우기 확인' })).getByRole('button', { name: '지우기' })).toHaveFocus()
+    localStorage.setItem(SAVINGS_KEY, JSON.stringify(savingsWith([transfer({ id: 'in2', day: '2026-11-03', amountKrw: 7000 })])))
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: SAVINGS_KEY }))
+    })
+    expect(screen.queryByRole('group', { name: '기록 지우기 확인' })).not.toBeInTheDocument()
+    expect(heading()).toHaveFocus()
   })
 
   it('AC96: 저장에 실패하면 모으기 저장 실패 안내와 다시 저장 버튼이 보인다', async () => {

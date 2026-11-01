@@ -283,6 +283,32 @@ describe('다시 쓰기·삭제·여러 탭·예시 (F47)', () => {
     expect(screen.getByRole('status', { name: '해지 알림' })).toBeEmptyDOMElement()
   })
 
+  it('AC90: 해지 확인 중 다른 탭이 먼저 저장했으면 덮어쓰지 않고 확인을 닫는다', async () => {
+    seed(sub({}))
+    const user = await openFixed()
+    await openCancel(user, '넷플릭스')
+    // 다른 탭이 먼저 저장했지만 storage 이벤트는 아직 오지 않은 상태 (저장 직전 비교로 알아챈다)
+    seed(sub({ memo: '다른 탭에서 적음' }))
+    await user.click(confirm().getByRole('button', { name: '옮기기' }))
+    expect(screen.queryByRole('group', { name: '해지 확인' })).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '해지 알림' })).toBeEmptyDOMElement()
+    expect(within(screen.getByRole('article', { name: '넷플릭스' })).getByRole('button', { name: '해지했어요' })).toHaveFocus()
+    expect(storedItems()[0]).not.toHaveProperty('cancelledOn')
+    expect(screen.getByText('다른 탭에서 적음')).toBeInTheDocument()
+  })
+
+  it('AC90: 다시 쓰기 확인 중 다른 탭이 먼저 저장했으면 덮어쓰지 않고 확인을 닫는다', async () => {
+    seed(sub({ cancelledOn: '2026-10-20' }))
+    const user = await openFixed()
+    await openCancelled(user)
+    await user.click(cancelledCard('넷플릭스').getByRole('button', { name: '다시 쓰기' }))
+    seed(sub({ cancelledOn: '2026-10-20', memo: '다른 탭에서 적음' }))
+    await user.click(screen.getByRole('group', { name: '다시 쓰기 확인' }).querySelector('button')!)
+    expect(screen.queryByRole('group', { name: '다시 쓰기 확인' })).not.toBeInTheDocument()
+    expect(cancelledCard('넷플릭스').getByRole('button', { name: '다시 쓰기' })).toHaveFocus()
+    expect(storedItems()[0]).toHaveProperty('cancelledOn', '2026-10-20')
+  })
+
   it('AC90: 예시를 해지한 뒤 예시 구독만 지우기를 하면 해지한 예시도 지워진다', async () => {
     const user = await openFixed()
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))

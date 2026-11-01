@@ -15,8 +15,8 @@ export const NO_SAVINGS_NOTE = '이 파일에는 모으기 기록이 없어 지�
 const APP = 'buyornot'
 const BACKUP_VERSION = 2
 
-// savings를 빼거나 null로 주면 빈 모으기를 쓴다 (v1 시절 호출이 그대로 컴파일되게)
-type BackupInput = Omit<BackupData, 'savings'> & { savings?: SavingsStore | null }
+// savings를 빼면 빈 모으기를 쓴다 (v1 시절 호출이 그대로 컴파일되게). null은 받지 않는다: 그러면 지금 모으기 기록이 빈 기록으로 바뀐다
+export type BackupInput = Omit<BackupData, 'savings'> & { savings?: SavingsStore }
 
 export function makeBackup(data: BackupInput, now: Date): string {
   return JSON.stringify(
@@ -60,7 +60,7 @@ export function backupFileName(now: Date): string {
 }
 
 /** 불러오기 확인 문구에 넣을 요약: "물건 기록 1건, 구독 1개, 시급 12,000원" */
-export function describeBackup(data: BackupInput): string {
+export function describeBackup(data: BackupData | BackupInput): string {
   const wage = data.hourlyWage === null ? '시급 없음' : `시급 ${formatWon(data.hourlyWage)}`
   return `물건 기록 ${data.items.length}건, 구독 ${data.subscriptions.length}개, ${wage}`
 }

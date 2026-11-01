@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   GOAL_EMPTY_NOTE,
   GOAL_STALE,
@@ -10,6 +10,7 @@ import {
   TRANSFER_DELETE_CONFIRM,
   TRANSFER_FULL,
   TRANSFER_INTRO,
+  TRANSFER_MAX,
   createTransfer,
   editGoal,
   goalDeleteConfirm,
@@ -113,7 +114,7 @@ export function SavingsScreen({ items, subscriptions, savings, today }: Props) {
       )}
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />
-      <TransferLog transfers={savings.store.transfers} onRemove={removeTransfer} />
+      <TransferLog transfers={savings.store.transfers} onRemove={removeTransfer} onLostFocus={() => headingRef.current?.focus()} />
     </div>
   )
 }
@@ -161,6 +162,15 @@ function GoalCard({
   }
   // 다른 탭이 목표를 정하거나 지워 폼이 어긋나면 폼 대신 지금 상태를 보인다(그 위에 덮어쓰지 않게)
   const shown: GoalMode = mode === 'create' && goal ? 'view' : (mode === 'edit' || mode === 'confirm-delete') && !goal ? 'view' : mode
+  // 폼·확인이 그렇게 사라졌으면 모드도 보기로 되돌린다(나중에 다른 탭이 목표를 또 바꿔도 폼이 저절로 다시 열리지 않게)
+  if (shown !== mode) setMode('view')
+  // 폼·확인이 닫힌 뒤 포커스가 갈 곳을 잃고 body로 빠졌으면 카드 제목으로 옮긴다
+  const prevMode = useRef<GoalMode>('view')
+  useEffect(() => {
+    const was = prevMode.current
+    prevMode.current = mode
+    if (mode === 'view' && was !== 'view' && (document.activeElement === document.body || document.activeElement === null)) titleRef.current?.focus()
+  }, [mode])
 
   return (
     <section className="card stack" aria-label="저축 목표">
@@ -385,7 +395,7 @@ function TransferForm({
           onChange={(e) => set('day', e.target.value)}
         />
         <TextField label="메모 (선택)" placeholder="예: 적금 통장" value={raw.memo} error={shown.memo} onChange={(e) => set('memo', e.target.value)} />
-        {full ? (
+        {full && transfers.length >= TRANSFER_MAX ? (
           <p className="field-error" role="alert">
             {TRANSFER_FULL}
           </p>
@@ -404,23 +414,36 @@ function TransferForm({
 }
 
 // 옮긴 돈 기록: 접힌 목록, 날짜 최신순
-function TransferLog({ transfers, onRemove }: { transfers: readonly Transfer[]; onRemove: (id: string) => boolean }) {
+function TransferLog({ transfers, onRemove, onLostFocus }: { transfers: readonly Transfer[]; onRemove: (id: string) => boolean; onLostFocus: () => void }) {
   if (transfers.length === 0) return null
   return (
     <details>
       <summary>{`옮긴 돈 기록 (${transfers.length}건)`}</summary>
       <ul className="result-list">
         {sortTransfers(transfers).map((t) => (
-          <TransferRow key={t.id} transfer={t} onRemove={onRemove} />
+          <TransferRow key={t.id} transfer={t} onRemove={onRemove} onLostFocus={onLostFocus} />
         ))}
       </ul>
     </details>
   )
 }
 
-function TransferRow({ transfer, onRemove }: { transfer: Transfer; onRemove: (id: string) => boolean }) {
+function TransferRow({ transfer, onRemove, onLostFocus }: { transfer: Transfer; onRemove: (id: string) => boolean; onLostFocus: () => void }) {
   const [confirming, setConfirming] = useState(false)
   const deleteRef = useRef<HTMLButtonElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
+  // 지우기 확인을 연 채로 다른 탭이 그 기록을 없애 줄이 사라지면 포커스를 화면 제목으로 옮긴다.
+  // 이 탭에서 지우면 화면 제목으로 먼저 옮겨 두므로(removeTransfer) 여기 걸리지 않는다
+  const lostFocus = useRef(onLostFocus)
+  useEffect(() => {
+    lostFocus.current = onLostFocus
+  })
+  useLayoutEffect(() => {
+    const row = rowRef.current
+    return () => {
+      if (row?.querySelector('[role="group"]')?.contains(document.activeElement)) lostFocus.current()
+    }
+  }, [])
   // 확인을 닫으면 그 줄의 "지우기"로 포커스를 돌려보낸다
   const backToButton = useRef(false)
   useEffect(() => {
@@ -434,7 +457,7 @@ function TransferRow({ transfer, onRemove }: { transfer: Transfer; onRemove: (id
   }
   return (
     <li>
-      <div className="record-row stack">
+      <div className="record-row stack" ref={rowRef}>
         <div className="card-row">
           <span>{transferLine(transfer)}</span>
           {confirming ? null : (

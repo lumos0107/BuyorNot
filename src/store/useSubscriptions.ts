@@ -78,12 +78,13 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
   }
 
   // 물건 기록과 같은 규칙: 손상·저장소 없음이면 화면에만 반영하고,
-  // 다른 탭이 먼저 저장했다면 덮어쓰지 않고 그 내용을 불러와 알린다
-  const commit = (next: Subscription[]) => {
+  // 다른 탭이 먼저 저장했다면 덮어쓰지 않고 그 내용을 불러와 알린다.
+  // 이번 변경이 화면에 반영됐는지 돌려준다(저장 실패·손상으로 화면에만 반영된 경우도 true, 다른 탭 기록을 불러와 반영하지 않았으면 false)
+  const commit = (next: Subscription[]): boolean => {
     if (status.kind === 'corrupt' || status.kind === 'unavailable') {
       setItems(next)
       unsaved.current = true
-      return
+      return true
     }
     const now = read(storage)
     if ((now.loaded.ok || now.loaded.reason === 'corrupt') && now.raw !== lastRaw.current) {
@@ -92,15 +93,16 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
         setItems(now.loaded.store.items)
         setStatus({ kind: 'replaced' })
         unsaved.current = false
-      } else {
-        setItems(next)
-        setStatus({ kind: 'corrupt' })
-        unsaved.current = true
+        return false
       }
-      return
+      setItems(next)
+      setStatus({ kind: 'corrupt' })
+      unsaved.current = true
+      return true
     }
     setItems(next)
     setStatus(write(next))
+    return true
   }
 
   return {
@@ -113,10 +115,10 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
     /** "오늘 썼어요" 기록을 켜고 끈다 (F19) */
     toggleUse: (id: string) => commit(items.map((sub) => (sub.id === id ? toggleUseToday(sub, new Date(), new Date()) : sub))),
     /** 해지했어요 (F47): 지우지 않고 해지한 날을 적는다. day는 검사를 마친 날 */
-    cancel: (id: string, day: string) =>
+    cancel: (id: string, day: string): boolean =>
       commit(items.map((sub) => (sub.id === id ? cancelSubscription(sub, day, new Date()) : sub))),
     /** 다시 쓰기·되돌리기 (F47): 해지한 날을 지운다 */
-    resume: (id: string) => commit(items.map((sub) => (sub.id === id ? resumeSubscription(sub, new Date()) : sub))),
+    resume: (id: string): boolean => commit(items.map((sub) => (sub.id === id ? resumeSubscription(sub, new Date()) : sub))),
     /** 사용량 적기·지우기 (F25) */
     setUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) =>
       commit(items.map((sub) => (sub.id === id ? setUsageEntry(sub, input, new Date()) : sub))),

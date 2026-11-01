@@ -65,7 +65,7 @@ export function trialLine(sub: Subscription, today: Date): string | null {
 
 /** 요약의 체험 줄: "무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요". 체험 중이 없으면 null */
 export function trialSummaryLine(s: SubscriptionSummary): string | null {
-  return s.trialCount > 0 ? `무료 체험 중 ${s.trialCount}개 · 끝나면 월 ${formatWon(s.trialMonthly)}이 더 나가요` : null
+  return s.trialCount > 0 ? `무료 체험 중 ${s.trialCount}개 · 끝나면 월 ${formatWon(s.trialMonthly)}이 더 나가요` : null // copy-check: ignore josa formatWon은 늘 '원'으로 끝난다
 }
 
 // PRD F47 해지했어요
@@ -82,7 +82,7 @@ export function cancelConfirmLines(sub: Subscription): string[] {
   lines.push(
     kind === 'housing'
       ? '옮기면 합계에서 빠져요. 월세·관리비는 줄어든 고정비로 세지 않아요.'
-      : `옮기면 합계에서 빠지고, 모으기의 ‘줄어든 고정비’에 월 ${formatWon(monthlyEquivalent(sub))}이 더해져요.`,
+      : `옮기면 합계에서 빠지고, 모으기의 ‘줄어든 고정비’에 월 ${formatWon(monthlyEquivalent(sub))}이 더해져요.`, // copy-check: ignore josa formatWon은 늘 '원'으로 끝난다
   )
   if (kind === 'phone' || kind === 'insurance') {
     lines.push('다른 곳으로 갈아탄 거라면 해지 대신 ‘수정’에서 요금을 바꿔 주세요. 해지로 옮기면 이 요금 전체를 줄어든 고정비로 세요.')
