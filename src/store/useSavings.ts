@@ -74,12 +74,13 @@ export function useSavings(storage: Storage | null = getLocalStorage()) {
     }
   }
 
-  // 손상·저장소 없음이면 화면에만 반영하고, 다른 탭이 먼저 저장했다면 덮어쓰지 않고 그 내용을 불러와 알린다
-  const commit = (next: SavingsStore) => {
+  // 손상·저장소 없음이면 화면에만 반영하고, 다른 탭이 먼저 저장했다면 덮어쓰지 않고 그 내용을 불러와 알린다.
+  // 이번 변경이 화면에 반영됐는지 돌려준다(저장 실패·손상으로 화면에만 반영된 경우도 true, 다른 탭 기록을 불러와 반영하지 않았으면 false)
+  const commit = (next: SavingsStore): boolean => {
     if (status.kind === 'corrupt' || status.kind === 'unavailable') {
       setStore(next)
       unsaved.current = true
-      return
+      return true
     }
     const now = read(storage)
     if ((now.loaded.ok || now.loaded.reason === 'corrupt') && now.raw !== lastRaw.current) {
@@ -88,31 +89,34 @@ export function useSavings(storage: Storage | null = getLocalStorage()) {
         setStore(now.loaded.store)
         setStatus({ kind: 'replaced' })
         unsaved.current = false
-      } else {
-        setStore(next)
-        setStatus({ kind: 'corrupt' })
-        unsaved.current = true
+        return false
       }
-      return
+      setStore(next)
+      setStatus({ kind: 'corrupt' })
+      unsaved.current = true
+      return true
     }
     setStore(next)
     setStatus(write(next))
+    return true
   }
 
   return {
     store,
     status,
-    /** 옮긴 돈을 적는다. 이미 2,000건이면 저장하지 않고 'full' */
-    addTransfer: (transfer: Transfer): 'ok' | 'full' => {
+    /** 옮긴 돈을 적는다. 이미 2,000건이면 저장하지 않고 'full', 다른 탭 기록을 불러와 반영하지 않았으면 'replaced' */
+    addTransfer: (transfer: Transfer): 'ok' | 'full' | 'replaced' => {
       const next = addTransferTo(store, transfer)
       if (next === 'full') return 'full'
-      commit(next)
-      return 'ok'
+      return commit(next) ? 'ok' : 'replaced'
     },
-    removeTransfer: (id: string) => commit(removeTransferFrom(store, id)),
-    setGoal: (goal: Goal) => commit(setGoalOf(store, goal)),
-    clearGoal: () => commit(clearGoalOf(store)),
-    retrySave: () => commit(store),
+    /** 아래 셋은 화면에 반영됐는지 돌려준다(다른 탭 기록을 불러와 반영하지 않았으면 false) */
+    removeTransfer: (id: string): boolean => commit(removeTransferFrom(store, id)),
+    setGoal: (goal: Goal): boolean => commit(setGoalOf(store, goal)),
+    clearGoal: (): boolean => commit(clearGoalOf(store)),
+    retrySave: () => {
+      commit(store)
+    },
     // 직전에 다른 탭이 읽을 수 있는 기록을 저장했다면 덮어쓰지 않고 그 내용을 불러온다
     resetStorage: () => {
       const now = read(storage)

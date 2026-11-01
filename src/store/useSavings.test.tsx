@@ -150,3 +150,57 @@ describe('모으기 저장 훅 (F48)', () => {
     expect(saved()).toBe(rawOf([T()]))
   })
 })
+
+// R45 구현 규칙: 반영 여부를 돌려줘야 화면이 성공 안내를 반영됐을 때만 띄운다
+describe('모으기 저장 훅이 돌려주는 반영 여부 (F48)', () => {
+  const goal = {
+    name: '비상금',
+    targetKrw: 500000,
+    startedOn: '2026-11-01',
+    createdAt: '2026-11-01T00:00:00.000Z',
+    updatedAt: '2026-11-01T00:00:00.000Z',
+  }
+
+  it('AC96: 다른 탭이 먼저 저장했으면 적기는 replaced, 지우기·목표 정하기·지우기는 false를 돌려준다', () => {
+    const { result } = renderHook(() => useSavings())
+    const results: unknown[] = []
+    const other = (id: string) => localStorage.setItem(SAVINGS_KEY, rawOf([T({ id })]))
+
+    other('o1')
+    act(() => void results.push(result.current.addTransfer(T())))
+    other('o2')
+    act(() => void results.push(result.current.removeTransfer('o2')))
+    other('o3')
+    act(() => void results.push(result.current.setGoal(goal)))
+    other('o4')
+    act(() => void results.push(result.current.clearGoal()))
+    expect(results).toEqual(['replaced', false, false, false])
+    // 어느 것도 다른 탭의 기록을 덮어쓰지 않았다
+    expect(saved()).toBe(rawOf([T({ id: 'o4' })]))
+  })
+
+  it('AC96: 저장되거나 저장에 실패해 화면에만 반영돼도 반영됐다고 돌려준다', () => {
+    const { result } = renderHook(() => useSavings())
+    let added: string | undefined
+    let goalSet: boolean | undefined
+    act(() => {
+      added = result.current.addTransfer(T())
+    })
+    expect(added).toBe('ok')
+
+    const original = Storage.prototype.setItem
+    Storage.prototype.setItem = () => {
+      throw new DOMException('full', 'QuotaExceededError')
+    }
+    try {
+      act(() => {
+        goalSet = result.current.setGoal(goal)
+      })
+    } finally {
+      Storage.prototype.setItem = original
+    }
+    expect(goalSet).toBe(true)
+    expect(result.current.store.goal).toEqual(goal)
+    expect(result.current.status).toEqual({ kind: 'save-failed', reason: 'quota' })
+  })
+})

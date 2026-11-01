@@ -1,4 +1,6 @@
-import { kindOf, monthlyEquivalent, parseDay, type Subscription } from './subscriptions'
+import { calendarDaysBetween } from './dates'
+import { formatWon, parseInteger } from './number'
+import { kindOf, monthlyEquivalent, parseDay, toDayIso, yearsLater, type Subscription } from './subscriptions'
 import { historySummary } from './summary'
 import { isExample, type WishItem } from './wishlist'
 
@@ -155,3 +157,156 @@ export const NOTE_SEPARATE = '세 숫자는 서로 다른 돈이라 더하지 �
 export const reducedLabel = (n: SavingsNumbers) => `줄어든 고정비 · 해지 ${n.reducedCount}개`
 export const skippedLabel = (n: SavingsNumbers) => `참은 구매 · 구매 포기 ${n.skippedCount}건`
 export const movedLabel = (n: SavingsNumbers) => `옮긴 돈 · 기록 ${n.transferCount}건`
+
+// ---------- 옮긴 돈 적기·기록 (F48) ----------
+
+export type TransferRawInput = { direction: TransferDirection; amount: string; day: string; memo: string }
+export type TransferFieldErrors = Partial<Record<'amount' | 'day' | 'memo', string>>
+
+export const TRANSFER_INTRO = '앱은 돈을 옮기지 않아요. 은행 앱에서 옮긴 뒤 금액을 적어 주세요.'
+export const TRANSFER_FULL = '기록이 너무 많아 더 적을 수 없어요. 백업한 뒤 오래된 기록을 지워 주세요.'
+export const TRANSFER_DELETE_CONFIRM = '이 기록을 지울까요? 저축 목표와 옮긴 돈 합계에서도 빠져요.'
+
+/** 옮긴 돈 검사. 날짜는 1년 전 같은 날(없으면 그 달 말일)부터 오늘까지 */
+export function validateTransferInput(
+  raw: TransferRawInput,
+  today: Date,
+): { value?: Omit<Transfer, 'id' | 'createdAt'>; errors: TransferFieldErrors } {
+  const errors: TransferFieldErrors = {}
+  const value: Omit<Transfer, 'id' | 'createdAt'> = { direction: raw.direction, amountKrw: 0, day: '' }
+
+  const amount = parseInteger(raw.amount)
+  if (amount === null) errors.amount = '금액을 숫자로 입력해 주세요'
+  else if (amount < 1 || amount > AMOUNT_MAX) errors.amount = '금액은 1원~1억 원 사이여야 해요'
+  else value.amountKrw = amount
+
+  const dayText = raw.day.trim()
+  const day = parseDay(dayText)
+  if (!day) errors.day = '올바른 날짜를 골라 주세요'
+  else if (calendarDaysBetween(day, today) < 0 || calendarDaysBetween(yearsLater(today, -1), day) < 0) {
+    errors.day = '날짜는 1년 전부터 오늘 사이여야 해요'
+  } else value.day = dayText
+
+  const memo = raw.memo.trim()
+  if (memo.length > MEMO_MAX) errors.memo = `메모는 ${MEMO_MAX}자 이하로 적어 주세요`
+  else if (memo !== '') value.memo = memo
+
+  return Object.keys(errors).length > 0 ? { errors } : { value, errors }
+}
+
+/** 메모가 비면 넣지 않는다 */
+export function createTransfer(value: Omit<Transfer, 'id' | 'createdAt'>, now: Date, id: string): Transfer {
+  const { memo, ...rest } = value
+  return { id, ...rest, ...(memo ? { memo } : {}), createdAt: now.toISOString() }
+}
+
+const directionText = (t: Pick<Transfer, 'direction'>) => (t.direction === 'in' ? '넣었어요' : '꺼냈어요')
+
+/** "100,000원을 넣었다고 적었어요." / "20,000원을 꺼냈다고 적었어요." */
+export function transferSavedMessage(t: Transfer): string {
+  return `${formatWon(t.amountKrw)}을 ${t.direction === 'in' ? '넣었다고' : '꺼냈다고'} 적었어요.` // copy-check: ignore josa formatWon은 늘 '원'으로 끝난다
+}
+
+/** 기록 줄: "2026-11-20 · 꺼냈어요 · 20,000원 · 적금 통장" (메모가 없으면 마지막 부분 없음) */
+export function transferLine(t: Transfer): string {
+  return [t.day, directionText(t), formatWon(t.amountKrw), ...(t.memo ? [t.memo] : [])].join(' · ')
+}
+
+/** 지우기 버튼의 접근 가능한 이름 */
+export function transferDeleteName(t: Transfer): string {
+  return `${t.day} ${directionText(t)} ${formatWon(t.amountKrw)} 기록 지우기`
+}
+
+/** 날짜 최신순, 같은 날은 늦게 적은 것 먼저(적은 시각까지 같으면 저장 순서가 늦은 것 먼저) */
+export function sortTransfers(transfers: readonly Transfer[]): Transfer[] {
+  return transfers
+    .map((t, index) => ({ t, index }))
+    .sort((a, b) => b.t.day.localeCompare(a.t.day) || b.t.createdAt.localeCompare(a.t.createdAt) || b.index - a.index)
+    .map(({ t }) => t)
+}
+
+// ---------- 저축 목표 (F48): 정한 날부터 적은 옮긴 돈으로만 채운다 ----------
+
+export type GoalRawInput = { name: string; target: string; targetDate: string }
+export type GoalFieldErrors = Partial<Record<'name' | 'target' | 'targetDate', string>>
+export type GoalValue = Pick<Goal, 'name' | 'targetKrw' | 'targetDate'>
+
+export const GOAL_EMPTY_NOTE = '목표는 옮긴 돈으로만 채워요.'
+export const GOAL_STALE = '다른 탭에서 이 목표가 바뀌었어요. 취소한 뒤 다시 열어 고쳐 주세요.'
+
+/**
+ * 목표 검사. unchangedTargetDate: 고치기 폼에 채워 둔 목표 날짜. 그대로 두면 범위를 다시 따지지 않는다
+ */
+export function validateGoalInput(
+  raw: GoalRawInput,
+  today: Date,
+  unchangedTargetDate?: string,
+): { value?: GoalValue; errors: GoalFieldErrors } {
+  const errors: GoalFieldErrors = {}
+  const value: GoalValue = { name: '', targetKrw: 0 }
+
+  const name = raw.name.trim()
+  if (name.length === 0) errors.name = '목표 이름을 적어 주세요'
+  else if (name.length > GOAL_NAME_MAX) errors.name = `목표 이름은 ${GOAL_NAME_MAX}자 이하로 적어 주세요`
+  else value.name = name
+
+  const target = parseInteger(raw.target)
+  if (target === null) errors.target = '목표 금액을 숫자로 입력해 주세요'
+  else if (target < GOAL_MIN || target > GOAL_MAX) errors.target = '목표 금액은 1만 원~1억 원 사이여야 해요'
+  else value.targetKrw = target
+
+  const dateText = raw.targetDate.trim()
+  if (dateText !== '') {
+    const date = parseDay(dateText)
+    if (!date) errors.targetDate = '올바른 날짜를 골라 주세요'
+    else if (dateText !== unchangedTargetDate && (calendarDaysBetween(today, date) < 1 || calendarDaysBetween(date, yearsLater(today, 10)) < 0)) {
+      errors.targetDate = '목표 날짜는 내일부터 10년 안이어야 해요'
+    } else value.targetDate = dateText
+  }
+
+  return Object.keys(errors).length > 0 ? { errors } : { value, errors }
+}
+
+/** 새 목표. 정한 날은 오늘 */
+export function newGoal(value: GoalValue, today: Date, now: Date): Goal {
+  const at = now.toISOString()
+  return { name: value.name, targetKrw: value.targetKrw, ...(value.targetDate ? { targetDate: value.targetDate } : {}), startedOn: toDayIso(today), createdAt: at, updatedAt: at }
+}
+
+/** 목표 고치기. 정한 날·만든 시각은 그대로 */
+export function editGoal(goal: Goal, value: GoalValue, now: Date): Goal {
+  return {
+    name: value.name,
+    targetKrw: value.targetKrw,
+    ...(value.targetDate ? { targetDate: value.targetDate } : {}),
+    startedOn: goal.startedOn,
+    createdAt: goal.createdAt,
+    updatedAt: now.toISOString(),
+  }
+}
+
+/** 채운 금액 = 정한 날(같은 날 포함) 이후 넣었어요 − 꺼냈어요(0 아래면 0). 퍼센트는 내림해 100에서 멈춘다 */
+export function goalProgress(goal: Goal, transfers: readonly Transfer[]): { filled: number; percent: number; reached: boolean } {
+  const sum = transfers
+    .filter((t) => t.day >= goal.startedOn)
+    .reduce((total, t) => total + (t.direction === 'in' ? t.amountKrw : -t.amountKrw), 0)
+  const filled = Math.max(0, sum)
+  return { filled, percent: Math.min(100, Math.floor((filled * 100) / goal.targetKrw)), reached: filled >= goal.targetKrw }
+}
+
+/** 목표 카드의 글: 머리, 안내, 목표 날짜 줄(닿았으면 닿았다는 문장, 날짜가 없으면 null) */
+export function goalLines(goal: Goal, transfers: readonly Transfer[], today: Date): { head: string; note: string; plan: string | null } {
+  const { filled, percent, reached } = goalProgress(goal, transfers)
+  const head = `${goal.name} · ${formatWon(goal.targetKrw)} 중 ${formatWon(filled)} (${percent}%)`
+  const note = `목표를 정한 날(${goal.startedOn})부터 적은 옮긴 돈으로 채워요. 줄어든 고정비와 참은 구매는 더하지 않아요.`
+  if (reached) return { head, note, plan: '목표 금액에 닿았어요.' }
+  const date = goal.targetDate ? parseDay(goal.targetDate) : null
+  if (!goal.targetDate || !date) return { head, note, plan: null }
+  const left = calendarDaysBetween(today, date)
+  if (left < 0) return { head, note, plan: '목표 날짜가 지났어요.' }
+  if (left === 0) return { head, note, plan: '오늘이 목표 날짜예요.' }
+  const perMonth = Math.ceil((goal.targetKrw - filled) / Math.ceil(left / 30))
+  return { head, note, plan: `목표 날짜 ${goal.targetDate}까지 ${left}일 · 한 달에 약 ${formatWon(perMonth)}씩 옮기면 닿아요` }
+}
+
+export const goalDeleteConfirm = (goal: Pick<Goal, 'name'>) => `‘${goal.name}’ 목표를 지울까요? 옮긴 돈 기록은 그대로 남아요.`
