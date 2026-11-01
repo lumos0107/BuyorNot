@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { backupFileName, describeBackup, makeBackup, parseBackup, type BackupData } from './backup'
+import { EMPTY_SAVINGS, type SavingsStore } from './savings'
 import type { Subscription } from './subscriptions'
 import type { WishItem } from './wishlist'
 
@@ -27,13 +28,13 @@ const sub: Subscription = {
   createdAt: '2026-10-01T00:00:00.000Z',
   updatedAt: '2026-10-01T00:00:00.000Z',
 }
-const data: BackupData = { items: [item], hourlyWage: 12000, subscriptions: [sub] }
+const data: Omit<BackupData, 'savings'> = { items: [item], hourlyWage: 12000, subscriptions: [sub] }
 
 describe('백업 만들기와 읽기 (F20)', () => {
   it('만든 백업을 다시 읽으면 같은 기록이 나온다', () => {
     const raw = makeBackup(data, NOW)
-    expect(JSON.parse(raw)).toMatchObject({ app: 'buyornot', backupVersion: 1, exportedAt: NOW.toISOString() })
-    expect(parseBackup(raw)).toEqual({ ok: true, data })
+    expect(JSON.parse(raw)).toMatchObject({ app: 'buyornot', backupVersion: 2, exportedAt: NOW.toISOString() })
+    expect(parseBackup(raw)).toEqual({ ok: true, data: { ...data, savings: EMPTY_SAVINGS } })
   })
 
   it('파일 이름은 날짜를 붙인 영문 이름이다', () => {
@@ -50,10 +51,53 @@ describe('백업 만들기와 읽기 (F20)', () => {
     const bad = (over: Record<string, unknown>) => JSON.stringify({ ...valid, ...over })
     expect(parseBackup('{not json')).toEqual({ ok: false })
     expect(parseBackup(bad({ app: 'other' }))).toEqual({ ok: false })
-    expect(parseBackup(bad({ backupVersion: 2 }))).toEqual({ ok: false })
+    expect(parseBackup(bad({ backupVersion: 3 }))).toEqual({ ok: false })
     expect(parseBackup(bad({ wishlist: undefined }))).toEqual({ ok: false })
     expect(parseBackup(bad({ wishlist: { schemaVersion: 1, items: [{ ...item, priceKrw: -1 }] } }))).toEqual({ ok: false })
     expect(parseBackup(bad({ settings: { schemaVersion: 1, hourlyWage: 999 } }))).toEqual({ ok: false })
     expect(parseBackup(bad({ subscriptions: { schemaVersion: 1, items: [{ ...sub, billingDay: 40 }] } }))).toEqual({ ok: false })
+  })
+})
+
+describe('백업 v2: 모으기 (F20 보강)', () => {
+  const savings: SavingsStore = {
+    schemaVersion: 1,
+    transfers: [{ id: 't1', day: '2026-10-20', amountKrw: 30000, direction: 'in', memo: '월급날', createdAt: '2026-10-20T01:00:00.000Z' }],
+    goal: { name: '여행 자금', targetKrw: 500000, startedOn: '2026-10-01', createdAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z' },
+  }
+
+  it('AC99: v2를 만들어 다시 읽으면 모으기까지 같다', () => {
+    const raw = makeBackup({ ...data, savings }, NOW)
+    expect(JSON.parse(raw)).toMatchObject({ app: 'buyornot', backupVersion: 2, savings })
+    expect(parseBackup(raw)).toEqual({ ok: true, data: { ...data, savings } })
+  })
+
+  it('AC99: v1 파일은 읽히고 모으기는 null이다', () => {
+    // v1 모양 원문을 손으로 만든다 (backupVersion 1, savings 없음)
+    const v1 = JSON.stringify({
+      app: 'buyornot',
+      backupVersion: 1,
+      exportedAt: NOW.toISOString(),
+      wishlist: { schemaVersion: 1, items: [item] },
+      settings: { schemaVersion: 1, hourlyWage: 12000 },
+      subscriptions: { schemaVersion: 1, items: [sub] },
+    })
+    expect(parseBackup(v1)).toEqual({ ok: true, data: { ...data, savings: null } })
+  })
+
+  it('AC99: 모으기가 손상됐거나 없는 v2, 판 3은 읽지 않는다', () => {
+    const valid = JSON.parse(makeBackup({ ...data, savings }, NOW))
+    const bad = (over: Record<string, unknown>) => JSON.stringify({ ...valid, ...over })
+    const badTransfer = { ...savings.transfers[0], amountKrw: -1 }
+    expect(parseBackup(bad({ savings: { ...savings, transfers: [badTransfer] } }))).toEqual({ ok: false })
+    expect(parseBackup(bad({ savings: undefined }))).toEqual({ ok: false })
+    expect(parseBackup(bad({ savings: null }))).toEqual({ ok: false })
+    expect(parseBackup(bad({ backupVersion: 3 }))).toEqual({ ok: false })
+    expect(parseBackup(bad({ backupVersion: 1, savings: undefined })).ok).toBe(true)
+  })
+
+  it('AC99: 확인 요약 문장은 그대로다', () => {
+    expect(describeBackup({ ...data, savings })).toBe('물건 기록 1건, 구독 1개, 시급 12,000원')
+    expect(describeBackup({ ...data, savings: null })).toBe('물건 기록 1건, 구독 1개, 시급 12,000원')
   })
 })

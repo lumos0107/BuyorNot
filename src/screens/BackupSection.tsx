@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type ChangeEvent } from 'react'
-import { backupFileName, describeBackup, makeBackup, parseBackup, type BackupData } from '../logic/backup'
+import { NO_SAVINGS_NOTE, backupFileName, describeBackup, makeBackup, parseBackup, type BackupData } from '../logic/backup'
 import { josa } from '../logic/number'
 import { Button } from '../ui/Button'
 
@@ -107,6 +107,7 @@ export function BackupSection({ data, onImport }: Props) {
         {pending ? (
           <div className="stack" role="group" aria-label="백업 불러오기 확인">
             <p className="field-label">{`파일 내용: ${describeBackup(pending)}. 지금 기록을 이 파일의 기록으로 바꿀까요?`}</p>
+            {pending.savings === null ? <p className="note">{NO_SAVINGS_NOTE}</p> : null}
             <div className="btn-row">
               <Button
                 variant="danger"
