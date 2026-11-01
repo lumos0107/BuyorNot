@@ -117,6 +117,8 @@ export default function App() {
             onAdd={subscriptions.add}
             onEdit={subscriptions.edit}
             onRemove={subscriptions.remove}
+            onCancel={subscriptions.cancel}
+            onResume={subscriptions.resume}
             onAddDemo={subscriptions.addDemo}
             onRemoveExamples={subscriptions.removeExamples}
             onToggleUse={subscriptions.toggleUse}

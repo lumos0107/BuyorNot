@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { kindTotalsLine, trialLine, trialSummaryLine } from './fixedCosts'
+import {
+  cancelConfirmLines,
+  cancelledLine,
+  cancelledNotice,
+  kindTotalsLine,
+  resumeConfirmText,
+  sortCancelled,
+  trialLine,
+  trialSummaryLine,
+  validateCancelDay,
+} from './fixedCosts'
 import { subscriptionSummary, type FixedCostKind, type Subscription } from './subscriptions'
 
 // PRD F45 요약의 종류별 줄 (AC81). 오늘 2026-11-01
@@ -93,5 +103,78 @@ describe('체험 줄 (F46)', () => {
     expect(kindTotalsLine([trial(), sub('왓챠', 7900), kinded('휴대폰', 55000, 'phone')], TODAY)).toBe('구독·멤버십 7,900원 · 통신 55,000원')
     // 체험이 끝난 다음 날부터는 들어간다
     expect(kindTotalsLine([trial(), kinded('휴대폰', 55000, 'phone')], at('2026-11-15'))).toBe('구독·멤버십 13,500원 · 통신 55,000원')
+  })
+})
+
+describe('해지했어요 문장과 검사 (F47)', () => {
+  const FIRST = '‘넷플릭스’를 해지한 것으로 옮길까요? 실제 해지는 그곳에서 직접 해야 해요.'
+  const THIRD = '다른 곳으로 갈아탄 거라면 해지 대신 ‘수정’에서 요금을 바꿔 주세요. 해지로 옮기면 이 요금 전체를 줄어든 고정비로 세요.'
+
+  it('AC88: 구독 해지 확인 두 줄', () => {
+    expect(cancelConfirmLines(sub('넷플릭스', 13500))).toEqual([
+      FIRST,
+      '옮기면 합계에서 빠지고, 모으기의 ‘줄어든 고정비’에 월 13,500원이 더해져요.',
+    ])
+    // 조사는 이름에 맞게
+    expect(cancelConfirmLines(sub('왓챠', 7900))[0]).toBe('‘왓챠’를 해지한 것으로 옮길까요? 실제 해지는 그곳에서 직접 해야 해요.')
+    expect(cancelConfirmLines(sub('멜론', 7900))[0]).toBe('‘멜론’을 해지한 것으로 옮길까요? 실제 해지는 그곳에서 직접 해야 해요.')
+  })
+
+  it('AC88: 연 요금이면 월 10,000원이다', () => {
+    const yearly = sub('클라우드', 120000, { cycle: 'yearly', billingDay: undefined, renewalDate: '2027-02-01' })
+    expect(cancelConfirmLines(yearly)[1]).toBe('옮기면 합계에서 빠지고, 모으기의 ‘줄어든 고정비’에 월 10,000원이 더해져요.')
+  })
+
+  it('AC89: 통신·보험은 셋째 줄이 있다', () => {
+    const phone = cancelConfirmLines(sub('휴대폰', 55000, { kind: 'phone' }))
+    expect(phone).toHaveLength(3)
+    expect(phone[1]).toBe('옮기면 합계에서 빠지고, 모으기의 ‘줄어든 고정비’에 월 55,000원이 더해져요.')
+    expect(phone[2]).toBe(THIRD)
+    expect(cancelConfirmLines(sub('보험', 30000, { kind: 'insurance' }))[2]).toBe(THIRD)
+    // 다른 종류에는 셋째 줄이 없다
+    expect(cancelConfirmLines(sub('쿠팡', 7890, { kind: 'membership' }))).toHaveLength(2)
+    expect(cancelConfirmLines(sub('정기배송', 20000, { kind: 'delivery' }))).toHaveLength(2)
+    expect(cancelConfirmLines(sub('기타', 20000, { kind: 'other' }))).toHaveLength(2)
+  })
+
+  it('AC89: 월세·관리비는 둘째 줄이 다르고 셋째 줄이 없다', () => {
+    expect(cancelConfirmLines(sub('월세', 450000, { kind: 'housing' }))).toEqual([
+      '‘월세’를 해지한 것으로 옮길까요? 실제 해지는 그곳에서 직접 해야 해요.',
+      '옮기면 합계에서 빠져요. 월세·관리비는 줄어든 고정비로 세지 않아요.',
+    ])
+  })
+
+  it('AC89: 해지한 날은 90일 전과 오늘을 받고 그 밖은 오류다', () => {
+    expect(validateCancelDay('2026-08-03', TODAY)).toEqual({ value: '2026-08-03' })
+    expect(validateCancelDay('2026-11-01', TODAY)).toEqual({ value: '2026-11-01' })
+    expect(validateCancelDay(' 2026-10-20 ', TODAY)).toEqual({ value: '2026-10-20' })
+    const range = '해지한 날은 90일 전부터 오늘 사이여야 해요'
+    expect(validateCancelDay('2026-08-02', TODAY)).toEqual({ error: range })
+    expect(validateCancelDay('2026-11-02', TODAY)).toEqual({ error: range })
+    expect(validateCancelDay('', TODAY)).toEqual({ error: '해지한 날을 골라 주세요' })
+    expect(validateCancelDay('2026-02-30', TODAY)).toEqual({ error: '해지한 날을 골라 주세요' })
+  })
+
+  it('AC88: 해지한 카드 줄은 해지한 날과 요금이다', () => {
+    expect(cancelledLine(sub('넷플릭스', 13500, { cancelledOn: '2026-11-01' }))).toBe('2026-11-01 해지 · 월 13,500원')
+    expect(
+      cancelledLine(sub('클라우드', 120000, { cycle: 'yearly', billingDay: undefined, renewalDate: '2027-02-01', cancelledOn: '2026-10-20' })),
+    ).toBe('2026-10-20 해지 · 연 120,000원 · 월평균 10,000원')
+    expect(cancelledNotice(sub('넷플릭스', 13500))).toBe('‘넷플릭스’를 해지한 것으로 옮겼어요.')
+  })
+
+  it('AC90: 다시 쓰기 확인 문장', () => {
+    expect(resumeConfirmText(sub('넷플릭스', 13500))).toBe('‘넷플릭스’를 다시 쓰는 것으로 옮길까요? 모으기의 ‘줄어든 고정비’에서도 빠져요.')
+    expect(resumeConfirmText(sub('월세', 450000, { kind: 'housing' }))).toBe('‘월세’를 다시 쓰는 것으로 옮길까요?')
+  })
+
+  it('AC88: 해지한 것은 해지한 날 최신순, 같으면 이름 순이다', () => {
+    const list = [
+      sub('다', 1000, { cancelledOn: '2026-10-01' }),
+      sub('나', 1000, { cancelledOn: '2026-10-20' }),
+      sub('가', 1000, { cancelledOn: '2026-10-20' }),
+    ]
+    expect(sortCancelled(list).map((s) => s.name)).toEqual(['가', '나', '다'])
+    expect(list.map((s) => s.name)).toEqual(['다', '나', '가'])
   })
 })

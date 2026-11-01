@@ -12,9 +12,17 @@ import {
   STALE_NOTICE,
   TRIAL_HINT,
   TRIAL_LABEL,
+  CANCEL_BACK_DAYS,
+  cancelConfirmLines,
+  cancelledLine,
+  cancelledNotice,
   kindTotalsLine,
+  priceText as priceLabel,
+  resumeConfirmText,
+  sortCancelled,
   trialLine,
   trialSummaryLine,
+  validateCancelDay,
 } from '../logic/fixedCosts'
 import { formatWon } from '../logic/number'
 import { sameRecord } from '../logic/records'
@@ -27,10 +35,10 @@ import {
   type UsageEntry,
   daysUntil,
   isCancelCandidate,
+  isCancelled,
   kindOf,
   lastUsedOf,
   needsUsageCheck,
-  monthlyEquivalent,
   nextBillingDate,
   sortSubscriptions,
   subscriptionSummary,
@@ -60,6 +68,10 @@ type Props = {
   onAdd: (input: SubscriptionInput) => void
   onEdit: (id: string, input: SubscriptionInput) => void
   onRemove: (id: string) => void
+  /** 해지했어요 (F47): 해지한 날은 검사를 마친 날 */
+  onCancel: (id: string, day: string) => void
+  /** 다시 쓰기·되돌리기 (F47) */
+  onResume: (id: string) => void
   onAddDemo: () => void
   onRemoveExamples: () => void
   /** "오늘 썼어요" (F19) */
@@ -73,16 +85,31 @@ type Props = {
   onDismiss: () => void
 }
 
-export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onAddDemo, onRemoveExamples, onToggleUse, onSetUsage, onImportUsage, onRetry, onReset, onDismiss }: Props) {
-  const sorted = sortSubscriptions(items, today)
-  const s = subscriptionSummary(items, today)
-  const totalsLine = kindTotalsLine(items, today)
+export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemove, onCancel, onResume, onAddDemo, onRemoveExamples, onToggleUse, onSetUsage, onImportUsage, onRetry, onReset, onDismiss }: Props) {
+  // 해지한 것은 쓰는 중인 목록·요약에서 빼고 접힌 '해지한 것'에 둔다 (F47)
+  const active = items.filter((sub) => !isCancelled(sub))
+  const cancelled = sortCancelled(items.filter(isCancelled))
+  const sorted = sortSubscriptions(active, today)
+  const s = subscriptionSummary(active, today)
+  const totalsLine = kindTotalsLine(active, today)
   const trialSummary = trialSummaryLine(s)
   const exampleCount = items.filter((sub) => isExample(sub.name)).length
   // 삭제로 카드가 사라지면 포커스를 화면 제목으로 옮긴다
   const headingRef = useRef<HTMLHeadingElement>(null)
   const remove = (id: string) => {
     onRemove(id)
+    headingRef.current?.focus()
+  }
+  // 해지 알림 (F47): 그 고정비가 같은 해지한 날로 지금 기록에 있을 때만 보인다. 저장하지 않는다
+  const [cancelNotice, setCancelNotice] = useState<{ id: string; name: string; day: string } | null>(null)
+  const noticeActive = cancelNotice !== null && items.some((sub) => sub.id === cancelNotice.id && sub.cancelledOn === cancelNotice.day)
+  const cancel = (sub: Subscription, day: string) => {
+    onCancel(sub.id, day)
+    setCancelNotice({ id: sub.id, name: sub.name, day })
+    headingRef.current?.focus()
+  }
+  const resume = (id: string) => {
+    onResume(id)
     headingRef.current?.focus()
   }
   return (
@@ -102,6 +129,24 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           headingRef.current?.focus()
         }}
       />
+      <div role="status" aria-label="해지 알림" className={cancelNotice && noticeActive ? undefined : 'similar-empty'}>
+        {cancelNotice && noticeActive ? (
+          <div className="example-bar">
+            <span className="note">{cancelledNotice(cancelNotice)}</span>
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => {
+                onResume(cancelNotice.id)
+                setCancelNotice(null)
+                headingRef.current?.focus()
+              }}
+            >
+              되돌리기
+            </button>
+          </div>
+        ) : null}
+      </div>
       {exampleCount > 0 ? (
         <ExampleBar
           label="예시 구독만 지우기"
@@ -112,7 +157,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           }}
         />
       ) : null}
-      {items.length > 0 ? (
+      {active.length > 0 ? (
         <section className="card stack" aria-label="고정비 요약">
           <p className="card-title">요약</p>
           <ul className="result-list">
@@ -138,16 +183,16 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           ) : null}
           <p className="note">연 요금은 12로 나눠 월평균 합계에 더해요. 연간 합계에는 연 요금을 그대로 더해요.</p>
           {/* 금액(…꼴)이 실제로 보이는 사용량이 있을 때만 설명한다. '사용 기록 없음'·'사용 없음'만 있으면 숨긴다 (GPT 29번) */}
-          {items.some((sub) => tracksUsage(sub) && usageInfo(sub, today)?.text.includes('꼴')) ? (
+          {active.some((sub) => tracksUsage(sub) && usageInfo(sub, today)?.text.includes('꼴')) ? (
             <p className="note">사용량 옆 금액은 각 구독의 월평균 구독료를 해당 사용량으로 나눈 값이에요.</p>
           ) : null}
-          {items.some((sub) => tracksUsage(sub) && usageInfo(sub, today)?.source === 'example') ? (
+          {active.some((sub) => tracksUsage(sub) && usageInfo(sub, today)?.source === 'example') ? (
             <p className="note">사용량에 표시된 ‘예시’는 시연용 수치예요. ‘오늘 썼어요’를 누르면 직접 기록한 사용 일수로 바뀌어요.</p>
           ) : null}
         </section>
       ) : null}
       <SubscriptionForm label={ADD_FORM} submitLabel={ADD_BUTTON} today={today} onSubmit={onAdd} resetAfterSubmit />
-      {items.length === 0 ? (
+      {active.length === 0 ? (
         <div className="empty card stack">
           <p>{EMPTY_TITLE}</p>
           <p className="note">{EMPTY_NOTE}</p>
@@ -156,10 +201,20 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
       ) : (
         <section className="stack" aria-label="고정비 목록">
           {sorted.map((sub) => (
-            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} onToggleUse={onToggleUse} onSetUsage={onSetUsage} onImportUsage={onImportUsage} />
+            <SubscriptionCard key={sub.id} sub={sub} today={today} onEdit={onEdit} onRemove={remove} onCancel={cancel} onToggleUse={onToggleUse} onSetUsage={onSetUsage} onImportUsage={onImportUsage} />
           ))}
         </section>
       )}
+      {cancelled.length > 0 ? (
+        <details>
+          <summary>해지한 것 {cancelled.length}개</summary>
+          <div className="stack">
+            {cancelled.map((sub) => (
+              <CancelledCard key={sub.id} sub={sub} onResume={resume} onRemove={remove} />
+            ))}
+          </div>
+        </details>
+      ) : null}
     </div>
   )
 }
@@ -363,6 +418,7 @@ function SubscriptionCard({
   today,
   onEdit,
   onRemove,
+  onCancel,
   onToggleUse,
   onSetUsage,
   onImportUsage,
@@ -371,11 +427,12 @@ function SubscriptionCard({
   today: Date
   onEdit: (id: string, input: SubscriptionInput) => void
   onRemove: (id: string) => void
+  onCancel: (sub: Subscription, day: string) => void
   onToggleUse: (id: string) => void
   onSetUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) => void
   onImportUsage: (id: string, record: UsageRecord) => void
 }) {
-  const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete'>('view')
+  const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete' | 'confirm-cancel'>('view')
   // 사용량 적기 폼 (F25). 닫으면 연 버튼으로 포커스를 돌려보낸다
   const [usageOpen, setUsageOpen] = useState(false)
   // 이용 기록 가져오기 (F26). 닫으면 연 버튼으로 포커스를 돌려보낸다
@@ -394,16 +451,17 @@ function SubscriptionCard({
   // 수정·삭제 확인을 닫으면 연 버튼으로 포커스를 돌려보낸다
   const editRef = useRef<HTMLButtonElement>(null)
   const deleteRef = useRef<HTMLButtonElement>(null)
-  const returnTo = useRef<'edit' | 'delete' | null>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const returnTo = useRef<'edit' | 'delete' | 'cancel' | null>(null)
   // 수정을 열 때의 기록과 채워 둔 다음 갱신일. 저장할 때 내용이 바뀌었으면 다른 탭에서 고친 것이다
   const [editBase, setEditBase] = useState<{ sub: Subscription; renewal: string } | null>(null)
   const [stale, setStale] = useState(false)
   useEffect(() => {
     if (mode !== 'view' || !returnTo.current) return
-    ;(returnTo.current === 'edit' ? editRef : deleteRef).current?.focus()
+    ;(returnTo.current === 'edit' ? editRef : returnTo.current === 'cancel' ? cancelRef : deleteRef).current?.focus()
     returnTo.current = null
   }, [mode])
-  const close = (from: 'edit' | 'delete') => {
+  const close = (from: 'edit' | 'delete' | 'cancel') => {
     returnTo.current = from
     setMode('view')
   }
@@ -418,8 +476,7 @@ function SubscriptionCard({
   const usage = tracked ? usageInfo(sub, today) : null
   const lastUsed = lastUsedOf(sub)
   const usedToday = sub.useDates?.includes(toDayIso(today)) ?? false
-  const priceText =
-    sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월평균 ${formatWon(monthlyEquivalent(sub))}`
+  const priceText = priceLabel(sub)
 
   if (mode === 'edit') {
     const base = editBase ?? { sub, renewal: cycleNext }
@@ -496,6 +553,8 @@ function SubscriptionCard({
       ) : null}
       {mode === 'confirm-delete' ? (
         <DeleteConfirm name={sub.name} onConfirm={() => onRemove(sub.id)} onCancel={() => close('delete')} />
+      ) : mode === 'confirm-cancel' ? (
+        <CancelConfirm sub={sub} today={today} onConfirm={(day) => onCancel(sub, day)} onCancel={() => close('cancel')} />
       ) : (
         <div className="card-actions">
           <button
@@ -509,6 +568,9 @@ function SubscriptionCard({
             }}
           >
             수정
+          </button>
+          <button type="button" className="link-btn" ref={cancelRef} onClick={() => setMode('confirm-cancel')}>
+            해지했어요
           </button>
           <button type="button" className="link-btn" ref={deleteRef} onClick={() => setMode('confirm-delete')}>
             삭제
@@ -530,6 +592,97 @@ function SubscriptionCard({
           onCancel={closeImport}
         />
       ) : null}
+    </article>
+  )
+}
+
+// 해지 확인 (F47): 카드 안. 열면 "옮기기", 취소하면 "해지했어요", 옮기면 화면 제목으로 포커스가 간다
+function CancelConfirm({ sub, today, onConfirm, onCancel }: { sub: Subscription; today: Date; onConfirm: (day: string) => void; onCancel: () => void }) {
+  const [raw, setRaw] = useState(toDayIso(today))
+  const [attempted, setAttempted] = useState(false)
+  const { ref, focusFirstError } = useFocusFirstError<HTMLDivElement>()
+  const checked = validateCancelDay(raw, today)
+  const back = new Date(today.getFullYear(), today.getMonth(), today.getDate() - CANCEL_BACK_DAYS)
+  return (
+    <div className="stack" role="group" aria-label="해지 확인" ref={ref}>
+      {cancelConfirmLines(sub).map((line) => (
+        <p key={line} className="field-label">
+          {line}
+        </p>
+      ))}
+      <TextField
+        label="해지한 날"
+        type="date"
+        min={toDayIso(back)}
+        max={toDayIso(today)}
+        value={raw}
+        error={attempted ? checked.error : undefined}
+        onChange={(e) => setRaw(e.target.value)}
+      />
+      <div className="btn-row">
+        <Button
+          variant="primary"
+          autoFocus
+          onClick={() => {
+            if (checked.value === undefined) {
+              setAttempted(true)
+              focusFirstError()
+              return
+            }
+            onConfirm(checked.value)
+          }}
+        >
+          옮기기
+        </Button>
+        <Button onClick={onCancel}>취소</Button>
+      </div>
+    </div>
+  )
+}
+
+// 해지한 카드 (F47): 수정·오늘 썼어요·사용량·체험 줄·해지 후보 표시 없이 다시 쓰기와 삭제만 둔다
+function CancelledCard({ sub, onResume, onRemove }: { sub: Subscription; onResume: (id: string) => void; onRemove: (id: string) => void }) {
+  const [mode, setMode] = useState<'view' | 'confirm-resume' | 'confirm-delete'>('view')
+  const resumeRef = useRef<HTMLButtonElement>(null)
+  const deleteRef = useRef<HTMLButtonElement>(null)
+  const returnTo = useRef<'resume' | 'delete' | null>(null)
+  useEffect(() => {
+    if (mode !== 'view' || !returnTo.current) return
+    ;(returnTo.current === 'resume' ? resumeRef : deleteRef).current?.focus()
+    returnTo.current = null
+  }, [mode])
+  const close = (from: 'resume' | 'delete') => {
+    returnTo.current = from
+    setMode('view')
+  }
+  return (
+    <article className="card stack" aria-label={sub.name}>
+      <p className="card-title">{sub.name}</p>
+      <p className="card-meta">{KIND_LABEL[kindOf(sub)]}</p>
+      <p className="price">{cancelledLine(sub)}</p>
+      {sub.memo ? <p>{sub.memo}</p> : null}
+      {mode === 'confirm-resume' ? (
+        <div className="stack" role="group" aria-label="다시 쓰기 확인">
+          <p className="field-label">{resumeConfirmText(sub)}</p>
+          <div className="btn-row">
+            <Button variant="primary" autoFocus onClick={() => onResume(sub.id)}>
+              옮기기
+            </Button>
+            <Button onClick={() => close('resume')}>취소</Button>
+          </div>
+        </div>
+      ) : mode === 'confirm-delete' ? (
+        <DeleteConfirm name={sub.name} onConfirm={() => onRemove(sub.id)} onCancel={() => close('delete')} />
+      ) : (
+        <div className="card-actions">
+          <button type="button" className="link-btn" ref={resumeRef} onClick={() => setMode('confirm-resume')}>
+            다시 쓰기
+          </button>
+          <button type="button" className="link-btn" ref={deleteRef} onClick={() => setMode('confirm-delete')}>
+            삭제
+          </button>
+        </div>
+      )}
     </article>
   )
 }

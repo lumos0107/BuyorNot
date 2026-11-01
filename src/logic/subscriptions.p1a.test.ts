@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   FIXED_COST_KINDS,
+  cancelSubscription,
   createSubscription,
+  isCancelled,
   kindOf,
   nextBillingDate,
   parseSubscriptions,
+  resumeSubscription,
+  sortSubscriptions,
   subscriptionSummary,
   tracksUsage,
   updateSubscription,
@@ -256,5 +260,50 @@ describe('체험 끝나는 날 입력 (F46)', () => {
     expect(validateSubscriptionInput(raw({ billingDay: '', trialEndDate: '2026-11-14' }), NOW).errors).toEqual({ billingDay: '결제일은 1~31일 사이여야 해요' })
     const yearly = validateSubscriptionInput(raw({ cycle: 'yearly', renewalDate: '', trialEndDate: '2026-11-14' }), NOW)
     expect(yearly.errors).toEqual({ renewalDate: '다음 결제일을 골라 주세요' })
+  })
+})
+
+describe('해지했어요 (F47)', () => {
+  const live = createSubscription({ name: '넷플릭스', priceKrw: 13500, cycle: 'monthly', billingDay: 15, lastUsedDate: null }, NOW, 'a')
+
+  it('AC88: 해지하면 cancelledOn이 생기고 다시 쓰면 사라진다', () => {
+    const later = new Date(2026, 10, 2, 9)
+    const cancelled = cancelSubscription(live, '2026-10-20', later)
+    expect(isCancelled(live)).toBe(false)
+    expect(isCancelled(cancelled)).toBe(true)
+    expect(cancelled).toMatchObject({ id: 'a', cancelledOn: '2026-10-20', updatedAt: later.toISOString() })
+    const resumed = resumeSubscription(cancelled, later)
+    expect(isCancelled(resumed)).toBe(false)
+    expect(resumed).not.toHaveProperty('cancelledOn')
+    expect(resumed.updatedAt).toBe(later.toISOString())
+    // 처음 기록은 바뀌지 않는다
+    expect(live).not.toHaveProperty('cancelledOn')
+  })
+
+  it('AC88: 해지한 것은 월평균·1년·해지 후보·확인 필요·체험에서 빠진다', () => {
+    const mk = (id: string, over: Partial<Subscription>) => createSubscription({ name: id, priceKrw: 10000, cycle: 'monthly', billingDay: 15, lastUsedDate: null, ...over }, NOW, id)
+    const items = [
+      mk('쓰는 중', { lastUsedDate: '2026-10-30' }),
+      { ...mk('해지한 후보', { lastUsedDate: '2026-08-01' }), cancelledOn: '2026-10-20' },
+      { ...mk('해지한 확인 필요', {}), cancelledOn: '2026-10-20' },
+      { ...mk('해지한 체험', { trialEndDate: '2026-11-14' }), cancelledOn: '2026-10-20' },
+      { ...mk('해지한 연', { cycle: 'yearly', billingDay: undefined, renewalDate: '2027-02-01', priceKrw: 120000, lastUsedDate: '2026-10-30' }), cancelledOn: '2026-10-20' },
+    ]
+    expect(subscriptionSummary(items, NOW)).toEqual({
+      monthlyTotal: 10000,
+      yearlyTotal: 120000,
+      candidateCount: 0,
+      candidateMonthly: 0,
+      unknownCount: 0,
+      trialCount: 0,
+      trialMonthly: 0,
+    })
+  })
+
+  it('AC88: 쓰는 중인 목록 정렬에는 해지한 것이 들어가지 않는다', () => {
+    const a = createSubscription({ name: '가', priceKrw: 1000, cycle: 'monthly', billingDay: 20, lastUsedDate: null }, NOW, 'a')
+    const b = createSubscription({ name: '나', priceKrw: 1000, cycle: 'monthly', billingDay: 10, lastUsedDate: null }, NOW, 'b')
+    const c = cancelSubscription(createSubscription({ name: '다', priceKrw: 1000, cycle: 'monthly', billingDay: 5, lastUsedDate: null }, NOW, 'c'), '2026-10-20', NOW)
+    expect(sortSubscriptions([a, b, c], NOW).map((s) => s.name)).toEqual(['나', '가'])
   })
 })

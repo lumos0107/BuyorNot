@@ -3,9 +3,11 @@ import { getLocalStorage } from '../logic/storage'
 import { replaceRecord, type UsageRecord } from '../logic/usageRecords'
 import {
   SUBS_KEY,
+  cancelSubscription,
   createSubscription,
   demoSubscriptions,
   parseSubscriptions,
+  resumeSubscription,
   toggleUseToday,
   setUsageEntry,
   type UsageEntry,
@@ -110,6 +112,11 @@ export function useSubscriptions(storage: Storage | null = getLocalStorage()) {
     remove: (id: string) => commit(items.filter((sub) => sub.id !== id)),
     /** "오늘 썼어요" 기록을 켜고 끈다 (F19) */
     toggleUse: (id: string) => commit(items.map((sub) => (sub.id === id ? toggleUseToday(sub, new Date(), new Date()) : sub))),
+    /** 해지했어요 (F47): 지우지 않고 해지한 날을 적는다. day는 검사를 마친 날 */
+    cancel: (id: string, day: string) =>
+      commit(items.map((sub) => (sub.id === id ? cancelSubscription(sub, day, new Date()) : sub))),
+    /** 다시 쓰기·되돌리기 (F47): 해지한 날을 지운다 */
+    resume: (id: string) => commit(items.map((sub) => (sub.id === id ? resumeSubscription(sub, new Date()) : sub))),
     /** 사용량 적기·지우기 (F25) */
     setUsage: (id: string, input: Pick<UsageEntry, 'kind' | 'value'> | null) =>
       commit(items.map((sub) => (sub.id === id ? setUsageEntry(sub, input, new Date()) : sub))),

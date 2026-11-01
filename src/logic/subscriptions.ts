@@ -101,6 +101,11 @@ export function inTrial(sub: Pick<Subscription, 'trialEndDate'>, today: Date): b
   return sub.trialEndDate !== undefined && daysUntil(sub.trialEndDate, today) >= 0
 }
 
+/** 해지한 것 (F47) */
+export function isCancelled(sub: Pick<Subscription, 'cancelledOn'>): boolean {
+  return sub.cancelledOn !== undefined
+}
+
 export function nextBillingDate(sub: Subscription, today: Date): string {
   // 체험 중이면 체험 끝나는 날이 첫 결제일이고, 그 뒤는 아래 결제일 규칙이다 (F46, 판정 R46)
   if (inTrial(sub, today)) return sub.trialEndDate!
@@ -179,7 +184,9 @@ export type SubscriptionSummary = {
   trialMonthly: number
 }
 
-export function subscriptionSummary(subs: readonly Subscription[], today: Date): SubscriptionSummary {
+export function subscriptionSummary(allSubs: readonly Subscription[], today: Date): SubscriptionSummary {
+  // 해지한 것은 모든 값에서 뺀다 (F47)
+  const subs = allSubs.filter((s) => !isCancelled(s))
   // 무료 체험 중인 것은 합계에 넣지 않고 체험 줄에 따로 센다 (F46)
   const trials = subs.filter((s) => inTrial(s, today))
   const paying = subs.filter((s) => !inTrial(s, today))
@@ -199,7 +206,7 @@ export function subscriptionSummary(subs: readonly Subscription[], today: Date):
 }
 
 export function sortSubscriptions(subs: readonly Subscription[], today: Date): Subscription[] {
-  return [...subs].sort(
+  return subs.filter((s) => !isCancelled(s)).sort(
     (a, b) =>
       daysUntil(nextBillingDate(a, today), today) - daysUntil(nextBillingDate(b, today), today) ||
       a.name.localeCompare(b.name, 'ko'),
@@ -330,6 +337,18 @@ export function setUsageEntry(sub: Subscription, input: Pick<UsageEntry, 'kind' 
   const out: Subscription = { ...sub, updatedAt: now.toISOString() }
   if (input) out.usageEntry = { kind: input.kind, value: input.value, day: toDayIso(now) }
   else delete out.usageEntry
+  return out
+}
+
+/** 해지했어요 (F47): 지우지 않고 해지한 날을 적는다. day는 검사를 마친 'YYYY-MM-DD' */
+export function cancelSubscription(sub: Subscription, day: string, now: Date): Subscription {
+  return { ...sub, cancelledOn: day, updatedAt: now.toISOString() }
+}
+
+/** 다시 쓰기 (F47, 되돌리기도 같다): 해지한 날을 지운다 */
+export function resumeSubscription(sub: Subscription, now: Date): Subscription {
+  const out: Subscription = { ...sub, updatedAt: now.toISOString() }
+  delete out.cancelledOn
   return out
 }
 

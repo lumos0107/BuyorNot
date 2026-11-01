@@ -1,5 +1,6 @@
-import { formatWon } from './number'
-import { daysUntil, inTrial, kindOf, monthlyEquivalent, type FixedCostKind, type Subscription, type SubscriptionSummary } from './subscriptions'
+import { calendarDaysBetween } from './dates'
+import { formatWon, josa } from './number'
+import { daysUntil, inTrial, kindOf, monthlyEquivalent, parseDay, type FixedCostKind, type Subscription, type SubscriptionSummary } from './subscriptions'
 
 // PRD F45 고정비 정리함: 종류 이름, 요약의 종류별 줄, 화면 문장
 
@@ -65,4 +66,61 @@ export function trialLine(sub: Subscription, today: Date): string | null {
 /** 요약의 체험 줄: "무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요". 체험 중이 없으면 null */
 export function trialSummaryLine(s: SubscriptionSummary): string | null {
   return s.trialCount > 0 ? `무료 체험 중 ${s.trialCount}개 · 끝나면 월 ${formatWon(s.trialMonthly)}이 더 나가요` : null
+}
+
+// PRD F47 해지했어요
+
+/** 카드의 요금 표시 (F14): 매월이면 "월 13,500원", 매년이면 "연 120,000원 · 월평균 10,000원" */
+export function priceText(sub: Subscription): string {
+  return sub.cycle === 'monthly' ? `월 ${formatWon(sub.priceKrw)}` : `연 ${formatWon(sub.priceKrw)} · 월평균 ${formatWon(monthlyEquivalent(sub))}`
+}
+
+/** 해지 확인 문장(카드 안): 첫 줄, 둘째 줄, 통신·보험은 셋째 줄 */
+export function cancelConfirmLines(sub: Subscription): string[] {
+  const kind = kindOf(sub)
+  const lines = [`‘${sub.name}’${josa(sub.name, '을/를')} 해지한 것으로 옮길까요? 실제 해지는 그곳에서 직접 해야 해요.`]
+  lines.push(
+    kind === 'housing'
+      ? '옮기면 합계에서 빠져요. 월세·관리비는 줄어든 고정비로 세지 않아요.'
+      : `옮기면 합계에서 빠지고, 모으기의 ‘줄어든 고정비’에 월 ${formatWon(monthlyEquivalent(sub))}이 더해져요.`,
+  )
+  if (kind === 'phone' || kind === 'insurance') {
+    lines.push('다른 곳으로 갈아탄 거라면 해지 대신 ‘수정’에서 요금을 바꿔 주세요. 해지로 옮기면 이 요금 전체를 줄어든 고정비로 세요.')
+  }
+  return lines
+}
+
+export const CANCEL_DAY_EMPTY = '해지한 날을 골라 주세요'
+export const CANCEL_DAY_RANGE = '해지한 날은 90일 전부터 오늘 사이여야 해요'
+/** 해지한 날은 90일 전부터 오늘까지(현지 달력, 양 끝 포함) */
+export const CANCEL_BACK_DAYS = 90
+
+/** 해지한 날 검사 (F47) */
+export function validateCancelDay(raw: string, today: Date): { value?: string; error?: string } {
+  const text = raw.trim()
+  const day = parseDay(text)
+  if (!day) return { error: CANCEL_DAY_EMPTY }
+  const ago = calendarDaysBetween(day, today)
+  if (ago < 0 || ago > CANCEL_BACK_DAYS) return { error: CANCEL_DAY_RANGE }
+  return { value: text }
+}
+
+export function cancelledNotice(sub: Pick<Subscription, 'name'>): string {
+  return `‘${sub.name}’${josa(sub.name, '을/를')} 해지한 것으로 옮겼어요.`
+}
+
+/** 해지한 카드 줄: "2026-11-01 해지 · 월 13,500원" */
+export function cancelledLine(sub: Subscription): string {
+  return `${sub.cancelledOn} 해지 · ${priceText(sub)}`
+}
+
+/** 다시 쓰기 확인 문장. 월세·관리비는 앞 문장만 */
+export function resumeConfirmText(sub: Subscription): string {
+  const first = `‘${sub.name}’${josa(sub.name, '을/를')} 다시 쓰는 것으로 옮길까요?`
+  return kindOf(sub) === 'housing' ? first : `${first} 모으기의 ‘줄어든 고정비’에서도 빠져요.`
+}
+
+/** 해지한 날 최신순, 같으면 이름 순 */
+export function sortCancelled(subs: readonly Subscription[]): Subscription[] {
+  return [...subs].sort((a, b) => (b.cancelledOn ?? '').localeCompare(a.cancelledOn ?? '') || a.name.localeCompare(b.name, 'ko'))
 }
