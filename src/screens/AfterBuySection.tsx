@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { returnDeadlineLine, returnReviewLine, validateReturnBy } from '../logic/afterBuy'
+import { resaleLines, returnDeadlineLine, returnReviewLine, validateResale, validateReturnBy } from '../logic/afterBuy'
 import { buildReturnIcs, returnGoogleCalendarUrl, returnIcsFileName } from '../logic/calendar'
 import { toDayIso } from '../logic/subscriptions'
 import type { WishItem } from '../logic/wishlist'
@@ -21,6 +21,10 @@ function AfterCard({ item, wishlist, today }: { item: WishItem; wishlist: Wishli
   const [returnRaw, setReturnRaw] = useState(item.returnBy ?? '')
   const [returnError, setReturnError] = useState('')
   const [confirmReturned, setConfirmReturned] = useState(false)
+  const [listedOn, setListedOn] = useState(item.resale?.listedOn ?? '')
+  const [soldOn, setSoldOn] = useState(item.resale?.soldOn ?? '')
+  const [soldKrw, setSoldKrw] = useState(item.resale?.soldKrw ? String(item.resale.soldKrw) : '')
+  const [resaleErrors, setResaleErrors] = useState<ReturnType<typeof validateResale>['errors']>({})
   const saveReturn = (event: FormEvent) => {
     event.preventDefault()
     const checked = validateReturnBy(returnRaw)
@@ -31,6 +35,17 @@ function AfterCard({ item, wishlist, today }: { item: WishItem; wishlist: Wishli
       else delete next.returnBy
       return next
     })) setReturnError('')
+  }
+  const saveResale = (event: FormEvent) => {
+    event.preventDefault()
+    const checked = validateResale({ listedOn, soldOn, soldKrw })
+    if (checked.value === undefined) { setResaleErrors(checked.errors); return }
+    if (wishlist.updateAfter(item.id, (current) => {
+      const next = { ...current }
+      if (checked.value) next.resale = checked.value
+      else delete next.resale
+      return next
+    })) setResaleErrors({})
   }
   return <section className="card stack" aria-label={`${item.name} 산 뒤 확인`}>
     <p className="card-title">{item.name}</p>
@@ -49,5 +64,13 @@ function AfterCard({ item, wishlist, today }: { item: WishItem; wishlist: Wishli
       <p>반품했다고 기록할까요? 실제 환불은 판매처에서 확인해 주세요.</p>
       <div className="btn-row"><Button variant="danger" autoFocus onClick={() => { wishlist.updateAfter(item.id, (current) => ({ ...current, returnedOn: toDayIso(today) })); setConfirmReturned(false) }}>반품했어요</Button><Button onClick={() => setConfirmReturned(false)}>취소</Button></div>
     </div> : <div className="btn-row"><Button aria-label={`${item.name} 반품했어요`} onClick={() => setConfirmReturned(true)}>반품했어요</Button></div>}
+    {item.satisfaction === 'regret' || item.satisfaction === 'meh' ? <form className="stack" aria-label={`${item.name} 되팔기`} onSubmit={saveResale} noValidate>
+      <p className="field-label">되팔기 기록</p>
+      <TextField label="올린 날" type="date" value={listedOn} error={resaleErrors.listedOn} onChange={(e) => { setListedOn(e.target.value); setResaleErrors({}) }} />
+      <TextField label="판 날 (선택)" type="date" value={soldOn} error={resaleErrors.soldOn} onChange={(e) => { setSoldOn(e.target.value); setResaleErrors({}) }} />
+      <TextField label="판 금액 (선택)" inputMode="numeric" value={soldKrw} error={resaleErrors.soldKrw} onChange={(e) => { setSoldKrw(e.target.value); setResaleErrors({}) }} />
+      <div className="btn-row"><Button type="submit">되팔기 적기</Button></div>
+    </form> : null}
+    {resaleLines(item).map((line) => <p key={line}>{line}</p>)}
   </section>
 }

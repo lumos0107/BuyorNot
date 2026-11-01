@@ -29,3 +29,24 @@ it('AC145: 반품했어요를 확인하면 모으기에 등록 가격이 별도�
   expect(within(screen.getByRole('region', { name: '반품했다고 적은 금액' })).getByText('59,000원')).toBeInTheDocument()
   expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items[0].returnedOn).toBe('2026-11-01')
 })
+
+it('AC146·AC147: 후회한 물건을 되팔았다고 적으면 생긴 돈이 별도로 보인다', async () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [{ ...bought, satisfaction: 'regret' }] }))
+  const user = await open()
+  const form = within(screen.getByRole('form', { name: '전동 칫솔 되팔기' }))
+  fireEvent.change(form.getByLabelText('올린 날'), { target: { value: '2026-11-10' } })
+  fireEvent.change(form.getByLabelText('판 날 (선택)'), { target: { value: '2026-11-20' } })
+  await user.type(form.getByLabelText('판 금액 (선택)'), '80000')
+  await user.click(form.getByRole('button', { name: '되팔기 적기' }))
+  expect(screen.getByText('2026-11-20에 80,000원에 팔았다고 적었어요.')).toBeInTheDocument()
+  await user.click(screen.getByRole('tab', { name: '모으기' }))
+  expect(screen.getByText('생긴 돈')).toBeInTheDocument()
+  expect(within(screen.getByRole('region', { name: '생긴 돈' })).getByText('80,000원')).toBeInTheDocument()
+  expect(screen.getByText('판 금액은 실제 입금을 확인한 금액이 아니에요.')).toBeInTheDocument()
+})
+
+it('AC146: 잘 샀어요인 물건에는 되팔기 폼이 없다', async () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [{ ...bought, satisfaction: 'good' }] }))
+  await open()
+  expect(screen.queryByRole('form', { name: '전동 칫솔 되팔기' })).not.toBeInTheDocument()
+})

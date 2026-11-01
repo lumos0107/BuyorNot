@@ -39,7 +39,7 @@ import {
 } from '../logic/savings'
 import { formatWon } from '../logic/number'
 import { pantryAvoidedTotals, type PantryStore } from '../logic/pantry'
-import { returnedAmount } from '../logic/afterBuy'
+import { resaleTotal, returnedAmount } from '../logic/afterBuy'
 import { skippedSpendingTotal } from '../logic/spending'
 import type { useSpending } from '../store/useSpending'
 import { SpendingSection } from './SpendingSection'
@@ -71,6 +71,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
   const avoided = pantryAvoidedTotals(pantry.events)
   const smallSkipped = skippedSpendingTotal(spending.store.entries)
   const returned = returnedAmount(items)
+  const resale = resaleTotal(items)
   const hasOriginalNumbers = !isSavingsEmpty(n)
   // 기록을 지우면 화면 제목으로 포커스를 옮긴다. 다른 탭 기록을 불러와 반영되지 않았으면 옮기지 않는다
   const removeTransfer = (id: string): boolean => {
@@ -96,7 +97,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
           headingRef.current?.focus()
         }}
       />
-      {!hasOriginalNumbers && avoided.cookedCount + avoided.stockCount + smallSkipped.count + returned.count === 0 ? (
+      {!hasOriginalNumbers && avoided.cookedCount + avoided.stockCount + smallSkipped.count + returned.count + resale.count === 0 ? (
         <p>{SAVINGS_EMPTY}</p>
       ) : hasOriginalNumbers ? (
         <section className="card stack" aria-label="모으기 요약">
@@ -139,6 +140,10 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
       {returned.count > 0 ? <section className="card stack" aria-label="반품했다고 적은 금액">
         <p className="card-row"><span>반품했다고 적은 금액</span><span className="price">{formatWon(returned.amountKrw)}</span></p>
         <p className="note">반품했다고 적은 금액은 실제 환불을 확인한 금액이 아니에요.</p>
+      </section> : null}
+      {resale.count > 0 ? <section className="card stack" aria-label="생긴 돈">
+        <p className="card-row"><span>생긴 돈</span><span className="price">{formatWon(resale.amountKrw)}</span></p>
+        <p className="note">판 금액은 실제 입금을 확인한 금액이 아니에요.</p>
       </section> : null}
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />
