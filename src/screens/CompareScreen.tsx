@@ -1,3 +1,4 @@
+import { IconTag } from '../ui/NavIcons'
 import { useEffect, useId, useRef, useState } from 'react'
 import { aiServerUrl } from '../ai/config'
 import {
@@ -68,7 +69,7 @@ export function CompareScreen({
   const withAi = aiServerUrl() !== null
   return (
     <div className="stack">
-      <h2 className="screen-title">가격 비교</h2>
+      <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconTag /></span>가격 비교</h2>
       <Tabs label="가격 비교 종류" tabs={withAi ? KINDS_WITH_AI : KINDS_WITH_DEMO} value={kind} onChange={setKind} sub />
       <TabPanel id="discount" hidden={kind !== 'discount'}>
         <DiscountCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />

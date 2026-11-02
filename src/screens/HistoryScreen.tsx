@@ -1,3 +1,4 @@
+import { IconHistory } from '../ui/NavIcons'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
 import { desirePointCount, desireTrend } from '../logic/desire'
@@ -49,6 +50,7 @@ export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, 
   return (
     <div className="stack">
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
+        <span className="title-icon" aria-hidden="true"><IconHistory /></span>
         결정 기록
       </h2>
       {history.length === 0 ? (

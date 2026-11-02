@@ -1,3 +1,4 @@
+import { IconCoins } from '../ui/NavIcons'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   GOAL_EMPTY_NOTE,
@@ -86,6 +87,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
   return (
     <div className="stack">
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
+        <span className="title-icon" aria-hidden="true"><IconCoins /></span>
         모으기
       </h2>
       <SavingsBanner

@@ -1,3 +1,4 @@
+import { IconBag } from '../ui/NavIcons'
 import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
 import { aiServerUrl } from '../ai/config'
 import type { VoiceFillResponse } from '../ai/types'
@@ -164,6 +165,7 @@ export function WishlistScreen({
   return (
     <div className="stack">
       <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
+        <span className="title-icon" aria-hidden="true"><IconBag /></span>
         고민 중인 물건
       </h2>
       <div role="status" aria-label="결정 알림" className={undo && undoActive ? undefined : 'similar-empty'}>

@@ -184,7 +184,7 @@ export default function App() {
           <AfterBuySection wishlist={wishlist} today={wishlist.now} focusItemId={screen === 'history' && jump?.screen === 'history' ? jump.id : undefined} onFocusDone={() => setJump(null)} />
         </TabPanel>
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
-          <h2 className="screen-title">가계부</h2>
+          <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconWallet /></span>가계부</h2>
           <JumpNav label="가계부 안에서 이동" targets={LEDGER_JUMPS} />
           <PaymentCalendarSection subscriptions={subscriptions.items} today={wishlist.now} />
           <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now} />
