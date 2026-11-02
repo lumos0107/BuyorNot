@@ -20,7 +20,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 UNCONFIRMED = re.compile(r"Claude 결정\s*[,·]\s*제작자 확인 전")
 # R10 · R14·R15(둘) · R25~R27(셋) · R29-P2(판정 R29의 평가 항목 P2)
-RULING = re.compile(r"\bR(\d+)(?:-([A-Z]\d+))?(?:~R(\d+))?(?![\w-])")
+RULING = re.compile(r"\bR(\d+)(?:-([A-Z]\d+))?(?:\\?~R(\d+))?(?![\w-])")
 DATE = re.compile(r"\b20\d\d-\d\d-\d\d\b")
 
 
@@ -104,7 +104,7 @@ def unconfirmed(lines: list[str]) -> tuple[list[tuple[str, str, bool]], list[str
 def ac_refs(text: str) -> set[int]:
     """'AC51~AC54, AC60' 같은 표기에서 번호를 모두 꺼낸다(범위는 펼친다)."""
     nums: set[int] = set()
-    for a, b in re.findall(r"AC(\d+)(?:~AC(\d+))?", text):
+    for a, b in re.findall(r"AC(\d+)(?:\\?~AC(\d+))?", text):
         lo = int(a)
         hi = int(b) if b else lo
         nums.update(range(lo, hi + 1))
@@ -176,7 +176,7 @@ def main() -> int:
     # 11장 제목의 범위
     h11 = next((l for l in lines if l.startswith("## 11.")), None)
     if h11:
-        m = re.search(r"AC(\d+)~AC(\d+)", h11)
+        m = re.search(r"AC(\d+)\\?~AC(\d+)", h11)
         if not m or int(m.group(2)) != max_ac:
             problems.append(f"11장 제목 '{h11}'의 끝 번호가 표의 마지막 AC{max_ac}와 다르다")
 
