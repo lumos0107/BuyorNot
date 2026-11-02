@@ -12,12 +12,12 @@ it('AI 서버가 있으면 가격 비교의 가격표 사진부터 열린다 (AC
   expect(screen.getByRole('heading', { level: 3, name: '가격표 사진' })).toBeInTheDocument()
 })
 
-it('AI 서버가 없으면 가격 비교의 할인 비교로 시작한다 (AC196)', () => {
+it('AI 서버가 없으면 가격표 사진 예시로 시작한다 (AC196)', () => {
   vi.stubEnv('VITE_AI_SERVER_URL', '')
   render(<App />)
   expect(screen.getByRole('tab', { name: '가격 비교', selected: true })).toBeInTheDocument()
   expect(screen.queryByRole('tab', { name: '가격표 사진' })).not.toBeInTheDocument()
-  expect(screen.getByRole('tab', { name: '할인 비교', selected: true })).toBeInTheDocument()
+  expect(screen.getByRole('tab', { name: '가격표 사진 예시', selected: true })).toBeInTheDocument()
 })
 
 it('사진을 고르기 전에 행동과 조회 한계·개인정보 안내가 보인다 (AC197)', () => {

@@ -21,6 +21,7 @@ describe('비교 결과를 고민 목록에 담기 (F21)', () => {
     const user = userEvent.setup()
     renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     await user.click(within(screen.getByRole('region', { name: '할인 비교 결과' })).getByRole('button', { name: 'B안으로 담기' }))
 
@@ -53,6 +54,7 @@ describe('비교 결과를 고민 목록에 담기 (F21)', () => {
     renderWishlistApp()
     await user.type(wishForm().getByLabelText('상품명'), '캠핑 의자')
     await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     await user.click(within(screen.getByRole('region', { name: '할인 비교 결과' })).getByRole('button', { name: 'A안으로 담기' }))
     expect(wishForm().getByLabelText('상품명')).toHaveValue('캠핑 의자')

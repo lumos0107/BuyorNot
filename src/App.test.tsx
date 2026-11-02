@@ -14,12 +14,12 @@ describe('메뉴와 탭 이동', () => {
     expect(screen.getByRole('heading', { level: 2, name: '가격 비교' })).toBeInTheDocument()
   })
 
-  it('가격 비교 메뉴를 누르면 할인 비교 탭이 먼저 열린다', async () => {
+  it('가격 비교 메뉴를 누르면 가격표 사진 예시 탭이 먼저 열린다', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(tab('가격 비교'))
-    expect(screen.getByRole('tab', { name: '할인 비교', selected: true })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: '할인 비교' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '가격표 사진 예시', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: '가격표 사진 예시' })).toBeInTheDocument()
   })
 
   it('묶음상품 비교 탭으로 바꾸면 할인 비교 화면은 사라지고, 다시 돌아올 수 있다', async () => {

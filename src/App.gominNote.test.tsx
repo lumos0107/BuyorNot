@@ -367,6 +367,7 @@ describe('결정 버튼과 목록 먼저 (F22, AC39)', () => {
   it('물건이 있을 때 가격 비교에서 B안으로 담으면 상품명에 포커스를 두고 가격을 채운다 (F21)', async () => {
     const user = setup(thing())
     await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     await user.click(within(screen.getByRole('region', { name: '할인 비교 결과' })).getByRole('button', { name: 'B안으로 담기' }))
     expect(form().getByLabelText('상품명')).toHaveFocus()

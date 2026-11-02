@@ -14,6 +14,7 @@ describe('할인 비교 화면', () => {
   it('예시 넣기를 누르면 AC05·AC06 값이 채워지고 B안이 1,000원 저렴하다고 보여준다', async () => {
     const user = userEvent.setup()
     render(<CompareScreen />)
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     expect(card('A안').getByLabelText('상품 금액')).toHaveValue('80000')
     expect(card('A안').getByLabelText('최대 할인액')).toHaveValue('10000')
@@ -26,6 +27,7 @@ describe('할인 비교 화면', () => {
   it('계산 근거를 한 줄씩 보여준다', async () => {
     const user = userEvent.setup()
     render(<CompareScreen />)
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     const steps = within(result().getByRole('list', { name: 'A안 계산 근거' }))
     expect(steps.getByText(/80,000원 × 15% = 12,000원/)).toBeInTheDocument()
@@ -36,6 +38,7 @@ describe('할인 비교 화면', () => {
   it('AC07: 최소 주문액에 못 미치면 적용 불가와 부족한 금액을 보여준다', async () => {
     const user = userEvent.setup()
     render(<CompareScreen />)
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     const a = card('A안')
     await user.type(a.getByLabelText('상품 금액'), '49000')
     await user.selectOptions(a.getByLabelText('쿠폰 종류'), 'rate')
@@ -55,6 +58,7 @@ describe('할인 비교 화면', () => {
   it('AC16: 결제액이 같으면 동률로 보여준다', async () => {
     const user = userEvent.setup()
     render(<CompareScreen />)
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     const a = card('A안')
     await user.type(a.getByLabelText('상품 금액'), '50000')
     await user.selectOptions(a.getByLabelText('쿠폰 종류'), 'rate')
@@ -69,6 +73,7 @@ describe('할인 비교 화면', () => {
   it('쿠폰 종류에 따라 필요한 입력만 보여준다', async () => {
     const user = userEvent.setup()
     render(<CompareScreen />)
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     const a = card('A안')
     await user.selectOptions(a.getByLabelText('쿠폰 종류'), 'none')
     expect(a.queryByLabelText(/할인율|할인액/)).not.toBeInTheDocument()
@@ -88,6 +93,7 @@ describe('할인 비교 화면', () => {
   it('할인율이 100%를 넘으면 그 입력 아래에 오류를 보여주고 결과는 숨긴다', async () => {
     const user = userEvent.setup()
     render(<CompareScreen />)
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     const rate = card('A안').getByLabelText('할인율 (%)')
     await user.clear(rate)
@@ -100,6 +106,7 @@ describe('할인 비교 화면', () => {
   it('초기화를 누르면 입력과 결과가 사라진다', async () => {
     const user = userEvent.setup()
     render(<CompareScreen />)
+    await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     await user.click(screen.getByRole('button', { name: '초기화' }))
     expect(card('A안').getByLabelText('상품 금액')).toHaveValue('')
