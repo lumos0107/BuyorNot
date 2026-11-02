@@ -1,3 +1,4 @@
+import { isItemCategory } from './itemCategory'
 import { DESIRE_RESTORE_MAX } from './desire'
 import { isFit } from './fit'
 import { isDay, isIntBetween, isRecord } from './guards'
@@ -120,6 +121,7 @@ function hasValidOptionalFields(o: Record<string, unknown>): boolean {
   if (o.status !== 'purchased' && (o.satisfaction !== undefined || o.reviewNote !== undefined)) return false
   // 회고 메모는 회고 답과 함께만 있다
   if (o.reviewNote !== undefined && o.satisfaction === undefined) return false
+  if (o.category !== undefined && !isItemCategory(o.category)) return false
   if (o.desireStart !== undefined && !isDesireLevel(o.desireStart)) return false
   // 담을 때 고른 날은 실제 날짜이고, 담을 때 정도와 함께만 있다
   if (o.desireStartDay !== undefined && (o.desireStart === undefined || !isString(o.desireStartDay) || parseDay(o.desireStartDay) === null)) return false

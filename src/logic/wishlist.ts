@@ -1,3 +1,4 @@
+import type { ItemCategory } from './itemCategory'
 import { formatDate } from './dates'
 import type { Fit } from './fit'
 import { MAX_WON, parseInteger } from './number'
@@ -59,6 +60,8 @@ export type WishItem = {
   answers?: Answers
   satisfaction?: Satisfaction
   reviewNote?: string
+  /** 물건 분류(F85, 선택). 카드 표식에 첫 글자 대신 아이콘 */
+  category?: ItemCategory
   // 4차 선택 필드 (F22)
   /** 담을 때 고른 갖고 싶은 정도 */
   desireStart?: DesireLevel
@@ -100,6 +103,8 @@ export type NewWishInput = {
   answers?: Answers
   /** 담을 때 고른 갖고 싶은 정도 (F22) */
   desire?: DesireLevel
+  /** 물건 분류 (F85, 선택) */
+  category?: ItemCategory
 }
 export type WishRawInput = { name: string; price: string; reason: string; days: string; url: string }
 export type WishFieldErrors = Partial<Record<keyof WishRawInput, string>>
@@ -152,7 +157,7 @@ function parseUrl(raw: string): string | null | 'invalid' {
 export type WishPatchRaw = Pick<WishRawInput, 'name' | 'price' | 'reason' | 'url'>
 
 // F01: 상품명 1~80자, 이유 1~500자(앞뒤 공백 제거), 가격 0~10억 원 정수, 링크는 선택(http·https)
-function checkPatch(raw: WishPatchRaw, errors: WishFieldErrors, allowEmptyReason = false): WishPatch | null {
+function checkPatch(raw: WishPatchRaw, errors: WishFieldErrors, allowEmptyReason = false): Pick<WishItem, 'name' | 'priceKrw' | 'reason' | 'url'> | null {
   const name = raw.name.trim()
   if (name.length === 0) errors.name = '상품명을 입력해 주세요'
   else if (name.length > NAME_MAX) errors.name = `상품명은 ${NAME_MAX}자 이하로 적어 주세요`
@@ -213,6 +218,7 @@ export function createItem(input: NewWishInput, now: Date, id: string): WishItem
   }
   const answers = cleanAnswers(input.answers)
   if (answers) item.answers = answers
+  if (input.category !== undefined) item.category = input.category
   if (input.desire !== undefined) {
     item.desireStart = input.desire
     item.desireStartDay = formatDate(createdAt)
@@ -260,11 +266,16 @@ export function describeAnswers(answers: Answers | undefined): string[] {
   return answerLines(answers).map((line) => line.text)
 }
 
-export type WishPatch = Pick<WishItem, 'name' | 'priceKrw' | 'reason' | 'url'>
+// category: undefined면 그대로, null이면 분류를 지운다 (F85)
+export type WishPatch = Pick<WishItem, 'name' | 'priceKrw' | 'reason' | 'url'> & { category?: ItemCategory | null }
 
 // 고민 중인 상품의 내용만 고친다. 고민 기간 종료 시각은 바뀌지 않는다. (F01)
 export function updateItem(item: WishItem, patch: WishPatch, now: Date): WishItem {
-  return { ...item, ...patch, updatedAt: now.toISOString() }
+  const { category, ...rest } = patch
+  const next: WishItem = { ...item, ...rest, updatedAt: now.toISOString() }
+  if (category === null) delete next.category
+  else if (category !== undefined) next.category = category
+  return next
 }
 
 // 고민 중에도 결정할 수 있다. 결정 시각을 저장하고 상태를 바꾼다. 메모는 비어 있으면 저장하지 않는다. (F02, F08)

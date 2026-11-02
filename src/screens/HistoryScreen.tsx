@@ -1,3 +1,5 @@
+import { nameInitial } from '../logic/itemCategory'
+import { CardCategoryIcon } from '../ui/CategoryPicker'
 import { IconHistory } from '../ui/NavIcons'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { formatDate } from '../logic/dates'
@@ -199,7 +201,7 @@ function HistoryCard({
   return (
     <article className="card stack" aria-label={item.name}>
       <div className="card-row">
-        <p className="card-title" data-initial={item.name.replace(/^\(예시\)\s*/, '').slice(0, 1)} data-tone={purchased ? 'bought' : 'skipped'}>{item.name}</p>
+        <p className={item.category ? 'card-title has-icon' : 'card-title'} data-initial={item.category ? undefined : nameInitial(item.name)} data-tone={purchased ? 'bought' : 'skipped'}>{item.category ? <CardCategoryIcon category={item.category} /> : null}{item.name}</p>
         <span className={purchased ? 'status' : 'status status-muted'}>{purchased ? '구매함' : '구매 포기'}</span>
       </div>
       <p className="price">{formatWon(item.priceKrw)}</p>

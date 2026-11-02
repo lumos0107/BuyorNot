@@ -1,3 +1,5 @@
+import { nameInitial, type ItemCategory } from '../logic/itemCategory'
+import { CardCategoryIcon, CategoryPicker } from '../ui/CategoryPicker'
 import { IconBag } from '../ui/NavIcons'
 import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
 import { aiServerUrl } from '../ai/config'
@@ -385,6 +387,8 @@ function AddForm({
   const [raw, setRaw] = useState<AddRaw>(EMPTY_ADD)
   // 담을 때 갖고 싶은 정도 (F22, 선택)
   const [desire, setDesire] = useState<DesireLevel | undefined>()
+  // 물건 분류 (F85, 선택)
+  const [category, setCategory] = useState<ItemCategory | undefined>()
   // 담을 때의 체크리스트 (F28, 선택): 접어 두고 답한 것만 카드로 보낸다
   const [answers, setAnswers] = useState<Answers>({})
   const entryRef = useRef<HTMLDetailsElement>(null)
@@ -535,7 +539,7 @@ function AddForm({
       return
     }
     // 질문은 접힌 체크리스트에서 답해도 되고(F28), 담은 뒤 카드의 체크리스트에서 답해도 된다 (F24, F27)
-    const id = onAdd({ ...value, desire, answers })
+    const id = onAdd({ ...value, desire, answers, ...(category ? { category } : {}) })
     // 다른 탭이 먼저 저장해 반영되지 않았으면(null) 담은 것으로 보지 않는다: 안내도 포커스 이동도 없이,
     // 입력·정도·체크리스트 답·말로 담기 상태를 하나도 비우지 않는다. 안내를 본 뒤 다시 누르면 담긴다 (판정 R30)
     if (id === null) return
@@ -548,6 +552,7 @@ function AddForm({
     })
     setRaw(EMPTY_ADD)
     setDesire(undefined)
+    setCategory(undefined)
     setAnswers({})
     if (checklistRef.current) checklistRef.current.open = false
     if (moreRef.current) moreRef.current.open = false
@@ -636,6 +641,7 @@ function AddForm({
         onChange={(e) => set('reason', e.target.value)}
       />
       <DesireScale legend="지금 얼마나 갖고 싶나요? (선택)" name="desire-start" value={desire} onChange={setDesire} />
+      <CategoryPicker name="category-start" value={category} onChange={setCategory} />
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="field-label">고민 기간</legend>
         <div className="radio-group">
@@ -804,8 +810,9 @@ function WishCard({ item, items, now, hourlyWage, justAdded, onEdit, onDecide, o
     <article className="card stack" aria-label={item.name}>
       <div className="card-row">
         {/* 담은 직후 포커스가 오는 곳. 이름 아래 줄이 이름의 설명이라 포커스가 갈 때 함께 읽힌다 (F24) */}
-        {/* data-initial: 이름 첫 글자를 CSS가 동그란 표식으로 그린다(장식, 글자 내용은 그대로) */}
-        <p className="card-title" data-initial={item.name.replace(/^\(예시\)\s*/, '').slice(0, 1)} data-tone="wish" id={cardNameId(item.id)} tabIndex={-1} aria-describedby={justAdded ? justAddedId(item.id) : undefined}>
+        {/* data-initial: 이름 첫 글자를 CSS가 동그란 표식으로 그린다(장식, 글자 내용은 그대로). 분류를 고르면 첫 글자 대신 분류 아이콘(F85) */}
+        <p className={item.category ? 'card-title has-icon' : 'card-title'} data-initial={item.category ? undefined : nameInitial(item.name)} data-tone="wish" id={cardNameId(item.id)} tabIndex={-1} aria-describedby={justAdded ? justAddedId(item.id) : undefined}>
+          {item.category ? <CardCategoryIcon category={item.category} /> : null}
           {item.name}
         </p>
         {state.phase === 'ready' ? (
@@ -1348,6 +1355,7 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
     reason: item.reason,
     url: item.url ?? '',
   })
+  const [category, setCategory] = useState<ItemCategory | undefined>(item.category)
   const [attempted, setAttempted] = useState(false)
   const { ref: formRef, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   // 폼을 열 때의 기록. 저장할 때 내용이 바뀌었으면 다른 탭에서 고친 것이라 덮어쓰지 않는다
@@ -1368,7 +1376,7 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
       setStale(true)
       return
     }
-    onSave(value)
+    onSave({ ...value, category: category ?? null })
   }
 
   return (
@@ -1397,6 +1405,7 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
         error={shown.url}
         onChange={(e) => set('url', e.target.value)}
       />
+      <CategoryPicker name={`category-${item.id}`} value={category} onChange={setCategory} />
       <p className="note">고민 기간은 바뀌지 않아요. 다시 볼 날 {formatDate(item.reviewAt)}</p>
       {stale ? (
         <p className="field-error" role="alert">

@@ -2302,3 +2302,74 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* 물건 분류 아이콘(F85): 첫 글자 표식과 같은 크기의 동그라미 안에 분류 아이콘 */
+.card-title.has-icon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+}
+
+.card-icon-hobby { background: #f1ebff; color: #5536b8; }
+.card-icon-food { background: #fff1e0; color: #a35200; }
+.card-icon-living { background: #e6f6ec; color: #1b6e3f; }
+.card-icon-fashion { background: #ffebee; color: #b0213a; }
+.card-icon-digital { background: #e5f2fb; color: #125a87; }
+.card-icon-study { background: #e8eeff; color: #2b44b0; }
+.card-icon-other { background: #eef0f5; color: #475467; }
+
+.category-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.category-picker label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 76px;
+  padding: 8px 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+}
+
+.category-picker input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.category-picker label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.category-picker label:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.category-picker .card-icon {
+  width: 34px;
+  height: 34px;
+}
