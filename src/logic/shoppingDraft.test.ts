@@ -33,3 +33,14 @@ it('AC178: 집에 있는 항목의 변경 시각이 바뀌면 임시 체크용 �
   const changed = { ...first, updatedAt: '2026-11-03T00:00:00.000Z' }
   expect(shoppingCandidates([first])[0].checkKey).not.toBe(shoppingCandidates([changed])[0].checkKey)
 })
+
+it('AC180: 이번 주 요리 셋의 공통으로 부족한 재료를 한 번만 보인다', () => {
+  const recipes: PantryRecipe[] = [
+    { ...recipe, id: 'a', name: '두부요리', ingredients: ['두부', '계란'] },
+    { ...recipe, id: 'b', name: '계란요리', ingredients: ['계란'] },
+    { ...recipe, id: 'c', name: '김치찌개', ingredients: ['김치', '계란'] },
+  ]
+  const rows = shoppingCandidates([item('x', '두부', 'plenty', 'ingredient')], recipes)
+  expect(rows.map((row) => row.name)).toEqual(['계란', '김치'])
+  expect(rows.filter((row) => row.name === '계란')).toHaveLength(1)
+})

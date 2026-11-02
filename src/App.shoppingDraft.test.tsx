@@ -52,3 +52,22 @@ it('AC179: 부족한 것과 고른 요리가 없으면 빈 안내만 보인다',
   expect(draft.getByText('지금 장보기 초안에 넣을 항목이 없어요.')).toBeVisible()
   expect(draft.queryByRole('checkbox')).not.toBeInTheDocument()
 })
+
+it('AC180·AC181: 이번 주 요리 셋까지만 고르고 재료는 합치며 새로고침하면 선택이 사라진다', async () => {
+  seed([item('x', '두부', 'plenty', 'ingredient')], [
+    { ...recipe, id: 'a', name: '두부요리', ingredients: ['두부', '계란'] },
+    { ...recipe, id: 'b', name: '계란요리', ingredients: ['계란'] },
+    { ...recipe, id: 'c', name: '김치찌개', ingredients: ['김치', '계란'] },
+    { ...recipe, id: 'd', name: '계란찜', ingredients: ['계란'] },
+  ])
+  const { user, view, draft } = await open()
+  for (const name of ['두부요리', '계란요리', '김치찌개']) await user.click(draft.getByRole('button', { name: `${name} 이번 주에 해 먹기` }))
+  expect(draft.getAllByRole('button', { pressed: true })).toHaveLength(3)
+  expect(draft.getAllByRole('checkbox', { name: '계란' })).toHaveLength(1)
+  await user.click(draft.getByRole('button', { name: '계란찜 이번 주에 해 먹기' }))
+  expect(draft.getByText('이번 주에는 3개까지 고를 수 있어요.')).toBeVisible()
+  expect(draft.getAllByRole('button', { pressed: true })).toHaveLength(3)
+  view.unmount()
+  const again = await open()
+  expect(again.draft.queryAllByRole('button', { pressed: true })).toHaveLength(0)
+})

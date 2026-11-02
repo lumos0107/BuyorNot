@@ -13,6 +13,7 @@ import {
 import { kindOf, toDayIso, type Subscription } from '../logic/subscriptions'
 import { newId } from '../logic/wishlist'
 import { usePantry } from '../store/usePantry'
+import { deliveryOverlapLine } from '../logic/savingActions'
 import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
 import { ResetConfirm } from '../ui/ResetConfirm'
@@ -80,6 +81,7 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
 
   const row = (item: PantryItem) => {
     const delivery = subscriptions.some((sub) => !sub.cancelledOn && kindOf(sub) === 'delivery' && normalizePantryName(sub.name) === normalizePantryName(item.name))
+    const overlap = deliveryOverlapLine(item, subscriptions, today)
     const latest = latestPantryPurchase(item)
     return <div className="card stack" role="group" aria-label={item.name} key={item.id}>
       <p className="card-title">{item.name}</p>
@@ -87,6 +89,7 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
       {item.expiresOn ? <p className="card-meta">{`유통기한 ${item.expiresOn}`}</p> : null}
       {latest ? <p className="note">{`마지막으로 산 값: ${latest.place} · ${formatWon(latest.amountKrw)}`}</p> : null}
       {delivery ? <p className="note">정기배송으로 와요.</p> : null}
+      {overlap ? <p className="note">{overlap}</p> : null}
       <div className="btn-row">
         <Button aria-label={`${item.name} 남은 정도: ${PANTRY_LEVEL_LABEL[item.level]}`} onClick={() => changeLevel(item)}>남은 정도: {PANTRY_LEVEL_LABEL[item.level]}</Button>
         <Button onClick={() => setDeleteId(item.id)}>지우기</Button>

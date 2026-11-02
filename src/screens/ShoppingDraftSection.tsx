@@ -5,9 +5,12 @@ import { SelectField } from '../ui/Field'
 
 export function ShoppingDraftSection({ items, recipes }: { items: readonly PantryItem[]; recipes: readonly PantryRecipe[] }) {
   const [recipeId, setRecipeId] = useState('')
+  const [weekRecipeIds, setWeekRecipeIds] = useState<string[]>([])
+  const [weekLimit, setWeekLimit] = useState(false)
   const [checked, setChecked] = useState<Set<string>>(() => new Set())
   const recipe = recipes.find((entry) => entry.id === recipeId)
-  const candidates = shoppingCandidates(items, recipe)
+  const chosen = [recipe, ...recipes.filter((entry) => weekRecipeIds.includes(entry.id))].filter((entry): entry is PantryRecipe => entry !== undefined)
+  const candidates = shoppingCandidates(items, chosen)
   const toggle = (key: string) => setChecked((current) => {
     const next = new Set(current)
     if (next.has(key)) next.delete(key)
@@ -24,6 +27,18 @@ export function ShoppingDraftSection({ items, recipes }: { items: readonly Pantr
         <option value="">고르지 않음</option>
         {recipes.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
       </SelectField> : null}
+      {recipes.length > 0 ? <div className="stack" role="group" aria-label="이번 주 해 먹을 것">
+        <p className="field-label">이번 주 해 먹을 것</p>
+        <div className="btn-row">{recipes.map((entry) => <button key={entry.id} type="button" className="btn" aria-label={`${entry.name} 이번 주에 해 먹기`} aria-pressed={weekRecipeIds.includes(entry.id)} onClick={() => {
+          setWeekRecipeIds((current) => {
+            if (current.includes(entry.id)) { setWeekLimit(false); return current.filter((id) => id !== entry.id) }
+            if (current.length >= 3) { setWeekLimit(true); return current }
+            setWeekLimit(false)
+            return [...current, entry.id]
+          })
+        }}>{entry.name}</button>)}</div>
+        {weekLimit ? <p role="status" className="note">이번 주에는 3개까지 고를 수 있어요.</p> : null}
+      </div> : null}
       {candidates.length === 0 ? <p className="note">지금 장보기 초안에 넣을 항목이 없어요.</p> : <>
         <div className="shopping-draft-list">
           {candidates.map((candidate) => <div className="shopping-draft-row" key={candidate.key}>
