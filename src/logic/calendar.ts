@@ -72,7 +72,7 @@ export function foldIcsLine(line: string): string {
 
 /** 이유를 넣은 .ics 설명: 세 줄 */
 function icsDescription(item: WishItem): string {
-  return [`처음 적은 이유: ${item.reason}`, OPEN_LINE, APP_URL].map(escapeIcsText).join('\\n')
+  return [...(item.reason.trim() ? [`처음 적은 이유: ${item.reason}`] : []), OPEN_LINE, APP_URL].map(escapeIcsText).join('\\n')
 }
 
 /** 고민 기간이 끝나는 시각에 알림 요청이 있는 일정 하나짜리 .ics. `now`는 내려받은 시각(DTSTAMP) */

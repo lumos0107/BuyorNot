@@ -5,7 +5,7 @@ import { formatWon, josa } from '../logic/number'
 import { validateWage } from '../logic/settings'
 import { sameRecord } from '../logic/records'
 import { historySummary, reviewDue } from '../logic/summary'
-import { SATISFACTION_TEXT, sortHistory, validateNote, type Satisfaction, type WishItem } from '../logic/wishlist'
+import { REASON_NOT_ENTERED, SATISFACTION_TEXT, sortHistory, validateNote, type Satisfaction, type WishItem } from '../logic/wishlist'
 import { Button } from '../ui/Button'
 import { TextAreaField, TextField } from '../ui/Field'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
@@ -212,7 +212,7 @@ function HistoryCard({
           </>
         ) : null}
       </p>
-      <p>{item.reason}</p>
+      <p>{item.reason || REASON_NOT_ENTERED}</p>
       {desirePointCount(item) >= 2 ? <p className="card-meta">{`갖고 싶은 정도: ${desireTrend(item)}`}</p> : null}
       {item.decisionNote ? (
         <>

@@ -108,6 +108,7 @@ export const COOLING_PRESETS = [1, 3, 7] as const
 export const MAX_DAYS = 30
 export const NAME_MAX = 80
 export const REASON_MAX = 500
+export const REASON_NOT_ENTERED = '사고 싶은 이유를 아직 적지 않았어요.'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const MINUTE_MS = 60 * 1000
@@ -151,7 +152,7 @@ function parseUrl(raw: string): string | null | 'invalid' {
 export type WishPatchRaw = Pick<WishRawInput, 'name' | 'price' | 'reason' | 'url'>
 
 // F01: 상품명 1~80자, 이유 1~500자(앞뒤 공백 제거), 가격 0~10억 원 정수, 링크는 선택(http·https)
-function checkPatch(raw: WishPatchRaw, errors: WishFieldErrors): WishPatch | null {
+function checkPatch(raw: WishPatchRaw, errors: WishFieldErrors, allowEmptyReason = false): WishPatch | null {
   const name = raw.name.trim()
   if (name.length === 0) errors.name = '상품명을 입력해 주세요'
   else if (name.length > NAME_MAX) errors.name = `상품명은 ${NAME_MAX}자 이하로 적어 주세요`
@@ -162,7 +163,7 @@ function checkPatch(raw: WishPatchRaw, errors: WishFieldErrors): WishPatch | nul
   else if (priceKrw > MAX_WON) errors.price = '가격은 10억 원 이하여야 해요'
 
   const reason = raw.reason.trim()
-  if (reason.length === 0) errors.reason = '사고 싶은 이유를 적어 주세요'
+  if (reason.length === 0 && !allowEmptyReason) errors.reason = '사고 싶은 이유를 적어 주세요'
   else if (reason.length > REASON_MAX) errors.reason = `이유는 ${REASON_MAX}자 이하로 적어 주세요`
 
   const url = parseUrl(raw.url)
@@ -173,16 +174,16 @@ function checkPatch(raw: WishPatchRaw, errors: WishFieldErrors): WishPatch | nul
 }
 
 /** 고민 중인 상품을 고칠 때: 고민 기간은 바꾸지 않는다 */
-export function validateWishPatch(raw: WishPatchRaw): { value?: WishPatch; errors: WishFieldErrors } {
+export function validateWishPatch(raw: WishPatchRaw, allowEmptyReason = false): { value?: WishPatch; errors: WishFieldErrors } {
   const errors: WishFieldErrors = {}
-  const value = checkPatch(raw, errors)
+  const value = checkPatch(raw, errors, allowEmptyReason)
   return value ? { value, errors } : { errors }
 }
 
 // 등록할 때: 위 규칙 + 고민 기간 1~30일 정수
-export function validateWishInput(raw: WishRawInput): { value?: NewWishInput; errors: WishFieldErrors } {
+export function validateWishInput(raw: WishRawInput, allowEmptyReason = false): { value?: NewWishInput; errors: WishFieldErrors } {
   const errors: WishFieldErrors = {}
-  const patch = checkPatch(raw, errors)
+  const patch = checkPatch(raw, errors, allowEmptyReason)
 
   const days = parseInteger(raw.days)
   if (days === null || days < 1 || days > MAX_DAYS) errors.days = `고민 기간은 1~${MAX_DAYS}일 사이 정수여야 해요`

@@ -42,7 +42,7 @@ function isWishItem(v: unknown): v is WishItem {
   if (!isString(o.id) || o.id.length === 0) return false
   if (!isString(o.name) || o.name.length === 0 || o.name.length > NAME_MAX) return false
   if (!Number.isInteger(o.priceKrw) || (o.priceKrw as number) < 0 || (o.priceKrw as number) > MAX_WON) return false
-  if (!isString(o.reason) || o.reason.length === 0 || o.reason.length > REASON_MAX) return false
+  if (!isString(o.reason) || o.reason.length > REASON_MAX) return false
   if (o.url !== null && !(isString(o.url) && isHttpUrl(o.url))) return false
   if (!isTimestamp(o.createdAt) || !isTimestamp(o.updatedAt) || !isTimestamp(o.reviewAt)) return false
   // 종료 시각은 등록 시각 뒤여야 한다. 수정·결정 시각은 기기 시각 변경으로 앞설 수 있어 검사하지 않는다

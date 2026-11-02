@@ -23,6 +23,7 @@ import {
   EXAMPLE_ADD,
   EXTEND_DAYS,
   NOTE_MAX,
+  REASON_NOT_ENTERED,
   coolingDays,
   isExample,
   formatRemaining,
@@ -812,7 +813,7 @@ function WishCard({ item, items, now, hourlyWage, justAdded, onEdit, onDecide, o
           </>
         ) : null}
       </p>
-      <p>처음 적은 이유: {item.reason}</p>
+      <p>{item.reason ? `처음 적은 이유: ${item.reason}` : REASON_NOT_ENTERED}</p>
       <GominNote item={item} now={now} focusTick={noteFocus} onCheckDesire={(level) => onCheckDesire(item.id, level)} onAnswer={answerAndFocus} />
       {/* 놓을 자리 확인 (F44): 1단계(직접 입력)는 서버 주소와 상관없이 보이고, 2단계(캡처에서 치수 읽기)는 서버 주소가 있을 때만 */}
       <FitCheck
@@ -1332,7 +1333,7 @@ function EditForm({ item, onSave, onCancel }: { item: WishItem; onSave: (patch: 
   // 폼을 열 때의 기록. 저장할 때 내용이 바뀌었으면 다른 탭에서 고친 것이라 덮어쓰지 않는다
   const [opened] = useState(item)
   const [stale, setStale] = useState(false)
-  const { value, errors } = validateWishPatch(raw)
+  const { value, errors } = validateWishPatch(raw, item.reason === '')
   const shown: WishFieldErrors = attempted ? errors : {}
   const set = <K extends keyof WishPatchRaw>(key: K, v: string) => setRaw((r) => ({ ...r, [key]: v }))
 
