@@ -19,7 +19,7 @@ export function BenefitsSection({ benefits, today, focusExpiryId, onFocusDone }:
     ...current,
     programs: [...current.programs.filter((row) => row.id !== value.id), value],
   }))
-  return <details className="card guide" ref={rootRef}>
+  return <details className="card guide" ref={rootRef} open>
     <summary className="card-title">받을 수 있는 돈</summary>
     <div className="stack">
       <p className="note">조건은 자주 바뀌어요. 받을 수 있는지는 공식 사이트에서 확인해 주세요.</p>
@@ -195,10 +195,13 @@ function ProgramRow({ program, saved, today, onSave }: {
     if (!value) { setError(true); return }
     if (onSave(value)) { setError(false); setNotice(true) }
   }
-  return <details className="benefit-item">
+  return <details className="benefit-item" open={program.id === 'rent'}>
     <summary className="field-label">{program.name}</summary>
     <div className="stack benefit-item-content">
       <p className="note">{program.description}</p>
+      <p className="note"><strong>대상:</strong> {program.eligibility}</p>
+      <p className="note"><strong>혜택:</strong> {program.support}</p>
+      <p className="note"><strong>확인:</strong> {program.nextStep}</p>
       <a href={program.url} target="_blank" rel="noopener noreferrer" aria-label={`${program.name} 공식 안내`}>공식 안내 열기</a>
       {saved ? <p className="note">{`${PROGRAM_STATUS_LABEL[saved.status]} · ${saved.checkedOn}에 확인`}</p> : null}
       <form className="stack" aria-label={`${program.name} 확인`} onSubmit={submit} noValidate>

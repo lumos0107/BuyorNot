@@ -457,7 +457,7 @@ export function toDayIso(date: Date): string {
   return toIso(date.getFullYear(), date.getMonth() + 1, date.getDate())
 }
 
-// 발표·시연용 예시 구독: 월 구독 4개(하나는 해지 후보, 둘은 배달·쇼핑 멤버십)와 연 구독 1개.
+// 발표·시연용 예시 고정비: 월 구독·멤버십 4개, 월 통신·보험 2개, 연 구독 1개.
 // 사용량은 예시 숫자다(F16): OTT·음악은 사용 시간, 배달·쇼핑 멤버십은 사용 횟수, 클라우드는 시간으로 보기 어려워 없음.
 // 쿠팡 와우는 최근에 썼지만(해지 후보 아님) 한 달에 한 번이라 한 번에 드는 돈이 크다는 것을 보여준다.
 export function demoSubscriptions(today: Date, nextId: () => string): Subscription[] {
@@ -493,6 +493,16 @@ export function demoSubscriptions(today: Date, nextId: () => string): Subscripti
       ),
       exampleUseCount: 1,
     },
+    createSubscription(
+      { name: '(예시) 휴대폰 요금', priceKrw: 35000, kind: 'phone', cycle: 'monthly', billingDay: 10, lastUsedDate: null, memo: '설명을 위한 임의 금액 · 실제 청구액을 확인해 바꿔 주세요' },
+      today,
+      nextId(),
+    ),
+    createSubscription(
+      { name: '(예시) 보험료', priceKrw: 25000, kind: 'insurance', cycle: 'monthly', billingDay: 25, lastUsedDate: null, memo: '설명을 위한 임의 금액 · 실제 청구액을 확인해 바꿔 주세요' },
+      today,
+      nextId(),
+    ),
   ]
 }
 

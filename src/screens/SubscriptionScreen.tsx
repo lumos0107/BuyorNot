@@ -221,31 +221,28 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
               <span className="price">연 {formatWon(s.yearlyTotal)}</span>
             </li>
           </ul>
-          {totalsLine ? <p>{totalsLine}</p> : null}
-          {trialSummary ? <p>{trialSummary}</p> : null}
-          {riseLine ? <p>{riseLine}</p> : null}
-          {overlaps.map((line) => <p key={line}>{line}</p>)}
-          {overlaps.length > 0 ? <p className="note">{OVERLAP_NOTE}</p> : null}
           {s.candidateCount > 0 ? (
             <p className="field-label">
               해지 후보 {s.candidateCount}개 · 월평균 {formatWon(s.candidateMonthly)}
             </p>
           ) : null}
-          {/* 사용 기록이 없으면 안 쓰는지 알 수 없어 해지 후보로 세지 않는다 (F23) */}
-          {s.unknownCount > 0 ? (
-            <p className="note">{`사용 기록이 없는 구독 ${s.unknownCount}개는 마지막으로 쓴 날을 적거나 '오늘 썼어요'를 누르면 해지 후보인지 알려 줘요.`}</p>
-          ) : null}
-          <p className="note">연 요금은 12로 나눠 월평균 합계에 더해요. 연간 합계에는 연 요금을 그대로 더해요.</p>
-          {/* 금액(…꼴)이 실제로 보이는 사용량이 있을 때만 설명한다. '사용 기록 없음'·'사용 없음'만 있으면 숨긴다 (GPT 29번) */}
-          {active.some((sub) => tracksUsage(sub) && usageInfo(sub, today)?.text.includes('꼴')) ? (
-            <p className="note">사용량 옆 금액은 각 구독의 월평균 구독료를 해당 사용량으로 나눈 값이에요.</p>
-          ) : null}
-          {active.some((sub) => tracksUsage(sub) && usageInfo(sub, today)?.source === 'example') ? (
-            <p className="note">사용량에 표시된 ‘예시’는 시연용 수치예요. ‘오늘 썼어요’를 누르면 직접 기록한 사용 일수로 바뀌어요.</p>
-          ) : null}
         </section>
       ) : null}
       <PaymentCalendarSection subscriptions={items} today={today} />
+      {active.length > 0 ? <details className="card guide">
+        <summary className="card-title">고정비 분석·계산 방법</summary>
+        <div className="stack">
+          {totalsLine ? <p>{totalsLine}</p> : null}
+          {trialSummary ? <p>{trialSummary}</p> : null}
+          {riseLine ? <p>{riseLine}</p> : null}
+          {overlaps.map((line) => <p key={line}>{line}</p>)}
+          {overlaps.length > 0 ? <p className="note">{OVERLAP_NOTE}</p> : null}
+          {s.unknownCount > 0 ? <p className="note">{`사용 기록이 없는 구독 ${s.unknownCount}개는 마지막으로 쓴 날을 적거나 '오늘 썼어요'를 누르면 해지 후보인지 알려 줘요.`}</p> : null}
+          <p className="note">연 요금은 12로 나눠 월평균 합계에 더해요. 연간 합계에는 연 요금을 그대로 더해요.</p>
+          {active.some((sub) => tracksUsage(sub) && usageInfo(sub, today)?.text.includes('꼴')) ? <p className="note">사용량 옆 금액은 각 구독의 월평균 구독료를 해당 사용량으로 나눈 값이에요.</p> : null}
+          {active.some((sub) => tracksUsage(sub) && usageInfo(sub, today)?.source === 'example') ? <p className="note">사용량에 표시된 ‘예시’는 시연용 수치예요. ‘오늘 썼어요’를 누르면 직접 기록한 사용 일수로 바뀌어요.</p> : null}
+        </div>
+      </details> : null}
       <SubscriptionForm label={ADD_FORM} submitLabel={ADD_BUTTON} today={today} onSubmit={onAdd} resetAfterSubmit />
       {active.length === 0 ? (
         <div className="empty card stack">

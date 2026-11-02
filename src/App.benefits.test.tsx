@@ -14,7 +14,7 @@ it('AC151·AC152: 공식 링크에서 조건을 확인하고 직접 적은 날·
   await user.click(screen.getByText('받을 수 있는 돈'))
   await user.click(screen.getByText('에너지바우처'))
   const program = screen.getByRole('link', { name: '에너지바우처 공식 안내' })
-  expect(program).toHaveAttribute('href', 'https://www.energyv.or.kr/info/support_info.do')
+  expect(program).toHaveAttribute('href', 'https://www.energyv.or.kr/info/apl_info.do')
   expect(program).toHaveAttribute('target', '_blank')
   const form = within(screen.getByRole('form', { name: '에너지바우처 확인' }))
   await user.selectOptions(form.getByLabelText('상태'), 'applied')

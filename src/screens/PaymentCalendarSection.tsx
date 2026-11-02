@@ -17,7 +17,7 @@ export function PaymentCalendarSection({ subscriptions, today }: { subscriptions
   const firstWeekday = days[0].getDay()
   const rootRef = useRef<HTMLDetailsElement>(null)
 
-  return <details className="card guide payment-calendar" role="region" aria-label="앞으로 30일 결제 달력" ref={rootRef}>
+  return <details className="card guide payment-calendar" role="region" aria-label="앞으로 30일 결제 달력" ref={rootRef} open>
     <summary className="card-title">
       <span className="payment-calendar-summary">
         <span>앞으로 30일 결제 달력</span>

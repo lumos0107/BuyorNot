@@ -17,10 +17,10 @@ export const EMPTY_BENEFITS: BenefitsStore = { schemaVersion: 1, programs: [], c
 export const PROGRAM_IDS: readonly ProgramId[] = ['rent', 'energy', 'transport']
 export const PROGRAM_STATUSES: readonly ProgramStatus[] = ['checked', 'applied', 'receiving', 'not-applicable']
 export const PROGRAM_STATUS_LABEL: Record<ProgramStatus, string> = { checked: '확인함', applied: '신청함', receiving: '받는 중', 'not-applicable': '해당 없음' }
-export const PROGRAMS: readonly { id: ProgramId; name: string; description: string; url: string }[] = [
-  { id: 'rent', name: '청년 월세 지원', description: '주거비 지원 안내', url: 'https://www.bokjiro.go.kr/' },
-  { id: 'energy', name: '에너지바우처', description: '냉난방비 지원 안내', url: 'https://www.energyv.or.kr/info/support_info.do' },
-  { id: 'transport', name: '교통비 환급', description: '모두의카드·K-패스 대중교통 환급 안내', url: 'https://korea-pass.kr/' },
+export const PROGRAMS: readonly { id: ProgramId; name: string; description: string; eligibility: string; support: string; nextStep: string; url: string }[] = [
+  { id: 'rent', name: '청년 월세 지원', description: '2026년 신규 신청은 5월 29일에 마감됐어요. 다음 모집 일정은 공식 안내에서 확인하세요.', eligibility: '부모와 따로 사는 만 19~34세 무주택 청년. 청년가구·원가구의 소득과 재산 기준도 함께 적용돼요.', support: '월세를 월 최대 20만 원, 최장 24개월 지원해요. 실제 월세와 심사 결과에 따라 달라져요.', nextStep: '복지로 또는 거주지 행정복지센터에서 모집 일정과 자격을 확인하세요.', url: 'https://www.bokjiro.go.kr/ssis-tbu/cms/pc/news/news/1309493_1114.html' },
+  { id: 'energy', name: '에너지바우처', description: '2026년 신청 기간은 6월 15일~12월 31일이에요.', eligibility: '기초생활수급 자격과 세대원 특성 기준을 모두 확인해야 해요.', support: '전기·가스 등 냉난방 에너지 비용을 요금 차감 또는 국민행복카드로 지원해요.', nextStep: '거주지 행정복지센터나 복지로에서 신청하세요. 이사·세대원 변동이 있으면 재신청이 필요할 수 있어요.', url: 'https://www.energyv.or.kr/info/apl_info.do' },
+  { id: 'transport', name: '교통비 환급', description: 'K-패스와 모두의카드 환급을 비교해 보세요.', eligibility: '참여 지자체에 주민등록한 만 19세 이상. K-패스 카드 발급과 회원가입·카드 등록이 필요해요.', support: '한 달 대중교통 15회 이상 이용하면 기본형·모두의카드 일반형·플러스형 중 유리한 방식이 자동 적용돼 다음 달 환급돼요.', nextStep: 'K-패스 앱·홈페이지에서 카드 등록과 가입 여부를 확인하세요.', url: 'https://korea-pass.kr/' },
 ]
 export const PROGRAM_LIST_CHECKED_ON = '2026-11-02'
 export const CARD_MAX = 20

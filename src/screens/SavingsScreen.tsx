@@ -63,10 +63,11 @@ type Props = {
   pantry: PantryStore
   spending: ReturnType<typeof useSpending>
   benefits?: BenefitsStore
+  benefitsPanel?: ReactNode
   today: Date
 }
 
-export function SavingsScreen({ items, subscriptions, savings, pantry, spending, benefits, today }: Props) {
+export function SavingsScreen({ items, subscriptions, savings, pantry, spending, benefits, benefitsPanel, today }: Props) {
   // 저장 안내가 사라지면 포커스를 화면 제목으로 옮긴다
   const headingRef = useRef<HTMLHeadingElement>(null)
   const n = savingsNumbers(items, subscriptions, savings.store)
@@ -149,6 +150,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
         {resale.count > 0 ? <p className="note">판 금액은 실제 입금을 확인한 금액이 아니에요.</p> : null}
         {receivedSupport > 0 ? <p className="note">직접 적은 받은 지원금 {formatWon(receivedSupport)} · 옮긴 돈과는 따로 보여요.</p> : null}
       </section> : null}
+      {benefitsPanel}
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />
       <TransferLog transfers={savings.store.transfers} onRemove={removeTransfer} onLostFocus={() => headingRef.current?.focus()} />
@@ -403,9 +405,10 @@ function TransferForm({
   }
 
   return (
-    <>
-      <form className="card stack" aria-label="옮긴 돈 적기" onSubmit={submit} noValidate ref={ref}>
-        <p className="card-title">옮긴 돈 적기</p>
+    <details className="card guide">
+      <summary className="card-title">옮긴 돈 적기</summary>
+      <div className="stack">
+      <form className="stack" aria-label="옮긴 돈 적기" onSubmit={submit} noValidate ref={ref}>
         <p className="note">{TRANSFER_INTRO}</p>
         <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="field-label">옮긴 방향</legend>
@@ -447,7 +450,8 @@ function TransferForm({
       <div role="status" aria-label="옮긴 돈 알림" className={saved && noticeActive ? undefined : 'similar-empty'}>
         {saved && noticeActive ? <p className="note">{saved.text}</p> : null}
       </div>
-    </>
+      </div>
+    </details>
   )
 }
 

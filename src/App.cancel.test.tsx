@@ -315,7 +315,7 @@ describe('다시 쓰기·삭제·여러 탭·예시 (F47)', () => {
     await openCancel(user, '(예시) 넷플릭스')
     await user.click(confirm().getByRole('button', { name: '옮기기' }))
     await user.click(screen.getByRole('button', { name: '예시 구독만 지우기' }))
-    expect(screen.getByText("이름이 '(예시)'로 시작하는 구독 5개를 지울까요?")).toBeInTheDocument()
+    expect(screen.getByText("이름이 '(예시)'로 시작하는 구독 7개를 지울까요?")).toBeInTheDocument()
     await user.click(within(screen.getByRole('group', { name: '예시 지우기 확인' })).getByRole('button', { name: '지우기' }))
     expect(storedItems()).toEqual([])
     expect(screen.queryByText(/해지한 것 \d개/)).not.toBeInTheDocument()

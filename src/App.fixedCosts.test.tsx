@@ -80,7 +80,7 @@ describe('고정비 종류와 요약 (F45)', () => {
     expect(summary().getByText('월평균 고정비')).toBeInTheDocument()
     expect(summary().getByText('528,500원')).toBeInTheDocument()
     expect(summary().getByText('연 6,342,000원')).toBeInTheDocument()
-    expect(summary().getByText('구독·멤버십 23,500원 · 통신 55,000원 · 월세·관리비 450,000원')).toBeInTheDocument()
+    expect(screen.getByText('구독·멤버십 23,500원 · 통신 55,000원 · 월세·관리비 450,000원')).toBeInTheDocument()
     expect(storedItems().find((i) => i.name === '월세')).toMatchObject({ kind: 'housing' })
     expect(storedItems().find((i) => i.name === '휴대폰')).toMatchObject({ kind: 'phone', lastUsedDate: null })
     expect(storedItems().find((i) => i.name === '넷플릭스')).not.toHaveProperty('kind')
@@ -133,14 +133,14 @@ describe('예전 기록과 예시 (F45)', () => {
     expect(summary().getByText('해지 후보 1개 · 월평균 13,500원')).toBeInTheDocument()
   })
 
-  it('AC82: 예시 구독은 AC30 그대로다', async () => {
+  it('AC82: 예시 구독에 통신·보험 고정비가 더해진다', async () => {
     const user = await openFixed()
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))
-    expect(screen.getAllByRole('article')).toHaveLength(5)
-    expect(summary().getByText('46,280원')).toBeInTheDocument()
-    expect(summary().getByText('연 555,360원')).toBeInTheDocument()
+    expect(screen.getAllByRole('article')).toHaveLength(7)
+    expect(summary().getByText('106,280원')).toBeInTheDocument()
+    expect(summary().getByText('연 1,275,360원')).toBeInTheDocument()
     expect(summary().getByText('해지 후보 1개 · 월평균 10,900원')).toBeInTheDocument()
-    expect(summary().queryByText(/구독·멤버십 .*원/)).not.toBeInTheDocument()
+    expect(screen.getByText('고정비 분석·계산 방법')).toBeInTheDocument()
   })
 
   it('AC82: 종류를 통신으로 바꿨다가 다시 구독으로 바꾸면 확인 필요다', async () => {
@@ -244,7 +244,7 @@ describe('무료 체험 끝나는 날 (F46)', () => {
     expect(storedItems()[0]).toMatchObject({ name: '넷플릭스', billingDay: 14, trialEndDate: '2026-11-14' })
     expect(card('넷플릭스').getByText(TRIAL_ON)).toBeInTheDocument()
     expect(card('넷플릭스').getByText('다음 결제 2026-11-14 · D-13')).toBeInTheDocument()
-    expect(summary().getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
+    expect(screen.getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
     // 체험 중인 것만 있으면 합계는 0원이다
     expect(summary().getByText('연 0원')).toBeInTheDocument()
   })
@@ -263,7 +263,7 @@ describe('무료 체험 끝나는 날 (F46)', () => {
     await openFixed()
     expect(card('넷플릭스').getByText('무료 체험 중 · 2026-11-14에 끝나요 (D-13). 그 뒤 연 120,000원')).toBeInTheDocument()
     expect(card('넷플릭스').getByText('다음 결제 2026-11-14 · D-13')).toBeInTheDocument()
-    expect(summary().getByText('무료 체험 중 1개 · 끝나면 월 10,000원이 더 나가요')).toBeInTheDocument()
+    expect(screen.getByText('무료 체험 중 1개 · 끝나면 월 10,000원이 더 나가요')).toBeInTheDocument()
   })
 
   it('AC85: 체험 중인 것과 통신이 있으면 합계는 통신만이고 종류별 줄이 없다', async () => {
@@ -273,7 +273,7 @@ describe('무료 체험 끝나는 날 (F46)', () => {
     expect(summary().getByText('연 660,000원')).toBeInTheDocument()
     expect(summary().queryByText(/구독·멤버십 .*원/)).not.toBeInTheDocument()
     expect(summary().queryByText(/통신 .*원 ·|· 통신 /)).not.toBeInTheDocument()
-    expect(summary().getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
+    expect(screen.getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
   })
 
   it('AC86: 11-14·11-15·12-01에 다시 보면 PRD 문장과 날짜다', async () => {
@@ -283,7 +283,7 @@ describe('무료 체험 끝나는 날 (F46)', () => {
     expect(card('넷플릭스').getByText('무료 체험이 오늘 끝나요. 해지하지 않으면 유료로 바뀌어요.')).toBeInTheDocument()
     expect(card('넷플릭스').getByText('다음 결제 2026-11-14 · D-0')).toBeInTheDocument()
     expect(summary().getByText('55,000원')).toBeInTheDocument()
-    expect(summary().getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
+    expect(screen.getByText('무료 체험 중 1개 · 끝나면 월 13,500원이 더 나가요')).toBeInTheDocument()
     cleanup()
     // 11-15: 체험 줄이 없고 결제일 규칙의 다음 결제일이다. 월평균 고정비에 13,500원이 들어간다
     await openFixedAt(new Date(2026, 10, 15, 9))
@@ -291,7 +291,7 @@ describe('무료 체험 끝나는 날 (F46)', () => {
     expect(card('넷플릭스').getByText('다음 결제 2026-11-20 · D-5')).toBeInTheDocument()
     expect(summary().getByText('68,500원')).toBeInTheDocument()
     expect(summary().queryByText(/무료 체험 중/)).not.toBeInTheDocument()
-    expect(summary().getByText('구독·멤버십 13,500원 · 통신 55,000원')).toBeInTheDocument()
+    expect(screen.getByText('구독·멤버십 13,500원 · 통신 55,000원')).toBeInTheDocument()
     cleanup()
     // 12-01
     await openFixedAt(new Date(2026, 11, 1, 9))

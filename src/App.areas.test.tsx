@@ -17,9 +17,8 @@ async function open() { const user = userEvent.setup(); render(<App />); await u
 it('AC109: 배달에 쓰는 멤버십 둘은 요약과 카드에 겹침이 보인다', async () => {
   seed(first, second)
   await open()
-  const summary = within(screen.getByRole('region', { name: '고정비 요약' }))
-  expect(summary.getByText('같은 곳에 쓰는 구독·멤버십: 배달 2개(배달의민족 배민클럽, 쿠팡 와우 멤버십) · 월 11,880원')).toBeInTheDocument()
-  expect(summary.getByText('모두 쓰는지는 각 카드의 사용 기록에서 볼 수 있어요.')).toBeInTheDocument()
+  expect(screen.getByText('같은 곳에 쓰는 구독·멤버십: 배달 2개(배달의민족 배민클럽, 쿠팡 와우 멤버십) · 월 11,880원')).toBeInTheDocument()
+  expect(screen.getByText('모두 쓰는지는 각 카드의 사용 기록에서 볼 수 있어요.')).toBeInTheDocument()
   expect(within(screen.getByRole('article', { name: '배달의민족 배민클럽' })).getByText('배달에 쓰는 것이 하나 더 있어요: 쿠팡 와우 멤버십')).toBeInTheDocument()
 })
 

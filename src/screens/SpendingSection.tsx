@@ -23,7 +23,7 @@ export function SpendingSection({ spending, today }: { spending: ReturnType<type
   const [full, setFull] = useState(false)
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null)
   const [deleteEntryId, setDeleteEntryId] = useState<string | null>(null)
-  const titleRef = useRef<HTMLParagraphElement>(null)
+  const titleRef = useRef<HTMLElement>(null)
   const { ref, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   const summary = spendingMonthSummary(spending.store.entries, today)
   const weekly = new Map(spending.store.templates.map((template) => [template.id, weeklySpendingExperiment(spending.store.entries, template.id, today)]))
@@ -55,8 +55,9 @@ export function SpendingSection({ spending, today }: { spending: ReturnType<type
     else setMessage('')
   }
 
-  return <section className="card stack" aria-label="자잘한 지출">
-    <p className="card-title" tabIndex={-1} ref={titleRef}>자잘한 지출</p>
+  return <details className="card guide" aria-label="자잘한 지출">
+    <summary className="card-title" tabIndex={-1} ref={titleRef}>자잘한 지출</summary>
+    <div className="stack">
     {spending.status.kind !== 'ok' ? <div className="banner stack" role="status" aria-label={SPENDING_STORAGE_LABEL}>
       {spending.status.kind === 'unavailable' ? <p>{SPENDING_UNAVAILABLE}</p> : null}
       {spending.status.kind === 'save-failed' ? <><p>{SPENDING_SAVE_FAILED}</p><Button onClick={spending.retrySave}>다시 저장</Button></> : null}
@@ -99,5 +100,6 @@ export function SpendingSection({ spending, today }: { spending: ReturnType<type
           : <Button aria-label={`${entry.day} ${entry.name} 기록 지우기`} onClick={() => setDeleteEntryId(entry.id)}>지우기</Button>}
       </div>)}
     </div></details> : null}
-  </section>
+    </div>
+  </details>
 }

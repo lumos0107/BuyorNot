@@ -46,18 +46,20 @@ describe('예시 구독과 예시 사용량 (F14·F16)', () => {
   let n = 0
   const demo = demoSubscriptions(NOW, () => `id-${++n}`)
 
-  it('예시 구독 5개: OTT·음악은 시간, 배달·쇼핑 멤버십은 횟수, 클라우드는 시간으로 보기 어려워 없음', () => {
+  it('예시 고정비 7개: 구독·멤버십에 통신·보험을 더한다', () => {
     expect(demo.map((s) => [s.name, s.priceKrw, s.exampleUsageMinutes, s.exampleUseCount])).toEqual([
       ['(예시) 넷플릭스', 13500, 1080, undefined],
       ['(예시) 음악 스트리밍', 10900, 0, undefined],
       ['(예시) 클라우드 저장공간', 120000, undefined, undefined],
       ['(예시) 배달의민족 배민클럽', 3990, undefined, 6],
       ['(예시) 쿠팡 와우 멤버십', 7890, undefined, 1],
+      ['(예시) 휴대폰 요금', 35000, undefined, undefined],
+      ['(예시) 보험료', 25000, undefined, undefined],
     ])
   })
 
-  it('예시 요약: 월 46,280원, 연 555,360원, 해지 후보는 음악 스트리밍 1개', () => {
-    expect(subscriptionSummary(demo, NOW)).toEqual({ monthlyTotal: 46280, yearlyTotal: 555360, candidateCount: 1, candidateMonthly: 10900, unknownCount: 0, trialCount: 0, trialMonthly: 0 })
+  it('예시 요약: 월 106,280원, 연 1,275,360원, 해지 후보는 음악 스트리밍 1개', () => {
+    expect(subscriptionSummary(demo, NOW)).toEqual({ monthlyTotal: 106280, yearlyTotal: 1275360, candidateCount: 1, candidateMonthly: 10900, unknownCount: 0, trialCount: 0, trialMonthly: 0 })
   })
 
   it('복원할 때 예시 사용 시간은 0~43,200분, 사용 횟수는 0~999 정수만 받고, 둘이 함께 있으면 손상이다', () => {

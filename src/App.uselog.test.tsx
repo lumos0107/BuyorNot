@@ -65,10 +65,10 @@ describe('사용량 금액 안내 (문구 점검 C1, GPT 29번)', () => {
     createdAt: new Date(2026, 8, 1).toISOString(), updatedAt: new Date(2026, 8, 1).toISOString(),
   })
 
-  it('금액이 보이는 사용량이 있으면 요약에 한 번 설명한다', async () => {
+  it('금액이 보이는 사용량이 있으면 접힌 분석 안내에 한 번 설명한다', async () => {
     localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub(['2026-10-10'])] }))
     await openSubs()
-    expect(within(screen.getByRole('region', { name: '고정비 요약' })).getByText(NOTE)).toBeInTheDocument()
+    expect(screen.getByText(NOTE)).toBeInTheDocument()
   })
 
   it('최근 30일 사용 기록 없음처럼 금액이 없으면 설명하지 않는다', async () => {

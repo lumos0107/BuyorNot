@@ -192,8 +192,7 @@ export default function App() {
           <BillsSection bills={bills} today={wishlist.now} />
         </TabPanel>
         <TabPanel id="savings" hidden={screen !== 'savings'}>
-          <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} spending={spending} benefits={benefits.store} today={wishlist.now} />
-          <BenefitsSection benefits={benefits} today={wishlist.now} focusExpiryId={screen === 'savings' && jump?.screen === 'savings' ? jump.id : undefined} onFocusDone={() => setJump(null)} />
+          <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} spending={spending} benefits={benefits.store} today={wishlist.now} benefitsPanel={<BenefitsSection benefits={benefits} today={wishlist.now} focusExpiryId={screen === 'savings' && jump?.screen === 'savings' ? jump.id : undefined} onFocusDone={() => setJump(null)} />} />
         </TabPanel>
       </main>
 

@@ -120,7 +120,7 @@ describe('구독 정리함 (F14)', () => {
   it('예시 구독을 넣으면 월·연 구독, 배달·쇼핑 멤버십과 해지 후보가 함께 보인다', async () => {
     const { user } = await openSubs()
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))
-    expect(screen.getAllByRole('article').length).toBe(5)
+    expect(screen.getAllByRole('article').length).toBe(7)
     expect(summary().getByText(/해지 후보 1개/)).toBeInTheDocument()
   })
 })

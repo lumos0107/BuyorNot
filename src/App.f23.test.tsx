@@ -71,12 +71,12 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
     await user.click(form.getByRole('button', { name: '고정비 추가' }))
     expect(card('티빙').getByText('확인 필요')).toBeInTheDocument()
     expect(card('티빙').queryByText('해지 후보')).not.toBeInTheDocument()
-    expect(summary().getByText(NOTE)).toBeInTheDocument()
+    expect(screen.getByText(NOTE)).toBeInTheDocument()
     expect(summary().queryByText(/^해지 후보 \d+개/)).not.toBeInTheDocument()
 
     await user.click(card('티빙').getByRole('button', { name: '오늘 썼어요' }))
     expect(card('티빙').queryByText('확인 필요')).not.toBeInTheDocument()
-    expect(summary().queryByText(NOTE)).not.toBeInTheDocument()
+    expect(screen.queryByText(NOTE)).not.toBeInTheDocument()
     await user.click(card('티빙').getByRole('button', { name: '오늘 썼어요' }))
     expect(card('티빙').getByText('확인 필요')).toBeInTheDocument()
   })
@@ -105,7 +105,7 @@ describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
     expect(card('왓챠').queryByText('확인 필요')).not.toBeInTheDocument()
   })
 
-  it('예시 구독은 해지 후보 1개 · 월평균 10,900원이고 확인 필요는 없다', async () => {
+  it('예시 고정비는 해지 후보 1개 · 월평균 10,900원이고 확인 필요는 없다', async () => {
     const user = await openSubs()
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))
     expect(summary().getByText('해지 후보 1개 · 월평균 10,900원')).toBeInTheDocument()
