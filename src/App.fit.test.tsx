@@ -1,8 +1,8 @@
+import { renderWishlistApp } from './test/renderWishlistApp'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { makeBackup } from './logic/backup'
 import type { Fit } from './logic/fit'
 import { STORAGE_KEY } from './logic/storage'
@@ -84,7 +84,7 @@ const store = (...items: unknown[]) => JSON.stringify({ schemaVersion: 1, items 
 function setup(...items: unknown[]) {
   if (items.length > 0) localStorage.setItem(STORAGE_KEY, store(...items))
   const user = userEvent.setup()
-  const view = render(<App />)
+  const view = renderWishlistApp()
   return { user, ...view }
 }
 const saved = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items as Record<string, unknown>[]
@@ -213,7 +213,7 @@ describe('놓을 자리 확인 저장과 결과 (F44, AC64·AC65)', () => {
     await fill(user, POT, { ...SINK, ...POT_SIZE })
     await user.click(saveButton(POT))
     unmount()
-    render(<App />)
+    renderWishlistApp()
     expect(summaryOf(card(POT))).toHaveTextContent('놓을 자리 확인 · 입력 치수상 싱크대 옆 칸에 들어가요')
     await open(userEvent.setup(), POT)
     expect(linesOf(result(POT))).toEqual([RESULT, ...AC64_LINES])
@@ -371,7 +371,7 @@ describe('놓을 자리 확인과 여러 탭·백업·손상 (F44, AC65)', () =>
   it('AC65: 저장 기록의 fit이 규칙에 맞지 않으면(가로 0) 손상으로 알리고 덮어쓰지 않아요', () => {
     const raw = store(thing({ fit: { ...FIT, space: { ...FIT.space, w: 0 } } }))
     localStorage.setItem(STORAGE_KEY, raw)
-    render(<App />)
+    renderWishlistApp()
     expect(screen.getByRole('status', { name: '저장 상태' })).toHaveTextContent('저장된 기록을 읽을 수 없어요.')
     expect(localStorage.getItem(STORAGE_KEY)).toBe(raw)
   })

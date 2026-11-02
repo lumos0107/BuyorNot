@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // PRD F24 담은 직후 (AC70, 판정 R29-P3): 담으면 새 물건 카드의 이름으로 포커스가 가고 그 아래에 "방금 담았어요."가 보인다.
@@ -52,7 +52,7 @@ describe('담은 직후 새 카드로 포커스 (F24, AC70)', () => {
   it('AC70: 물건 둘이 있을 때 3일로 담으면 셋째 카드 이름으로 포커스가 가고 그 아래에 "방금 담았어요."가 보인다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user, '나이키 에어포스', 3)
 
     const cards = screen.getAllByRole('article')
@@ -75,7 +75,7 @@ describe('담은 직후 새 카드로 포커스 (F24, AC70)', () => {
   it('AC70: 담은 뒤 상품명에 한 글자 넣으면 "방금 담았어요."와 담은 직후 안내가 함께 사라진다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user, '나이키 에어포스', 3)
     expect(screen.getByText(JUST_ADDED)).toBeInTheDocument()
     expect(form().getByRole('status', { name: '담은 물건' })).toBeInTheDocument()
@@ -89,7 +89,7 @@ describe('담은 직후 새 카드로 포커스 (F24, AC70)', () => {
   it('AC70: 이어서 다른 물건을 담으면 그 카드로 옮겨 가고 줄은 그 카드에만 있다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user, '나이키 에어포스', 3)
     await addItem(user, '책장', 1)
 
@@ -106,12 +106,12 @@ describe('담은 직후 새 카드로 포커스 (F24, AC70)', () => {
   it('AC70: 담은 뒤 새로고침하면 "방금 담았어요."는 없다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    const first = render(<App />)
+    const first = renderWishlistApp()
     await addItem(user, '나이키 에어포스', 3)
     expect(screen.getByText(JUST_ADDED)).toBeInTheDocument()
 
     first.unmount()
-    render(<App />)
+    renderWishlistApp()
     expect(screen.getByRole('article', { name: '나이키 에어포스' })).toBeInTheDocument()
     expect(screen.queryByText(JUST_ADDED)).not.toBeInTheDocument()
   })
@@ -119,7 +119,7 @@ describe('담은 직후 새 카드로 포커스 (F24, AC70)', () => {
   it('AC70: 같은 이름의 물건이 이미 있어도 새로 담은 카드로 포커스가 간다', async () => {
     seed(wish('n1', '나이키 에어포스', 1))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user, '나이키 에어포스', 3)
 
     expect(screen.getAllByRole('article', { name: '나이키 에어포스' })).toHaveLength(2)
@@ -134,7 +134,7 @@ describe('담은 직후 새 카드로 포커스 (F24, AC70)', () => {
   it('AC70: 담은 뒤 다른 물건을 구매 포기해도 "방금 담았어요."는 새 카드에만 있다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user, '나이키 에어포스', 3)
 
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
@@ -159,7 +159,7 @@ describe('담은 물건을 바로 결정하거나 지우면 담은 직후 안내
 
   async function addThenOpen(user: ReturnType<typeof userEvent.setup>, button: string) {
     seedTwo()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user, '나이키 에어포스', 3)
     // 담은 직후 안내와 "방금 담았어요."가 먼저 보인다
     expect(screen.getByText(JUST_ADDED)).toBeInTheDocument()
@@ -223,7 +223,7 @@ describe('담은 물건을 바로 결정하거나 지우면 담은 직후 안내
   it('AC80: 담은 직후 다른 물건을 구매 포기로 옮겨도 담은 직후 안내와 "방금 담았어요."는 그대로다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user, '나이키 에어포스', 3)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))

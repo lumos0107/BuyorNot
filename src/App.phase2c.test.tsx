@@ -1,7 +1,7 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 
 // 2차 9단계: 질문 3개(F09), 비교 링크·내 기록 알림(F10), 안내문(F11) — AC20, AC21, AC22
 const T0 = new Date('2026-10-11T09:00:00+09:00')
@@ -19,7 +19,7 @@ afterEach(() => {
 
 function setup() {
   const user = userEvent.setup()
-  const utils = render(<App />)
+  const utils = renderWishlistApp()
   return { user, ...utils }
 }
 

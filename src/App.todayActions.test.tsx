@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import App from './App'
 import { BENEFITS_KEY, EMPTY_BENEFITS } from './logic/benefits'
 import { STORAGE_KEY } from './logic/storage'
 import { SUBS_KEY, type Subscription } from './logic/subscriptions'
@@ -17,7 +17,7 @@ afterEach(() => vi.useRealTimers())
 it('AC163: 오늘 안내와 고민 기간 끝을 한곳에서 보이고 물건 카드로 간다', async () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [wish('전기 포트')] }))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   const panel = within(screen.getByRole('region', { name: '오늘 확인할 것' }))
   expect(panel.getByText('고민 기간이 끝난 물건 1개')).toBeInTheDocument()
   expect(panel.getByRole('status', { name: '오늘 적을 물건' })).toHaveTextContent('오늘 갖고 싶은 정도를 안 적은 물건 1개')
@@ -30,7 +30,7 @@ it('AC166: 결제·반품·만료 보기는 원래 탭의 첫 카드로 이동�
   localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub] }))
   localStorage.setItem(BENEFITS_KEY, JSON.stringify({ ...EMPTY_BENEFITS, expiries: [{ id: 'e', name: '쿠폰', expiresOn: '2026-11-04' }] }))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   const panel = within(screen.getByRole('region', { name: '오늘 확인할 것' }))
   await user.click(panel.getByRole('button', { name: '고정비 보기' }))
   expect(screen.getByRole('tab', { name: '고정비' })).toHaveAttribute('aria-selected', 'true')

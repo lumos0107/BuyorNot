@@ -1,7 +1,7 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 import { SUBS_KEY } from './logic/subscriptions'
 
@@ -83,7 +83,7 @@ async function addWish(user: ReturnType<typeof userEvent.setup>, name: string) {
 describe('구독: 여러 탭', () => {
   async function openSubs() {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     return user
   }
@@ -158,7 +158,7 @@ describe('물건 기록: 여러 탭', () => {
   it('알림이 오기 전에 다른 탭이 저장했으면 덮어쓰지 않고, 그 내용을 불러와 알린다', async () => {
     localStorage.setItem(STORAGE_KEY, store(wish({})))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     otherTabWrites(STORAGE_KEY, store(wish({}), wish({ id: 'w2', name: '전기 포트' })), false)
     await addWish(user, '무선 헤드폰')
     expect(names(STORAGE_KEY)).toEqual(['전동 칫솔', '전기 포트'])
@@ -171,7 +171,7 @@ describe('물건 기록: 여러 탭', () => {
 
   it('저장하지 못한 변경이 있을 때 다른 탭이 저장하면, 그 내용을 불러오고 이 탭의 변경이 반영되지 않았다고 알린다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('full', 'QuotaExceededError')
     })
@@ -185,7 +185,7 @@ describe('물건 기록: 여러 탭', () => {
 
   it('다른 탭이 읽을 수 없는 값을 저장하면 손상으로 알리고, 이후 담아도 덮어쓰지 않는다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     otherTabWrites(STORAGE_KEY, '{"schemaVersion":2}')
     expect(within(screen.getByRole('status', { name: '저장 상태' })).getByText(/저장된 기록을 읽을 수 없어요/)).toBeInTheDocument()
     await addWish(user, '무선 헤드폰')
@@ -195,7 +195,7 @@ describe('물건 기록: 여러 탭', () => {
   it('물건 수정 폼을 연 뒤 다른 탭에서 같은 물건이 바뀌면 저장을 멈추고 알린다', async () => {
     localStorage.setItem(STORAGE_KEY, store(wish({})))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(card('전동 칫솔').getByRole('button', { name: '수정' }))
     otherTabWrites(STORAGE_KEY, store(wish({ priceKrw: 49000, updatedAt: iso(T0.getTime()) })))
     const editor = within(screen.getByRole('form', { name: '물건 수정' }))
@@ -217,7 +217,7 @@ describe('물건 기록: 여러 탭', () => {
     })
     localStorage.setItem(STORAGE_KEY, store(bought))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(card('전기 포트').getByRole('button', { name: '회고 고치기' }))
     otherTabWrites(STORAGE_KEY, store({ ...bought, satisfaction: 'regret', updatedAt: iso(T0.getTime()) }))
@@ -232,7 +232,7 @@ describe('물건 기록: 여러 탭', () => {
   it('AC70: 다른 탭이 먼저 저장해 담기가 반영되지 않으면 포커스를 옮기지 않고 담은 직후 안내 없이 입력을 그대로 둔다', async () => {
     localStorage.setItem(STORAGE_KEY, store(wish({})))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     otherTabWrites(STORAGE_KEY, store(wish({}), wish({ id: 'w2', name: '전기 포트' })), false)
     // 갖고 싶은 정도·체크리스트 답·고민 기간도 골라 둔다: 반영되지 않았을 때 이 선택까지 비워지면 안 된다 (판정 R30)
     // 가정: 고민 기간은 기본값(3일)과 다른 7일을 고른다. 기본값을 고르면 입력을 비워 기본값으로 돌아가도 알아챌 수 없다
@@ -258,7 +258,7 @@ describe('물건 기록: 여러 탭', () => {
   it("AC70: 반영되지 않은 뒤 '담아 두기'를 다시 누르면 담기고 그 카드 이름으로 포커스가 간다", async () => {
     localStorage.setItem(STORAGE_KEY, store(wish({})))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     otherTabWrites(STORAGE_KEY, store(wish({}), wish({ id: 'w2', name: '전기 포트' })), false)
     await addWish(user, '무선 헤드폰')
     expect(names(STORAGE_KEY)).not.toContain('무선 헤드폰')
@@ -275,7 +275,7 @@ describe('물건 기록: 여러 탭', () => {
 it('수정 폼 저장 경고는 취소하면 사라지고, 다시 열면 바뀐 내용으로 고칠 수 있다', async () => {
   localStorage.setItem(SUBS_KEY, store(sub({})))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(screen.getByRole('tab', { name: '고정비' }))
   await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
   otherTabWrites(SUBS_KEY, store(sub({ priceKrw: 17000, updatedAt: iso(T0.getTime()) })))
@@ -293,7 +293,7 @@ describe('손상 상태와 다른 탭', () => {
   it('손상 상태에서 화면에만 담은 물건은 다른 탭이 정상 저장하면 반영되지 않았다고 알린다', async () => {
     localStorage.setItem(STORAGE_KEY, '{bad')
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addWish(user, '무선 헤드폰')
     otherTabWrites(STORAGE_KEY, store(wish({ name: '전기 포트' })))
     expect(screen.getByRole('article', { name: '전기 포트' })).toBeInTheDocument()
@@ -303,7 +303,7 @@ describe('손상 상태와 다른 탭', () => {
   it('손상 상태에서 구독을 화면에만 넣었을 때 다른 탭이 정상 저장해도 알린다', async () => {
     localStorage.setItem(SUBS_KEY, '{bad')
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     await addMonthly(user, '유튜브')
     otherTabWrites(SUBS_KEY, store(sub({ name: '왓챠' })))
@@ -313,7 +313,7 @@ describe('손상 상태와 다른 탭', () => {
 
   it('손상 상태에서 아무것도 바꾸지 않았다면 다른 탭이 정상 저장했을 때 안내 없이 맞춘다', async () => {
     localStorage.setItem(STORAGE_KEY, '{bad')
-    render(<App />)
+    renderWishlistApp()
     otherTabWrites(STORAGE_KEY, store(wish({ name: '전기 포트' })))
     expect(screen.getByRole('article', { name: '전기 포트' })).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: '저장 상태' })).not.toBeInTheDocument()
@@ -322,7 +322,7 @@ describe('손상 상태와 다른 탭', () => {
   it('초기화를 누르기 직전에 다른 탭이 정상 기록을 저장했다면 덮어쓰지 않고 그 기록을 불러온다', async () => {
     localStorage.setItem(STORAGE_KEY, '{bad')
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     const banner = within(screen.getByRole('status', { name: '저장 상태' }))
     await user.click(banner.getByRole('button', { name: '기록 초기화' }))
     otherTabWrites(STORAGE_KEY, store(wish({ name: '전기 포트' })), false)
@@ -334,7 +334,7 @@ describe('손상 상태와 다른 탭', () => {
   it('구독 초기화도 직전에 다른 탭이 정상 저장했다면 덮어쓰지 않는다', async () => {
     localStorage.setItem(SUBS_KEY, '{bad')
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     const banner = within(screen.getByRole('status', { name: '고정비 저장 상태' }))
     await user.click(banner.getByRole('button', { name: '고정비 기록 초기화' }))
@@ -349,7 +349,7 @@ describe('수정 폼의 바뀜 판단과 처음 회고', () => {
   it('기록 시각이 같아도 내용이 바뀌었으면 구독 수정을 멈추고 알린다', async () => {
     localStorage.setItem(SUBS_KEY, store(sub({})))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     await user.click(card('넷플릭스').getByRole('button', { name: '수정' }))
     otherTabWrites(SUBS_KEY, store(sub({ priceKrw: 17000 })))
@@ -370,7 +370,7 @@ describe('수정 폼의 바뀜 판단과 처음 회고', () => {
     })
     localStorage.setItem(STORAGE_KEY, store(bought))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(card('전기 포트').getByRole('radio', { name: '잘 샀어요' }))
     otherTabWrites(STORAGE_KEY, store({ ...bought, satisfaction: 'regret', updatedAt: iso(T0.getTime()) }))
@@ -393,7 +393,7 @@ describe('수정 폼의 바뀜 판단과 처음 회고', () => {
     })
     localStorage.setItem(STORAGE_KEY, store(bought))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     otherTabWrites(STORAGE_KEY, store({ ...bought, satisfaction: 'good', updatedAt: iso(T0.getTime()) }))
     expect(screen.queryByRole('form', { name: '구매 후 회고' })).not.toBeInTheDocument()

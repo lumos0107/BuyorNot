@@ -32,16 +32,17 @@ import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
 type Screen = 'wishlist' | 'compare' | 'history' | 'subscriptions' | 'savings'
 
 const SCREENS: readonly TabItem<Screen>[] = [
-  { id: 'wishlist', label: '물건' },
   { id: 'compare', label: '가격 비교' },
+  { id: 'wishlist', label: '물건' },
   { id: 'history', label: '결정 기록' },
   { id: 'subscriptions', label: '고정비' },
   { id: 'savings', label: '모으기' },
 ]
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('wishlist')
+  const [screen, setScreen] = useState<Screen>('compare')
   const [startTarget, setStartTarget] = useState<{ kind: 'wish' | 'shopping' | 'fixed' } | null>(null)
+  const [beforeBuyItemId, setBeforeBuyItemId] = useState<string | null>(null)
   const startAt = (kind: 'wish' | 'shopping' | 'fixed') => setStartTarget({ kind })
   useEffect(() => {
     if (!startTarget) return
@@ -115,6 +116,7 @@ export default function App() {
             subscriptions={subscriptions.items}
             expiries={benefits.store.expiries}
             onJump={jumpTo}
+            onBeforeBuy={setBeforeBuyItemId}
             now={wishlist.now}
             onAdd={wishlist.add}
             onEdit={wishlist.edit}
@@ -131,7 +133,7 @@ export default function App() {
             draft={draft}
             onDraftUsed={() => setDraft(null)}
           />
-          <BeforeBuySection wishlist={wishlist} pantry={pantry.store} today={wishlist.now} />
+          <BeforeBuySection wishlist={wishlist} pantry={pantry.store} today={wishlist.now} focusItemId={beforeBuyItemId} onFocusDone={() => setBeforeBuyItemId(null)} />
           <PantrySection pantry={pantry} subscriptions={subscriptions.items} today={wishlist.now} onCompare={(purchase: PantryPurchase) => {
             setPantryDraft({ form: { price: String(purchase.amountKrw), unit: purchase.unit, size: purchase.unit === 'ea' ? '' : String(purchase.size), count: purchase.unit === 'ea' ? String(purchase.size) : '1' }, token: ++pantryDraftSeq.current })
             setScreen('compare')

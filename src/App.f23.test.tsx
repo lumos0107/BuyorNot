@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 import { SUBS_KEY } from './logic/subscriptions'
 
@@ -38,7 +38,7 @@ describe('가격 비교 문장은 할인 근거가 아니다 (F23, AC41)', () =>
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
     const check = within(card('무선 헤드폰').getByRole('region', { name: '사기 전 점검' }))
     expect(check.getByText('사기 전에 한 번 더 · 내 기록에서 걸리는 점을 찾지 못했어요')).toBeInTheDocument()
@@ -54,7 +54,7 @@ describe('가격 비교 문장은 할인 근거가 아니다 (F23, AC41)', () =>
 describe('구독 사용 기록 없음은 확인 필요 (F23, AC42)', () => {
   async function openSubs() {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     return user
   }

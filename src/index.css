@@ -405,6 +405,15 @@ a.btn {
   margin: 0 auto;
 }
 
+.photo-entry-hero {
+  text-align: center;
+  font-weight: 700;
+}
+
+.photo-entry-hero .empty-illustration {
+  margin-bottom: 4px;
+}
+
 .today-actions .card-title {
   margin-bottom: 0;
 }

@@ -138,7 +138,7 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
         {pantry.status.kind === 'corrupt' ? <><p>{PANTRY_CORRUPT}</p><ResetConfirm label="집에 있는 것 기록 초기화" note={PANTRY_RESET_NOTE} onReset={pantry.resetStorage} /></> : null}
       </div> : null}
       <form className="stack" aria-label="집에 있는 것 적기" ref={formRef} onSubmit={submit} noValidate>
-        <TextField label="이름" value={name} error={error || undefined} onChange={(event) => { setName(event.target.value); setError('') }} />
+        <TextField id="pantry-name" label="이름" value={name} error={error || undefined} onChange={(event) => { setName(event.target.value); setError('') }} />
         <SelectField label="종류" value={kind} onChange={(event) => { setKind(event.target.value as PantryKind); if (event.target.value !== 'ingredient') setExpiresOn('') }}>
           <option value="essential">생필품</option><option value="ingredient">식재료</option>
         </SelectField>

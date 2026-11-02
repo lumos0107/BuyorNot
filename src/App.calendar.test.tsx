@@ -1,7 +1,7 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 import { downloadText } from './ui/download'
 
@@ -53,7 +53,7 @@ const decided = (status: 'purchased' | 'skipped', over: Record<string, unknown> 
 function setup(...items: unknown[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items }))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   return user
 }
 const card = (name: string) => within(screen.getByRole('article', { name }))

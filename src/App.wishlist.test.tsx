@@ -1,7 +1,7 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 
 // 4단계: 등록 → 고민 기간 → 결정 → 결정 기록, 새로고침 복원 (PRD F01, F02, F03, F06 / AC01~AC04)
 const T0 = new Date('2026-10-11T09:00:00+09:00')
@@ -20,7 +20,7 @@ afterEach(() => {
 
 function setup() {
   const user = userEvent.setup()
-  const utils = render(<App />)
+  const utils = renderWishlistApp()
   return { user, ...utils }
 }
 

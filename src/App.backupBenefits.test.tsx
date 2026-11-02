@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import App from './App'
+import { renderWishlistApp } from './test/renderWishlistApp'
 import { makeBackup } from './logic/backup'
 import { BENEFITS_KEY, EMPTY_BENEFITS, type BenefitsStore } from './logic/benefits'
 
@@ -13,7 +13,7 @@ afterEach(() => { vi.useRealTimers() })
 
 async function choose(raw: string) {
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(screen.getByText('기록 백업·복원'))
   await user.upload(screen.getByLabelText('백업 파일 불러오기'), new File([raw], 'backup.json', { type: 'application/json' }))
   const group = within(await screen.findByRole('group', { name: '백업 불러오기 확인' }))

@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 import { reconsiderItem, type WishItem } from './logic/wishlist'
 
@@ -64,7 +64,7 @@ describe('다시 고민하기 계산 (F18)', () => {
 describe('결정 직후 되돌리기 (F18)', () => {
   it('구매 포기를 확인하면 알림과 되돌리기가 보이고, 누르면 고민 중으로 돌아온다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     const form = within(screen.getByRole('form', { name: '물건 담기' }))
     await user.type(form.getByLabelText('상품명'), '무선 헤드폰')
     await user.type(form.getByLabelText('가격'), '129000')
@@ -88,7 +88,7 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('구매함으로 옮긴 알림은 받침에 맞는 조사로 쓴다', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [{ ...reconsiderItem(bought, T0), name: '키보드' }] }))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(card('키보드').getByRole('button', { name: '구매함' }))
     await user.click(card('키보드').getByRole('button', { name: '구매함 확인' }))
     expect(within(screen.getByRole('status', { name: '결정 알림' })).getByText('‘키보드’를 구매함으로 옮겼어요.')).toBeInTheDocument()
@@ -117,7 +117,7 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('AC78: 구매함을 확인하면 결정 알림에 옮겼어요 문장과 그 아래 7일 뒤부터 회고를 적을 수 있다는 줄이 함께 보인다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await buy(user, '키보드')
 
     const moved = notice().getByText(MOVED)
@@ -130,7 +130,7 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('AC78: 구매 포기를 확인하면 회고 줄이 없다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(card('키보드').getByRole('button', { name: '구매 포기' }))
     await user.click(card('키보드').getByRole('button', { name: '구매 포기 확인' }))
 
@@ -141,7 +141,7 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('AC78: 되돌리기를 누르면 회고 줄도 함께 사라진다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await buy(user, '키보드')
     expect(notice().getByText(RETRO_LINE)).toBeInTheDocument()
     await user.click(notice().getByRole('button', { name: '되돌리기' }))
@@ -156,7 +156,7 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('AC96: 구매 포기를 확인하면 결정 알림에 참은 구매 안내 줄이 따로 보인다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(card('키보드').getByRole('button', { name: '구매 포기' }))
     await user.click(card('키보드').getByRole('button', { name: '구매 포기 확인' }))
 
@@ -171,7 +171,7 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('AC96: 구매함을 확인하면 그 줄이 없고 회고 줄은 그대로다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await buy(user, '키보드')
 
     expect(screen.queryByText(SKIPPED_LINE)).not.toBeInTheDocument()
@@ -181,7 +181,7 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('AC96: 되돌리기를 누르면 그 줄도 사라진다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(card('키보드').getByRole('button', { name: '구매 포기' }))
     await user.click(card('키보드').getByRole('button', { name: '구매 포기 확인' }))
     expect(notice().getByText(SKIPPED_LINE)).toBeInTheDocument()
@@ -193,7 +193,7 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('AC78: 구매함 뒤 다른 물건을 구매 포기하면 알림이 바뀌고 회고 줄이 없다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await buy(user, '키보드')
     expect(notice().getByText(RETRO_LINE)).toBeInTheDocument()
     await user.click(card('마우스').getByRole('button', { name: '구매 포기' }))
@@ -207,12 +207,12 @@ describe('결정 직후 되돌리기 (F18)', () => {
   it('AC78: 구매함 뒤 새로고침하면 결정 알림과 회고 줄이 없다', async () => {
     seedTwo()
     const user = userEvent.setup()
-    const first = render(<App />)
+    const first = renderWishlistApp()
     await buy(user, '키보드')
     expect(notice().getByText(RETRO_LINE)).toBeInTheDocument()
     first.unmount()
 
-    render(<App />)
+    renderWishlistApp()
     expect(screen.queryByText(MOVED)).not.toBeInTheDocument()
     expect(screen.queryByText(RETRO_LINE)).not.toBeInTheDocument()
     expect(notice().queryByRole('button', { name: '되돌리기' })).not.toBeInTheDocument()
@@ -223,7 +223,7 @@ describe('결정 기록에서 다시 고민하기 (F18)', () => {
   async function openHistory() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [bought] }))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     return user
   }

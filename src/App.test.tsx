@@ -8,10 +8,10 @@ import App from './App'
 const tab = (name: string) => screen.getByRole('tab', { name })
 
 describe('메뉴와 탭 이동', () => {
-  it('처음 열면 고민 중인 물건 화면이 보인다', () => {
+  it('처음 열면 가격 비교 화면이 보인다', () => {
     render(<App />)
-    expect(screen.getByRole('tab', { name: '물건', selected: true })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: '고민 중인 물건' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '가격 비교', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: '가격 비교' })).toBeInTheDocument()
   })
 
   it('가격 비교 메뉴를 누르면 할인 비교 탭이 먼저 열린다', async () => {
@@ -69,31 +69,31 @@ describe('메뉴와 탭 이동', () => {
 describe('키보드 조작 (ARIA 탭 패턴)', () => {
   it('선택된 탭만 Tab 순서에 있고, 각 탭은 자기 패널을 가리킨다', () => {
     render(<App />)
-    expect(tab('물건')).toHaveAttribute('tabindex', '0')
-    expect(tab('가격 비교')).toHaveAttribute('tabindex', '-1')
+    expect(tab('가격 비교')).toHaveAttribute('tabindex', '0')
+    expect(tab('물건')).toHaveAttribute('tabindex', '-1')
     expect(tab('결정 기록')).toHaveAttribute('tabindex', '-1')
     expect(tab('고정비')).toHaveAttribute('tabindex', '-1')
-    const panel = screen.getByRole('tabpanel')
-    expect(tab('물건')).toHaveAttribute('aria-controls', panel.id)
+    const panel = screen.getByRole('tabpanel', { name: '가격 비교' })
+    expect(tab('가격 비교')).toHaveAttribute('aria-controls', panel.id)
   })
 
   it('오른쪽 방향키로 다음 메뉴가 선택되고 포커스도 옮겨간다', async () => {
     const user = userEvent.setup()
     render(<App />)
-    tab('물건').focus()
+    tab('가격 비교').focus()
     await user.keyboard('{ArrowRight}')
-    expect(screen.getByRole('tab', { name: '가격 비교', selected: true })).toHaveFocus()
-    expect(screen.getByRole('heading', { level: 2, name: '가격 비교' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '물건', selected: true })).toHaveFocus()
+    expect(screen.getByRole('heading', { level: 2, name: '고민 중인 물건' })).toBeInTheDocument()
   })
 
   it('첫 탭에서 왼쪽 방향키를 누르면 마지막 탭으로, End·Home 키로 양 끝으로 간다', async () => {
     const user = userEvent.setup()
     render(<App />)
-    tab('물건').focus()
+    tab('가격 비교').focus()
     await user.keyboard('{ArrowLeft}')
     expect(screen.getByRole('tab', { name: '모으기', selected: true })).toHaveFocus()
     await user.keyboard('{Home}')
-    expect(screen.getByRole('tab', { name: '물건', selected: true })).toHaveFocus()
+    expect(screen.getByRole('tab', { name: '가격 비교', selected: true })).toHaveFocus()
     await user.keyboard('{End}')
     expect(screen.getByRole('tab', { name: '모으기', selected: true })).toHaveFocus()
   })

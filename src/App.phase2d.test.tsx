@@ -1,7 +1,7 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 
 // 2차 10단계: 결정 기록 요약(구매 포기 금액·시급 환산)과 구매 후 회고 (F12, AC24, AC25)
 const T0 = new Date('2026-10-11T09:00:00+09:00')
@@ -19,7 +19,7 @@ afterEach(() => {
 
 function setup() {
   const user = userEvent.setup()
-  const utils = render(<App />)
+  const utils = renderWishlistApp()
   return { user, ...utils }
 }
 

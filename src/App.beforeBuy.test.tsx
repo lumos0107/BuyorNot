@@ -9,23 +9,26 @@ const now = new Date(2026, 10, 1, 9)
 const item: WishItem = { id: 'w1', name: '청소기', priceKrw: 300000, reason: '필요', url: null, createdAt: now.toISOString(), updatedAt: now.toISOString(), reviewAt: '2026-11-04T00:00:00.000Z', status: 'considering', decidedAt: null }
 beforeEach(() => { localStorage.clear(); localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] })); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(now) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByText('사기 전에')); await user.click(screen.getByText('자세히 확인·적기')); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByText('사기 전에')); await user.click(screen.getByText('자세히 확인·적기')); return user }
 
 it('AC186·AC187: 요약을 먼저 보고 자세한 입력은 접었다 열어도 작성 중 값이 남는다', async () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [{ ...item, priceKrw: 50000, installment: { months: 2, monthlyKrw: 30000 }, usesPerYear: 2, targetPriceKrw: 40000 }] }))
   const user = userEvent.setup()
   render(<App />)
+  await user.click(screen.getByRole('tab', { name: '물건' }))
   await user.click(screen.getByText('사기 전에'))
   expect(screen.getByText('한눈에 확인')).toBeVisible()
   expect(screen.getByText('할부로 내면 총 60,000원 · 일시불보다 10,000원 더')).toBeVisible()
   expect(screen.getByText('1년에 2번')).toBeVisible()
   expect(screen.getByText('목표가 40,000원')).toBeVisible()
-  expect(screen.getByRole('form', { name: '청소기 대용량 사용' }).closest('details')).not.toHaveAttribute('open')
+  expect(screen.queryByRole('form', { name: '청소기 대용량 사용' })).not.toBeInTheDocument()
   await user.click(screen.getByText('자세히 확인·적기'))
+  await user.click(screen.getByRole('button', { name: '대용량' }))
   await user.type(screen.getByLabelText('총량'), '10')
   await user.click(screen.getByText('자세히 확인·적기'))
   expect(screen.getByText('한눈에 확인')).toBeVisible()
   await user.click(screen.getByText('자세히 확인·적기'))
+  await user.click(screen.getByRole('button', { name: '대용량' }))
   expect(screen.getByLabelText('총량')).toHaveValue('10')
 })
 
@@ -50,6 +53,7 @@ it('AC134: 월 납입금이 빠지면 오류가 연결되고 저장하지 않는
 
 it('AC135·AC136: 1년에 두 번 쓰는 물건은 사용당 금액과 중고 홈페이지 링크가 보인다', async () => {
   const user = await open()
+  await user.click(screen.getByRole('button', { name: '사용 횟수' }))
   const form = within(screen.getByRole('form', { name: '청소기 사용 횟수' }))
   await user.type(form.getByLabelText('1년에 몇 번 쓸까요? (선택)'), '2')
   await user.click(form.getByRole('button', { name: '횟수 적기' }))
@@ -63,6 +67,7 @@ it('AC135·AC136: 1년에 두 번 쓰는 물건은 사용당 금액과 중고 �
 
 it('AC139: 총량 10·월 사용량 1·기한 6개월은 다 쓰는 데 10개월이라고 보인다', async () => {
   const user = await open()
+  await user.click(screen.getByRole('button', { name: '대용량' }))
   const form = within(screen.getByRole('form', { name: '청소기 대용량 사용' }))
   await user.type(form.getByLabelText('총량'), '10')
   await user.type(form.getByLabelText('한 달 사용량'), '1')
@@ -74,6 +79,7 @@ it('AC139: 총량 10·월 사용량 1·기한 6개월은 다 쓰는 데 10개월
 
 it('AC141: 목표가와 직접 본 값을 적으면 마지막·가장 낮은 값이 보인다', async () => {
   const user = await open()
+  await user.click(screen.getByRole('button', { name: '목표가/본 값' }))
   const target = within(screen.getByRole('form', { name: '청소기 목표가' }))
   await user.type(target.getByLabelText('목표가 (선택)'), '30000')
   await user.click(target.getByRole('button', { name: '목표가 적기' }))
@@ -82,4 +88,23 @@ it('AC141: 목표가와 직접 본 값을 적으면 마지막·가장 낮은 값
   await user.click(note.getByRole('button', { name: '본 값 적기' }))
   expect(screen.getByText(/목표가 30,000원 · 마지막으로 본 값 29,900원/)).toBeInTheDocument()
   expect(screen.getByText('적어 둔 값 가운데 목표가 이하가 있어요.')).toBeInTheDocument()
+})
+
+it('AC201: 둘째 고민 카드에서 사기 전 확인을 누르면 해당 요약으로 이동한다', async () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item, { ...item, id: 'w2', name: '키보드' }] }))
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(screen.getByRole('tab', { name: '물건' }))
+  await user.click(within(screen.getByRole('article', { name: '키보드' })).getByRole('button', { name: '사기 전 확인' }))
+  expect(document.activeElement).toBe(within(screen.getByRole('region', { name: '키보드 사기 전 확인' })).getByLabelText('한눈에 확인'))
+})
+
+it('AC202: 상세 입력은 한 종류만 보이고 다른 종류를 다녀와도 작성 중 값이 남는다', async () => {
+  const user = await open()
+  await user.type(screen.getByLabelText('할부 개월'), '12')
+  await user.click(screen.getByRole('button', { name: '대용량' }))
+  expect(screen.queryByRole('form', { name: '청소기 할부' })).not.toBeInTheDocument()
+  expect(screen.getByRole('form', { name: '청소기 대용량 사용' })).toBeVisible()
+  await user.click(screen.getByRole('button', { name: '할부' }))
+  expect(screen.getByLabelText('할부 개월')).toHaveValue('12')
 })

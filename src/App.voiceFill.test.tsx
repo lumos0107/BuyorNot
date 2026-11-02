@@ -1,6 +1,6 @@
+import { renderWishlistApp } from './test/renderWishlistApp'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import type { VoiceFillResponse } from './ai/types'
 import { aiReply, FakeMediaRecorder, mockAiServer, mockMicrophone, nextTask, type AiReply, type MockAiServer } from './test/aiMocks'
 
@@ -83,7 +83,7 @@ function setup(options: SetupOptions = {}): Setup {
   const server = mockAiServer(BASE)
   const mic = mockMicrophone({ permission, trackCount })
   if (recorder) vi.stubGlobal('MediaRecorder', FakeMediaRecorder)
-  const view = render(<App />)
+  const view = renderWishlistApp()
   fireEvent.click(within(screen.getByRole('form', { name: '물건 담기' })).getByText('물건 담기'))
   current = { server, mic, view }
   return current

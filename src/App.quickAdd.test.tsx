@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 const now = new Date(2026, 10, 2, 9)
@@ -12,7 +12,7 @@ const items = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items 
 
 it('AC167: 처음에는 상품명·가격과 3일만 보고 이유 없이 담는다', async () => {
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(form().getByText('물건 담기'))
   expect(form().getByText('3일 뒤 다시 볼게요. 이유는 담은 뒤 적어도 돼요.')).toBeVisible()
   expect(form().getByLabelText('사고 싶은 이유')).not.toBeVisible()
@@ -29,7 +29,7 @@ it('AC167: 처음에는 상품명·가격과 3일만 보고 이유 없이 담는
 
 it('AC170: 예시로 채우면 더 적기가 열려 이유와 체크리스트가 보인다', async () => {
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
   expect(form().getByText('더 적기 (선택)').closest('details')).toHaveAttribute('open')
   expect(form().getByLabelText('사고 싶은 이유')).toBeVisible()
@@ -37,7 +37,7 @@ it('AC170: 예시로 채우면 더 적기가 열려 이유와 체크리스트가
 
 it('AC169: 더 적기를 열면 이유·기간·링크를 기존처럼 저장한다', async () => {
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(form().getByText('물건 담기'))
   await user.click(form().getByText('더 적기 (선택)'))
   await user.type(form().getByLabelText('상품명'), '전기 포트')
@@ -53,7 +53,7 @@ it('AC169: 더 적기를 열면 이유·기간·링크를 기존처럼 저장한
 
 it('AC171: 다른 탭이 먼저 저장했으면 빠른 담기의 두 값이 남는다', async () => {
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(form().getByText('물건 담기'))
   await user.type(form().getByLabelText('상품명'), '전기 포트')
   await user.type(form().getByLabelText('가격'), '59000')

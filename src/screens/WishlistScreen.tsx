@@ -87,6 +87,7 @@ type Props = {
   subscriptions?: readonly Subscription[]
   expiries?: readonly Expiry[]
   onJump?: (screen: 'subscriptions' | 'history' | 'savings', id: string) => void
+  onBeforeBuy?: (id: string) => void
 }
 
 const NOT_APPLIED = () => false
@@ -116,6 +117,7 @@ export function WishlistScreen({
   subscriptions = [],
   expiries = [],
   onJump,
+  onBeforeBuy,
 }: Props) {
   const considering = sortConsidering(items, now)
   const exampleCount = items.filter((item) => isExample(item.name)).length
@@ -247,6 +249,7 @@ export function WishlistScreen({
               onCheckDesire={checkDesire}
               onAnswer={answer}
               onSetFit={setFit}
+              onBeforeBuy={onBeforeBuy}
             />
           ))}
         </section>
@@ -748,13 +751,14 @@ type CardProps = {
   onCheckDesire: (id: string, level: DesireLevel) => boolean
   onAnswer: (id: string, key: QuestionKey, value: Answers[QuestionKey] | undefined) => boolean
   onSetFit: (id: string, fit: Fit | null) => boolean
+  onBeforeBuy?: (id: string) => void
 }
 
 type CardMode = 'view' | 'edit' | 'confirm-delete' | 'extend' | 'decide-purchased' | 'decide-skipped'
 
 type Trigger = 'purchased' | 'skipped' | 'extend' | 'edit' | 'delete'
 
-function WishCard({ item, items, now, hourlyWage, justAdded, onEdit, onDecide, onExtend, onRemove, onCheckDesire, onAnswer, onSetFit }: CardProps) {
+function WishCard({ item, items, now, hourlyWage, justAdded, onEdit, onDecide, onExtend, onRemove, onCheckDesire, onAnswer, onSetFit, onBeforeBuy }: CardProps) {
   const [mode, setMode] = useState<CardMode>('view')
   const withAi = aiServerUrl() !== null
   // 답하거나 다시 답하기가 반영되면 오늘의 고민에서 지금 보이는 질문(없으면 제목)으로 포커스를 옮긴다 (F22)
@@ -837,6 +841,7 @@ function WishCard({ item, items, now, hourlyWage, justAdded, onEdit, onDecide, o
         aiSlot={withAi ? (slot) => <SizePhotoFill active={slot.active} current={slot.current} onApply={slot.apply} /> : undefined}
       />
       <CompareLinks name={item.name} />
+      {onBeforeBuy ? <button type="button" className="btn" onClick={() => onBeforeBuy(item.id)}>사기 전 확인</button> : null}
 
       {mode === 'confirm-delete' ? (
         <DeleteConfirm name={item.name} onConfirm={() => onRemove(item.id)} onCancel={() => setMode('view')} />

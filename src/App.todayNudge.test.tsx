@@ -1,7 +1,7 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // 2026-10-13 G 오늘의 고민으로 이동 (PRD F30, AC49): 담기 폼 위 한 줄로 오늘 갖고 싶은 정도를 안 적은 물건 수를 알리고,
@@ -28,7 +28,7 @@ const rack = { ...base, id: 'r1', name: '접이식 건조대', createdAt: at(-2)
 function setup(items: unknown[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items }))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   return user
 }
 const card = (name: string) => within(screen.getByRole('article', { name }))

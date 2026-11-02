@@ -1,7 +1,7 @@
-import { act, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, fireEvent, renderHook, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 import { useWishlist } from './store/useWishlist'
 
@@ -42,7 +42,7 @@ const store = (...items: unknown[]) => JSON.stringify({ schemaVersion: 1, items 
 function setup(...items: unknown[]) {
   if (items.length > 0) localStorage.setItem(STORAGE_KEY, store(...items))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   return user
 }
 const saved = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items as Record<string, unknown>[]

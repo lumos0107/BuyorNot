@@ -1,8 +1,8 @@
+import { renderWishlistApp } from './test/renderWishlistApp'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import type { SizeCandidate } from './ai/types'
 import type { Fit } from './logic/fit'
 import { STORAGE_KEY } from './logic/storage'
@@ -192,7 +192,7 @@ async function togglePanel() {
   await settle()
 }
 async function openApp() {
-  const view = render(<App />)
+  const view = renderWishlistApp()
   await togglePanel()
   return view
 }

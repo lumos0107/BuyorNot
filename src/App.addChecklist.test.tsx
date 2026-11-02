@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // PRD F28 담기 폼의 접힌 체크리스트와 예시 채우기 (AC47): 담을 때도 답할 수 있게 접어 두고(선택),
@@ -26,7 +26,7 @@ const checklist = () => form().getByText(/^체크리스트 \(선택\)/).closest(
 describe('담기 폼의 체크리스트 (F28, AC47)', () => {
   it('체크리스트는 접혀 있고, 일부만 답해 담으면 답이 카드 체크리스트로 가고 폼은 비워져 다시 접힌다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     expect(checklist()).not.toHaveAttribute('open')
     await user.click(form().getByText(/^체크리스트 \(선택\)/))
     await user.type(form().getByLabelText('상품명'), '전기 포트')
@@ -47,7 +47,7 @@ describe('담기 폼의 체크리스트 (F28, AC47)', () => {
 
   it('문제 설명은 200자까지만 적힌다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(form().getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' }))
     await user.paste('가'.repeat(201))
     expect(form().getByRole('textbox', { name: '없으면 어떤 문제가 있나요?' })).toHaveValue('가'.repeat(200))
@@ -55,7 +55,7 @@ describe('담기 폼의 체크리스트 (F28, AC47)', () => {
 
   it('예시 물건 넣기는 예시 카드와 함께 담기 폼을 체크리스트까지 채우고, 담으면 카드 체크리스트가 6/6이다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
 
     expect(form().getByText('예시를 입력했어요. ‘담아 두기’를 누르면 체크리스트 답도 물건 카드에 표시돼요.')).toBeInTheDocument()

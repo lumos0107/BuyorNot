@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 import type { WishItem } from './logic/wishlist'
 
@@ -13,7 +13,7 @@ afterEach(() => vi.useRealTimers())
 it('AC168: 이유 없는 카드에는 미작성 안내가 보이고 수정에서 이유를 채운다', async () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   const card = () => within(screen.getByRole('article', { name: '전기 포트' }))
   expect(card().getByText('사고 싶은 이유를 아직 적지 않았어요.')).toBeInTheDocument()
   await user.click(card().getByRole('button', { name: '수정' }))
@@ -26,7 +26,7 @@ it('AC168: 이유 없는 카드에는 미작성 안내가 보이고 수정에서
 it('AC167: 이유 없이 구매함으로 옮겨도 결정 기록에 빈 문단이 없다', async () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [{ ...item, status: 'purchased', decidedAt: '2026-11-02T00:00:00.000Z' }] }))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(screen.getByRole('tab', { name: '결정 기록' }))
   expect(screen.getByText('사고 싶은 이유를 아직 적지 않았어요.')).toBeInTheDocument()
 })

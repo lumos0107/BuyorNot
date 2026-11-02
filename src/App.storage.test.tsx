@@ -1,7 +1,7 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // 4단계: 저장 오류 안내(AC13), 저장 제한 안내(4-21), 가격 비교 → 등록 화면 이동(4-22), 시연용 예시 데이터
@@ -25,7 +25,7 @@ describe('저장 오류 안내 (AC13)', () => {
   it('손상된 데이터는 덮어쓰지 않고 알리며, 확인 후 초기화하면 빈 목록으로 시작한다', async () => {
     localStorage.setItem(STORAGE_KEY, '{not json')
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     const banner = within(screen.getByRole('status', { name: '저장 상태' }))
     expect(banner.getByText(/저장된 기록을 읽을 수 없어요/)).toBeInTheDocument()
 
@@ -47,7 +47,7 @@ describe('저장 오류 안내 (AC13)', () => {
       throw new DOMException('full', 'QuotaExceededError')
     })
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user)
     const banner = within(screen.getByRole('status', { name: '저장 상태' }))
     expect(banner.getByText(/저장하지 못했어요/)).toBeInTheDocument()
@@ -63,20 +63,20 @@ describe('저장 오류 안내 (AC13)', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('blocked', 'SecurityError')
     })
-    render(<App />)
+    renderWishlistApp()
     expect(within(screen.getByRole('status', { name: '저장 상태' })).getByText(/이 브라우저에서는 기록을 저장할 수 없어요/)).toBeInTheDocument()
   })
 })
 
 describe('화면 연결과 안내', () => {
   it('기록이 이 브라우저에만 저장된다고 안내한다 (4-21)', () => {
-    render(<App />)
+    renderWishlistApp()
     expect(screen.getByText(/기록은 이 브라우저에만 저장돼요/)).toBeInTheDocument()
   })
 
   it('가격 비교에서 고민 중인 물건으로 바로 갈 수 있다 (4-22)', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '가격 비교' }))
     await user.click(screen.getByRole('button', { name: '고민 중인 물건에 담으러 가기' }))
     expect(screen.getByRole('tab', { name: '물건', selected: true })).toBeInTheDocument()
@@ -85,7 +85,7 @@ describe('화면 연결과 안내', () => {
 
   it('목록이 비어 있으면 예시 물건을 넣어 고민 중인 물건을 바로 볼 수 있다 (F27: 예시 둘은 같은 단계)', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     const panel = within(screen.getByRole('tabpanel'))
     const articles = panel.getAllByRole('article')
@@ -101,7 +101,7 @@ describe('화면 연결과 안내', () => {
 // GPT 4단계 검토 반영: 다른 탭의 변경 반영, 초기화 취소
 describe('여러 탭과 초기화 취소', () => {
   it('다른 탭에서 저장한 기록을 이 탭에도 반영한다', async () => {
-    render(<App />)
+    renderWishlistApp()
     expect(screen.getByText('아직 담아 둔 물건이 없어요.')).toBeInTheDocument()
     const item = {
       id: 'other-tab',
@@ -125,7 +125,7 @@ describe('여러 탭과 초기화 취소', () => {
   it('초기화를 취소하면 손상 안내와 원본이 그대로 남는다', async () => {
     localStorage.setItem(STORAGE_KEY, '{not json')
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     const banner = within(screen.getByRole('status', { name: '저장 상태' }))
     await user.click(banner.getByRole('button', { name: '기록 초기화' }))
     await user.click(banner.getByRole('button', { name: '취소' }))

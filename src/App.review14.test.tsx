@@ -1,7 +1,7 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { makeBackup } from './logic/backup'
 import { STORAGE_KEY } from './logic/storage'
 import { SUBS_KEY } from './logic/subscriptions'
@@ -43,7 +43,7 @@ describe('빈 사용 기록 (높음)', () => {
   it('저장된 구독의 사용 기록이 빈 배열이어도 화면이 깨지지 않고 기록 없음으로 본다', async () => {
     localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub({ useDates: [] })] }))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     expect(card('티빙').getByText('사용 기록 없음')).toBeInTheDocument()
     // 사용 기록이 없으면 해지 후보가 아니라 확인 필요다 (F23)
@@ -54,7 +54,7 @@ describe('빈 사용 기록 (높음)', () => {
 describe('되돌리기 알림의 유효성 (중간)', () => {
   it('결정 기록에서 다시 고민하기로 되돌리면 고민 목록의 되돌리기 알림은 사라진다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
@@ -68,7 +68,7 @@ describe('되돌리기 알림의 유효성 (중간)', () => {
 
   it('예시만 지우기로 결정한 예시가 사라지면 되돌리기 알림도 사라진다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
@@ -79,7 +79,7 @@ describe('되돌리기 알림의 유효성 (중간)', () => {
 
   it('AC32: 되돌리면 결정 기록의 요약과 필터 개수에서도 빠진다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
@@ -93,7 +93,7 @@ describe('되돌리기 알림의 유효성 (중간)', () => {
 describe('0원 결과는 담을 수 없음 (낮음)', () => {
   it('묶음 비교에서 가격이 0원인 상품은 담기 버튼 대신 안내를 보여준다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '가격 비교' }))
     await user.click(screen.getByRole('tab', { name: '묶음상품 비교' }))
     const panel = within(screen.getByRole('tabpanel', { name: '묶음상품 비교' }))
@@ -117,7 +117,7 @@ describe('0원 결과는 담을 수 없음 (낮음)', () => {
 describe('백업 불러오기 보완 (중간·낮음)', () => {
   it('확인 문구는 파일 내용과 질문을 나눠 적는다 (시급 없음)', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await openBackup(user)
     await user.upload(screen.getByLabelText('백업 파일 불러오기'), new File([backupOf([sub({})])], 'b.json'))
     const confirm = within(await screen.findByRole('group', { name: '백업 불러오기 확인' }))
@@ -126,7 +126,7 @@ describe('백업 불러오기 보완 (중간·낮음)', () => {
 
   it('새 파일을 고르면 이전 확인을 바로 닫는다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await openBackup(user)
     const input = screen.getByLabelText('백업 파일 불러오기')
     await user.upload(input, new File([backupOf([sub({})])], 'b.json'))
@@ -138,7 +138,7 @@ describe('백업 불러오기 보완 (중간·낮음)', () => {
 
   it('일부를 저장하지 못하면 그렇다고 알린다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await openBackup(user)
     await user.upload(screen.getByLabelText('백업 파일 불러오기'), new File([backupOf([sub({})])], 'b.json'))
     const confirm = within(await screen.findByRole('group', { name: '백업 불러오기 확인' }))
@@ -156,7 +156,7 @@ describe('백업 불러오기 보완 (중간·낮음)', () => {
   it('손상 상태에서도 확인하면 백업으로 바꾸고 저장 안내가 사라진다', async () => {
     localStorage.setItem(STORAGE_KEY, '{bad')
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     expect(screen.getByRole('status', { name: '저장 상태' })).toBeInTheDocument()
     await openBackup(user)
     await user.upload(screen.getByLabelText('백업 파일 불러오기'), new File([backupOf([])], 'b.json'))

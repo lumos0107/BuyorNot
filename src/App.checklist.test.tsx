@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // 담을 때 질문 6개 (F09 확장) → 재검토 카드와 사기 전 점검(F15)에 쓰인다
@@ -39,7 +39,7 @@ describe('담을 때 질문 6개', () => {
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     const note = () => within(card('캠핑 의자').getByRole('region', { name: '오늘의 고민' }))
     await user.click(note().getByRole('button', { name: '네' }))
     await user.click(note().getByRole('button', { name: '없어요' }))
@@ -75,7 +75,7 @@ describe('담을 때 질문 6개', () => {
       answers: { saleDriven: 'no', spaceTime: 'yes', alternative: 'no' },
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
-    render(<App />)
+    renderWishlistApp()
     // F27: 카드 체크리스트에 질문과 답이 함께 보인다
     const rows = within(card('캠핑 의자').getByRole('list', { name: '체크리스트' })).getAllByRole('listitem')
     expect(rows[3]).toHaveTextContent('할인·한정 때문인가요?아니요다시 답하기')

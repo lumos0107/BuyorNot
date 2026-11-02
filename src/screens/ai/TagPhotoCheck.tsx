@@ -8,6 +8,7 @@ import type { PhotoDraft } from '../../logic/draft'
 import { MAX_WON, parseInteger } from '../../logic/number'
 import { compareLines, resultTopLine, rowLine, specCheck, unitPriceNotice, UNKNOWN_COUNT_NOTICE } from '../../logic/tagCompare'
 import { Button } from '../../ui/Button'
+import { EmptyIllustration } from '../../ui/EmptyIllustration'
 import { TextField } from '../../ui/Field'
 import { PhotoPicker } from './PhotoPicker'
 import { PhotoPreview } from './PhotoPreview'
@@ -310,7 +311,12 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
     <div className="stack">
       <h3 className="section-title">가격표 사진</h3>
       <div className="card stack">
+        {phase === 'idle' && products.length === 0 ? <div className="photo-entry-hero">
+          <EmptyIllustration kind="photo" />
+          <p>가격표를 찍고 상품명·매장 가격을 확인해 보세요.</p>
+        </div> : null}
         <PhotoPicker label="가격표 사진 찍기" inputRef={pickerInput} onPick={(file) => void pick(file)} />
+        {phase === 'idle' && products.length === 0 ? <p className="note">다나와 자동 조회는 꺼져 있을 수 있어요. 그때는 검색 링크를 보여 줘요.</p> : null}
         <p className="note">{PHOTO_NOTICE}</p>
         {photo ? <PhotoPreview file={photo} /> : null}
         {phase === 'reading' ? <Progress text="읽는 중" onCancel={cancel} /> : null}

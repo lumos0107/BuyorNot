@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
-import App from './App'
 
 // 가격 비교 예시 카드와 처음부터 채워진 예시, 첫 화면의 예시 물건 넣기 (PRD F05·F13 보강, 2026-10-11 제작자 요청)
 beforeEach(() => {
@@ -10,7 +10,7 @@ beforeEach(() => {
 
 async function openCompare() {
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(screen.getByRole('tab', { name: '가격 비교' }))
   return user
 }
@@ -90,7 +90,7 @@ describe('이럴 때 써요 안내는 처음부터 채워진 칸과 맞다 (AC74
 
 describe('첫 화면의 예시 물건 넣기', () => {
   it('비어 있을 때 예시 물건 넣기가 담기 폼보다 위에 있다', () => {
-    render(<App />)
+    renderWishlistApp()
     const button = screen.getByRole('button', { name: '예시 물건 넣기' })
     expect(button.compareDocumentPosition(screen.getByRole('form', { name: '물건 담기' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })

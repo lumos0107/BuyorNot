@@ -41,8 +41,8 @@ const KINDS: readonly TabItem<CompareKind>[] = [
   { id: 'bundle', label: '묶음상품 비교' },
   { id: 'delivery', label: '배달' },
 ]
-// 가격표 사진(F31)은 AI 서버 주소가 있는 빌드에서만 세 번째 탭으로 둔다 (PRD 10장 앱 공통)
-const KINDS_WITH_AI: readonly TabItem<CompareKind>[] = [...KINDS, { id: 'photo', label: '가격표 사진' }]
+// 가격표 사진은 AI 서버가 연결된 빌드에서 비교 화면의 첫 탭이다.
+const KINDS_WITH_AI: readonly TabItem<CompareKind>[] = [{ id: 'photo', label: '가격표 사진' }, ...KINDS]
 
 export function CompareScreen({
   onGoToWishlist,
@@ -62,7 +62,7 @@ export function CompareScreen({
   pantryDraft?: BundleRawInput | null
   subscriptions?: readonly Subscription[]
 }) {
-  const [kind, setKind] = useState<CompareKind>(pantryDraft ? 'bundle' : 'discount')
+  const [kind, setKind] = useState<CompareKind>(() => pantryDraft ? 'bundle' : aiServerUrl() ? 'photo' : 'discount')
   const withAi = aiServerUrl() !== null
   return (
     <div className="stack">

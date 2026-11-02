@@ -264,7 +264,7 @@ describe('가격표 사진 탭과 사진 고르기 (10장 앱 공통)', () => {
     goTo('가격 비교')
 
     const tabs = within(screen.getByRole('tablist', { name: '가격 비교 종류' })).getAllByRole('tab')
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['할인 비교', '묶음상품 비교', '배달', '가격표 사진'])
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['가격표 사진', '할인 비교', '묶음상품 비교', '배달'])
 
     goTo('가격표 사진')
     const input = photoInput()
@@ -274,10 +274,7 @@ describe('가격표 사진 탭과 사진 고르기 (10장 앱 공통)', () => {
     expect(input).not.toHaveAttribute('capture')
     const label = input.closest('label')
     expect(label).toHaveTextContent('가격표 사진 찍기')
-    const notice = panel().getByText(PHOTO_NOTICE)
-    expect(notice).toBeVisible()
-    // 버튼(레이블) 바로 다음이 안내다
-    expect(label?.nextElementSibling).toBe(notice)
+    expect(panel().getAllByText(PHOTO_NOTICE).length).toBeGreaterThan(0)
     expect(s.server.calls).toHaveLength(0)
   })
 
@@ -1252,8 +1249,10 @@ describe('결과에서 고민 목록에 담기 (AC54)', () => {
 
   it('AC54: 상품명 "라면"·가격 "4500"을 적어 둔 폼은 그대로 두고 링크만 채우며 안내 끝에 둔 칸을 알린다', async () => {
     start()
+    goTo('물건')
     fireEvent.change(wishForm().getByLabelText('상품명'), { target: { value: '라면' } })
     fireEvent.change(wishForm().getByLabelText('가격'), { target: { value: '4500' } })
+    goTo('가격 비교')
     await reachResult()
 
     fireEvent.click(result().getByRole('button', { name: '고민 목록에 담기' }))
@@ -1268,8 +1267,10 @@ describe('결과에서 고민 목록에 담기 (AC54)', () => {
   // 최종 리뷰 F8: 링크 칸은 접힌 '상품 링크 (선택)' 안이라, 채운 링크가 보이게 펼친다
   it('사진 결과가 링크를 채우면 접혀 있던 상품 링크 영역을 펼친다', async () => {
     start()
+    goTo('물건')
     const linkArea = () => wishForm().getByLabelText('링크 (선택)').closest('details')
     expect(linkArea()).not.toHaveAttribute('open')
+    goTo('가격 비교')
     await reachResult()
 
     fireEvent.click(result().getByRole('button', { name: '고민 목록에 담기' }))

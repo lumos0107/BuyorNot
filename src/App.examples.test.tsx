@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 import { SUBS_KEY } from './logic/subscriptions'
 
@@ -21,7 +21,7 @@ const names = (key: string) => JSON.parse(localStorage.getItem(key) ?? '{"items"
 describe('예시만 지우기', () => {
   it('예시 물건만 지우고(결정 기록 포함) 직접 담은 물건은 남긴다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     expect(screen.queryByRole('button', { name: '예시만 지우기' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     const form = within(screen.getByRole('form', { name: '물건 담기' }))
@@ -47,7 +47,7 @@ describe('예시만 지우기', () => {
 
   it('취소하면 아무것도 지우지 않고 버튼으로 돌아간다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     await user.click(screen.getByRole('button', { name: '예시만 지우기' }))
     await user.click(within(screen.getByRole('group', { name: '예시 지우기 확인' })).getByRole('button', { name: '취소' }))
@@ -57,7 +57,7 @@ describe('예시만 지우기', () => {
 
   it('구독에서도 예시 구독만 지운다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('tab', { name: '고정비' }))
     await user.click(screen.getByRole('button', { name: '예시 구독 넣기' }))
     const form = within(screen.getByRole('form', { name: '고정비 담기' }))

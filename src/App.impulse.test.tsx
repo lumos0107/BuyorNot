@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { SETTINGS_KEY } from './logic/settings'
 import { STORAGE_KEY } from './logic/storage'
 
@@ -67,7 +67,7 @@ function setup(items: unknown[], wage?: number) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items }))
   if (wage) localStorage.setItem(SETTINGS_KEY, JSON.stringify({ schemaVersion: 1, hourlyWage: wage }))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   return user
 }
 const card = (name: string) => within(screen.getByRole('article', { name }))
@@ -191,7 +191,7 @@ describe('사기 전에 한 번 더 (F15, AC29)', () => {
 describe('시연용 예시 데이터 (F15)', () => {
   it('예시 헤드폰은 답이 있고 아직 고민 중이라, 구매함을 누르면 걸리는 점 3개를 보여준다 (F27: 예시 둘은 고민 중)', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     expect(card('(예시) 무선 헤드폰').getByText('체크리스트 6/6')).toBeInTheDocument()
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매함' }))

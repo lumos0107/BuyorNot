@@ -1,7 +1,7 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 
 // 2차 7단계: 더 고민하기(F07), 결정 메모(F08), 결정 기록 필터(F12) — AC18, AC19, AC23
 const T0 = new Date('2026-10-11T09:00:00+09:00')
@@ -19,7 +19,7 @@ afterEach(() => {
 
 function setup() {
   const user = userEvent.setup()
-  const utils = render(<App />)
+  const utils = renderWishlistApp()
   return { user, ...utils }
 }
 

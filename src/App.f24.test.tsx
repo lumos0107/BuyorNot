@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // PRD F24 담기 폼 줄이기 (AC43): 질문은 카드에서 묻고, 링크는 접고, 담은 직후 쓰임을 알려 주고, 담기 폼은 맨 위
@@ -30,7 +30,7 @@ async function fillBasics(user: ReturnType<typeof userEvent.setup>, name = '전�
 describe('담기 폼 줄이기 (F24, AC43)', () => {
   it('담기 폼의 질문 6개(F28 체크리스트)와 링크는 접혀 있다. 답하지 않고 담은 물건은 카드에서 질문 6개를 묻는다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     expect(form().queryByText('한 번만 생각해 볼까요? (선택)')).not.toBeInTheDocument()
     expect(form().getByRole('group', { name: '지금 쓰는 게 있나요?' }).closest('details')).not.toHaveAttribute('open')
     const linkToggle = form().getByText('상품 링크 (선택)')
@@ -43,7 +43,7 @@ describe('담기 폼 줄이기 (F24, AC43)', () => {
 
   it('링크가 잘못돼 담지 못하면 접힌 링크 영역을 펼치고 그 입력으로 포커스를 옮긴다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await fillBasics(user)
     const linkToggle = form().getByText('상품 링크 (선택)')
     await user.click(linkToggle)
@@ -58,7 +58,7 @@ describe('담기 폼 줄이기 (F24, AC43)', () => {
 
   it('담은 직후 적은 값이 언제 어디에 쓰이는지 알려 주고, 다시 입력하면 안내를 지운다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await fillBasics(user)
     await user.click(within(form().getByRole('group', { name: '지금 얼마나 갖고 싶나요? (선택)' })).getByRole('radio', { name: '4 많이' }))
     await user.click(form().getByRole('button', { name: '담아 두기' }))
@@ -72,7 +72,7 @@ describe('담기 폼 줄이기 (F24, AC43)', () => {
 
   it('고른 고민 기간과 받침에 맞춰 안내한다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await fillBasics(user, '무선 헤드폰')
     await user.click(form().getByRole('radio', { name: '7일' }))
     await user.click(form().getByRole('button', { name: '담아 두기' }))
@@ -82,7 +82,7 @@ describe('담기 폼 줄이기 (F24, AC43)', () => {
   it('고민 중인 물건이 있어도 담기 폼이 목록보다 위에 있고, 새 물건 담기는 없다', () => {
     const item = { id: 'h1', name: '무선 헤드폰', priceKrw: 129000, reason: '이유', url: null, createdAt: at(-1), updatedAt: at(-1), reviewAt: at(2), status: 'considering', decidedAt: null }
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] }))
-    render(<App />)
+    renderWishlistApp()
     const addForm = screen.getByRole('form', { name: '물건 담기' })
     expect(addForm.compareDocumentPosition(screen.getByRole('region', { name: '고민 중인 물건 목록' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.queryByRole('button', { name: '새 물건 담기' })).not.toBeInTheDocument()

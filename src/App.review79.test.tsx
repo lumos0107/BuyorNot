@@ -1,7 +1,7 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // GPT 7~9단계 검토 반영 (화면·접근성)
@@ -30,7 +30,7 @@ describe('화면 보완', () => {
 
   it('링크 영역을 접은 채 오류가 나면 다시 펼치고 그 입력으로 포커스를 옮긴다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(form().getByText('물건 담기'))
     await user.type(form().getByLabelText('상품명'), '무선 헤드폰')
     await user.type(form().getByLabelText('가격'), '129000')
@@ -47,7 +47,7 @@ describe('화면 보완', () => {
 
   it('결정하면 카드가 사라지므로 포커스를 화면 제목으로 옮긴다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
@@ -56,7 +56,7 @@ describe('화면 보완', () => {
 
   it('수정을 열면 상품명에 포커스가 간다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '수정' }))
     expect(within(screen.getByRole('form', { name: '물건 수정' })).getByLabelText('상품명')).toHaveFocus()
@@ -64,7 +64,7 @@ describe('화면 보완', () => {
 
   it('결정 기록에서 삭제를 취소하면 삭제 버튼으로, 지우면 화면 제목으로 포커스가 간다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함 확인' }))
@@ -79,7 +79,7 @@ describe('화면 보완', () => {
 
   it('비교 링크 영역에 추천이 아니라는 안내와 새 창 안내가 보인다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user)
     expect(card('무선 헤드폰').getByText(/추천 아님/)).toBeVisible()
     expect(card('무선 헤드폰').getByText(/새 창/)).toBeVisible()
@@ -87,7 +87,7 @@ describe('화면 보완', () => {
 
   it('더 고민하기 안내는 남은 기간에 더한다고 말한다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '더 고민하기' }))
     expect(card('무선 헤드폰').getByText('남은 기간에 더해요. 기간이 지났다면 지금부터 세어요.')).toBeInTheDocument()
@@ -95,7 +95,7 @@ describe('화면 보완', () => {
 
   it('AC19: 결정 메모 200자는 저장되어 결정 기록에 보인다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     // 200자 경계를 확인한다. 글자마다 키 이벤트를 합성하면 전체 실행 부하에서 시간 초과가 난다.
@@ -106,7 +106,7 @@ describe('화면 보완', () => {
   })
 
   it('안내문에 단정하는 문장이 없다', () => {
-    render(<App />)
+    renderWishlistApp()
     expect(screen.queryByText(/늦지 않아요/)).not.toBeInTheDocument()
   })
 })
@@ -130,7 +130,7 @@ describe('열린 화면의 종료 타이머 재예약', () => {
       decidedAt: null,
     })
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [make('a', '첫째', 10), make('b', '둘째', 20)] }))
-    render(<App />)
+    renderWishlistApp()
     const status = (name: string) => within(screen.getByRole('article', { name })).queryByText('고민 기간 끝')
     expect(status('첫째')).toBeNull()
     await act(async () => {

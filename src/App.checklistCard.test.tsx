@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // PRD F27 카드 체크리스트: 질문 6개를 카드에서 늘 목록으로 보여준다. 답한 것은 답과 다시 답하기,
@@ -36,7 +36,7 @@ const thing = {
 function setup(...items: unknown[]) {
   if (items.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items }))
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   return user
 }
 const saved = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').items as Record<string, unknown>[]

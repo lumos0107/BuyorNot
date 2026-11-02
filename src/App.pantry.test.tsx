@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import { fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import App from './App'
 import { PANTRY_KEY, type PantryItem } from './logic/pantry'
 import { SUBS_KEY, type Subscription } from './logic/subscriptions'
 
@@ -12,7 +12,7 @@ const item = (over: Partial<PantryItem> = {}): PantryItem => ({ id: 'p1', name: 
 const seed = (...items: PantryItem[]) => localStorage.setItem(PANTRY_KEY, JSON.stringify({ schemaVersion: 1, items, recipes: [], events: [] }))
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today) })
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByText('집에 있는 것')); return user }
+async function open() { const user = userEvent.setup(); renderWishlistApp(); await user.click(screen.getByText('집에 있는 것')); return user }
 
 it('AC117: 세제를 적고 조금으로 바꾸면 살 때가 된 것에 보인다', async () => {
   const user = await open()

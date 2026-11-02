@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
 // 12단계 통합 점검: 다른 테스트가 화면에서 확인하지 않던 2차 검증 사례 (AC23 해당 없음, AC28 1차 기록)
@@ -66,7 +66,7 @@ const phase1Store = {
 describe('2차 검증 사례 통합 점검', () => {
   it('AC23: 조건에 맞는 기록이 없으면 안내하고, 요약은 그대로다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     const form = within(screen.getByRole('form', { name: '물건 담기' }))
     await user.type(form.getByLabelText('상품명'), '무선 헤드폰')
     await user.type(form.getByLabelText('가격'), '129000')
@@ -85,7 +85,7 @@ describe('2차 검증 사례 통합 점검', () => {
   it('AC28: 1차 형식 기록을 열면 그대로 보이고, 연장·메모·답 표시가 없으며 저장값도 바뀌지 않는다', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(phase1Store))
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     expect(screen.queryByRole('status', { name: '저장 상태' })).not.toBeInTheDocument()
     expect(card('전동 칫솔').getByText(/3일 고민/)).toBeInTheDocument()
     expect(card('전동 칫솔').queryByText(/번 연장/)).not.toBeInTheDocument()

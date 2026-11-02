@@ -1,7 +1,7 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { SETTINGS_KEY } from './logic/settings'
 import { STORAGE_KEY } from './logic/storage'
 import { SUBS_KEY } from './logic/subscriptions'
@@ -48,7 +48,7 @@ const wish = (over: Record<string, unknown>) => ({
 })
 
 async function openSubs(user: ReturnType<typeof userEvent.setup>) {
-  render(<App />)
+  renderWishlistApp()
   await user.click(screen.getByRole('tab', { name: '고정비' }))
 }
 
@@ -83,7 +83,7 @@ describe('GPT 10~11단계 검토 반영', () => {
     it('다른 탭에서 시급을 바꾸면 이 탭의 시급 입력과 환산도 바뀐다', async () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [wish({ name: '무선 헤드폰', priceKrw: 129000, status: 'skipped' })] }))
       const user = userEvent.setup()
-      render(<App />)
+      renderWishlistApp()
       await user.click(screen.getByRole('tab', { name: '결정 기록' }))
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({ schemaVersion: 1, hourlyWage: 10000 }))
       act(() => {
@@ -126,7 +126,7 @@ describe('GPT 10~11단계 검토 반영', () => {
   describe('제출 실패 시 첫 오류로 포커스', () => {
     it('상품명 오류와 링크 오류가 함께 있으면 링크 영역을 펼치고, 첫 오류 입력(상품명)으로 포커스를 옮긴다', async () => {
       const user = userEvent.setup()
-      render(<App />)
+      renderWishlistApp()
       await user.type(wishForm().getByLabelText('가격'), '129000')
       await user.type(wishForm().getByLabelText('사고 싶은 이유'), '이유')
       const summaryToggle = wishForm().getByText('상품 링크 (선택)')
@@ -141,7 +141,7 @@ describe('GPT 10~11단계 검토 반영', () => {
 
     it('물건 수정도 저장에 실패하면 첫 오류 입력으로 포커스를 옮긴다', async () => {
       const user = userEvent.setup()
-      render(<App />)
+      renderWishlistApp()
       await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
       await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '수정' }))
       const editor = within(screen.getByRole('form', { name: '물건 수정' }))
@@ -164,7 +164,7 @@ describe('GPT 10~11단계 검토 반영', () => {
     async function openHistory() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [wish({})] }))
       const user = userEvent.setup()
-      render(<App />)
+      renderWishlistApp()
       await user.click(screen.getByRole('tab', { name: '결정 기록' }))
       return user
     }
@@ -218,7 +218,7 @@ describe('GPT 10~11단계 검토 반영', () => {
     it('물건 기록 초기화도 같은 순서로 포커스를 옮기고, 초기화 뒤에는 사이트 제목으로 간다', async () => {
       localStorage.setItem(STORAGE_KEY, '{bad')
       const user = userEvent.setup()
-      render(<App />)
+      renderWishlistApp()
       const banner = within(screen.getByRole('status', { name: '저장 상태' }))
       await user.click(banner.getByRole('button', { name: '기록 초기화' }))
       expect(banner.getByRole('button', { name: '초기화' })).toHaveFocus()
@@ -271,7 +271,7 @@ describe('GPT 10~11단계 검토 반영', () => {
 
   it('삭제 확인 문구의 조사가 이름의 받침에 맞는다', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     await user.click(card('(예시) 접이식 건조대').getByRole('button', { name: '삭제' }))
     expect(card('(예시) 접이식 건조대').getByText('‘(예시) 접이식 건조대’를 지울까요?')).toBeInTheDocument()
@@ -287,7 +287,7 @@ describe('열린 화면의 회고 시점', () => {
     vi.useFakeTimers()
     vi.setSystemTime(T0)
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [wish({ decidedAt: iso(T0.getTime() - 7 * DAY + 10_000) })] }))
-    render(<App />)
+    renderWishlistApp()
     fireEvent.click(screen.getByRole('tab', { name: '결정 기록' }))
     const ask = () => within(screen.getByRole('article', { name: '전기 포트' })).queryByText('잘 샀나요?')
     expect(ask()).toBeNull()

@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { renderWishlistApp } from './test/renderWishlistApp'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import { makeBackup } from './logic/backup'
 import { SETTINGS_KEY } from './logic/settings'
 import { STORAGE_KEY } from './logic/storage'
@@ -64,7 +64,7 @@ function readBlob(blob: Blob): Promise<string> {
 
 async function openBackup() {
   const user = userEvent.setup()
-  render(<App />)
+  renderWishlistApp()
   await user.click(screen.getByText('기록 백업·복원'))
   return user
 }
