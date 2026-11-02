@@ -11,7 +11,7 @@ it('가계부에서 수입과 지출을 별도로 기록하고, 다른 달 내�
   const user = userEvent.setup()
   render(<App />)
   await user.click(screen.getByRole('tab', { name: '가계부' }))
-  const form = within(screen.getByRole('region', { name: '가계부 내역 적기' }))
+  const form = within(screen.getByRole('group', { name: '수입·지출 적기' }))
   await user.type(form.getByLabelText('내용'), '점심')
   await user.type(form.getByLabelText('금액'), '12000')
   await user.click(form.getByRole('button', { name: '기록하기' }))

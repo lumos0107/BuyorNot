@@ -7,7 +7,7 @@ import { SUBS_KEY, type Subscription } from './logic/subscriptions'
 const today = new Date(2026, 10, 1, 9)
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '가격 비교' })); await user.click(screen.getByRole('tab', { name: '배달' })); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '장보기' })); await user.click(screen.getByRole('tab', { name: '배달' })); return user }
 
 it('AC129: 두 배달 앱의 메뉴·배달비·포장을 총액으로 비교한다', async () => {
   const user = await open()

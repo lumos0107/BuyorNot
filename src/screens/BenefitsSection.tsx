@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { CARD_MAX, EXPIRY_MAX, PROGRAMS, PROGRAM_STATUSES, PROGRAM_STATUS_LABEL, SETTLEMENT_MAX, cardGapLine, cardMonthLine, expiryLine, programListStale, settlementTotals, sortExpiries, validateCardInput, validateExpiryInput, validateProgramInput, validateSettlementInput, type CardRawInput, type ProgramCheck, type ProgramId, type ProgramStatus, type Settlement } from '../logic/benefits'
 import { buildExpiryIcs, expiryGoogleCalendarUrl, expiryIcsFileName } from '../logic/calendar'
 import { formatWon } from '../logic/number'
@@ -14,12 +14,13 @@ type Benefits = ReturnType<typeof useBenefits>
 
 export function BenefitsSection({ benefits, today, focusExpiryId, onFocusDone }: { benefits: Benefits; today: Date; focusExpiryId?: string; onFocusDone?: () => void }) {
   const rootRef = useRef<HTMLDetailsElement>(null)
-  useEffect(() => { if (focusExpiryId && rootRef.current) rootRef.current.open = true }, [focusExpiryId])
+  // 처음에는 접혀 있다(F86). 만료일로 이동할 때는 안쪽 카드가 포커스를 받기 전에 펼친다(레이아웃 효과는 안쪽의 일반 효과보다 먼저 돈다)
+  useLayoutEffect(() => { if (focusExpiryId && rootRef.current) rootRef.current.open = true }, [focusExpiryId])
   const saveProgram = (value: ProgramCheck) => benefits.change((current) => ({
     ...current,
     programs: [...current.programs.filter((row) => row.id !== value.id), value],
   }))
-  return <details className="card guide" ref={rootRef} open>
+  return <details className="card guide" ref={rootRef}>
     <summary className="card-title">받을 수 있는 돈</summary>
     <div className="stack">
       <p className="note">조건은 자주 바뀌어요. 받을 수 있는지는 공식 사이트에서 확인해 주세요.</p>

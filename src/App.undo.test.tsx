@@ -224,7 +224,7 @@ describe('결정 기록에서 다시 고민하기 (F18)', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [bought] }))
     const user = userEvent.setup()
     renderWishlistApp()
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     return user
   }
 

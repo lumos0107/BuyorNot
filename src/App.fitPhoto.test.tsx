@@ -954,8 +954,8 @@ describe('다른 화면을 보는 동안 끝난 읽기 (10장 앱 공통)', () =
     await openApp()
     await readPhoto()
 
-    goTo('가격 비교')
-    const tab = screen.getByRole('tab', { name: '가격 비교' })
+    goTo('장보기')
+    const tab = screen.getByRole('tab', { name: '장보기' })
     if (keepFocus) tab.focus()
     else (document.activeElement as HTMLElement | null)?.blur()
     // jsdom은 숨은 요소의 focus()를 무시하므로 고민 중인 물건 화면 안의 어떤 요소에도 focus()를 부르지 않았는지 본다

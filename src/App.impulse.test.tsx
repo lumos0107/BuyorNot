@@ -143,7 +143,7 @@ describe('사기 전에 한 번 더 (F15, AC29)', () => {
 
   it('결정 기록에서 남긴 회고가 담기 폼의 비슷한 기록 알림과 사기 전 점검에 바로 함께 보인다 (2026-10-13 A)', async () => {
     const user = setup([headphone, bought])
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(card('블루투스 헤드폰').getByRole('radio', { name: '후회해요' }))
     await user.click(card('블루투스 헤드폰').getByRole('button', { name: '회고 저장' }))
     await user.click(screen.getByRole('tab', { name: '물건' }))

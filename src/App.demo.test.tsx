@@ -10,7 +10,8 @@ it('공개 빌드의 예시 사진은 저장된 품목만 보여주고 AI 요청
   const user = userEvent.setup()
   const fetch = vi.spyOn(globalThis, 'fetch')
   render(<App />)
-  expect(screen.getByRole('tab', { name: '가격표 사진 예시' })).toHaveAttribute('aria-selected', 'true')
+  // 2026-11-03 F86: 가격표 사진 예시는 장보기의 마지막 비교 종류다
+  await user.click(screen.getByRole('tab', { name: '장보기' }))
   await user.click(screen.getByRole('tab', { name: '가격표 사진 예시' }))
   expect(screen.getByText(/사진 버튼은 사진을 다시 분석하지 않고/)).toBeInTheDocument()
   // 처음 열면 첫 사진(라면 진열대)의 저장된 결과가 이미 펼쳐져 있다 (F83, 2026-11-02 제작자 요청 "들어가자마자 켜져 있도록", "처음 차 말고 라면으로")
@@ -48,18 +49,17 @@ it('공개 빌드의 예시 사진은 저장된 품목만 보여주고 AI 요청
   fetch.mockRestore()
 })
 
-it('가계부는 달력부터 보여주고 저장되지 않은 예시를 첫 입력 뒤 숨긴다', async () => {
+it('가계부는 요약 뒤에 달력을 보여주고 저장되지 않은 예시를 첫 입력 뒤 숨긴다', async () => {
   const user = userEvent.setup()
   render(<App />)
   await user.click(screen.getByRole('tab', { name: '가계부' }))
-  const panel = screen.getByRole('tabpanel', { name: '가계부' })
+  // 2026-11-03 F86: 요약 → 접힌 수입·지출 적기 → 달력 순서(전: 달력이 맨 위)
+  const summary = screen.getByRole('region', { name: '이달 가계부 요약' })
   const calendar = screen.getByRole('region', { name: '결제·지출 달력' })
-  const ledger = screen.getByRole('region', { name: '가계부' })
-  expect(panel.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  expect(calendar.compareDocumentPosition(ledger) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(summary.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.getByText('시연용 예시 금액입니다. 저장되지 않으며 첫 내역을 적으면 사라져요.')).toBeInTheDocument()
   expect(localStorage.getItem(LEDGER_KEY)).toBeNull()
-  const form = within(screen.getByRole('region', { name: '가계부 내역 적기' }))
+  const form = within(screen.getByRole('group', { name: '수입·지출 적기' }))
   await user.type(form.getByLabelText('내용'), '점심')
   await user.type(form.getByLabelText('금액'), '10000')
   await user.click(form.getByRole('button', { name: '기록하기' }))

@@ -589,7 +589,7 @@ describe('녹음이 안 되거나 받아쓴 내용이 없을 때 (AC58)', () => 
     await pressStart()
     await advance(3000)
 
-    goTo('가격 비교')
+    goTo('장보기')
     await advance(60_000)
 
     expect(s.mic.tracks.map((track) => track.stopCalls)).toEqual([1, 1])
@@ -689,7 +689,7 @@ describe('20초 자동 멈춤과 권한 창 (계획 Task 14)', () => {
     await settle()
     expect(s.mic.getUserMedia).toHaveBeenCalledTimes(1)
 
-    goTo('가격 비교')
+    goTo('장보기')
     await act(async () => {
       s.mic.grant()
     })
@@ -789,7 +789,7 @@ describe('받아쓰기가 실패하면 (10장 앱 공통 실패 문구)', () => 
 
 describe('메뉴 이동·화면이 사라짐과 늦은 결과 (10장 앱 공통)', () => {
   it.each([
-    ['다른 메뉴로 옮기면', () => goTo('가격 비교')],
+    ['다른 메뉴로 옮기면', () => goTo('장보기')],
     ['화면이 사라지면', () => current?.view.unmount()],
   ])('멈추기를 누른 뒤 녹음기의 stop 이벤트가 늦게 오는 사이 %s, 늦게 끝난 녹음은 보내지 않고 트랙을 멈춘다', async (_name, leave) => {
     const s = setup({ trackCount: 2 })
@@ -837,8 +837,8 @@ describe('메뉴 이동·화면이 사라짐과 늦은 결과 (10장 앱 공통)
     s.server.on(VOICE, held)
     await record()
 
-    goTo('가격 비교')
-    const tab = screen.getByRole('tab', { name: '가격 비교' })
+    goTo('장보기')
+    const tab = screen.getByRole('tab', { name: '장보기' })
     if (keepFocus) tab.focus()
     else (document.activeElement as HTMLElement | null)?.blur()
     // jsdom은 숨은 요소의 focus()를 무시하므로, 고민 목록 화면 안의 어떤 요소에도 focus()를 부르지 않았는지 본다
@@ -866,7 +866,7 @@ describe('메뉴 이동·화면이 사라짐과 늦은 결과 (10장 앱 공통)
     s.server.on(VOICE, held)
     await record()
 
-    goTo('가격 비교')
+    goTo('장보기')
     const focused = document.activeElement as HTMLElement | null
     focused?.blur()
     const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus')

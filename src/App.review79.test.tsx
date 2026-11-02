@@ -68,7 +68,7 @@ describe('화면 보완', () => {
     await addItem(user)
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매함 확인' }))
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '삭제' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '취소' }))
     expect(card('무선 헤드폰').getByRole('button', { name: '삭제' })).toHaveFocus()
@@ -101,7 +101,7 @@ describe('화면 보완', () => {
     // 200자 경계를 확인한다. 글자마다 키 이벤트를 합성하면 전체 실행 부하에서 시간 초과가 난다.
     fireEvent.change(card('무선 헤드폰').getByLabelText('결정 메모 (선택)'), { target: { value: '가'.repeat(200) } })
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(card('무선 헤드폰').getByText('가'.repeat(200))).toBeInTheDocument()
   })
 

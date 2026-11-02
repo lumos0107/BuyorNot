@@ -53,7 +53,7 @@ describe('결정 기록 요약 (AC24)', () => {
     const { user, unmount } = setup()
     await addAndDecide(user, '무선 헤드폰', '129000', '구매 포기')
     await addAndDecide(user, '접이식 건조대', '45000', '구매 포기')
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(summary().getByText('구매 포기 2건')).toBeInTheDocument()
     expect(summary().getByText('174,000원')).toBeInTheDocument()
     expect(summary().getByText(/전체 기록 기준/)).toBeInTheDocument()
@@ -64,7 +64,7 @@ describe('결정 기록 요약 (AC24)', () => {
 
     unmount()
     const again = setup()
-    await again.user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await again.user.click(screen.getByRole('tab', { name: '물건' })); await again.user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(summary().getByLabelText('시급 (선택)')).toHaveValue('10000')
     expect(summary().getByText('입력한 시급으로 환산하면 약 17.4시간')).toBeInTheDocument()
   })
@@ -72,7 +72,7 @@ describe('결정 기록 요약 (AC24)', () => {
   it('시급을 비우면 환산을 숨기고, 범위 밖이면 오류를 보여준다', async () => {
     const { user } = setup()
     await addAndDecide(user, '무선 헤드폰', '129000', '구매 포기')
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     const wage = summary().getByLabelText('시급 (선택)')
     await user.type(wage, '999')
     expect(wage).toHaveAccessibleDescription(/1,000원~1,000,000원/)
@@ -85,7 +85,7 @@ describe('결정 기록 요약 (AC24)', () => {
     const { user } = setup()
     await addAndDecide(user, '무선 헤드폰', '129000', '구매 포기')
     await addAndDecide(user, '무선 청소기', '189000', '구매함')
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(screen.getByRole('button', { name: '구매함 (1)' }))
     expect(summary().getByText('구매 포기 1건')).toBeInTheDocument()
     expect(summary().getByText('129,000원')).toBeInTheDocument()
@@ -94,7 +94,7 @@ describe('결정 기록 요약 (AC24)', () => {
   it('예시 기록이 섞여 있으면 "예시 포함"이라고 적는다', async () => {
     const { user } = setup()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(summary().getByText(/예시 포함/)).toBeInTheDocument()
   })
 })
@@ -103,7 +103,7 @@ describe('구매 후 회고 (AC25)', () => {
   it('결정 7일 정각부터 묻고, 답을 저장·고칠 수 있으며 집계에 반영된다', async () => {
     const { user, unmount } = setup()
     await addAndDecide(user, '무선 청소기', '189000', '구매함')
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await passTime(7 * DAY - 1)
     expect(card('무선 청소기').queryByText('잘 샀나요?')).not.toBeInTheDocument()
     await passTime(1)
@@ -117,7 +117,7 @@ describe('구매 후 회고 (AC25)', () => {
 
     unmount()
     const again = setup()
-    await again.user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await again.user.click(screen.getByRole('tab', { name: '물건' })); await again.user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(card('무선 청소기').getByText('회고: 후회해요 · 거의 안 씀')).toBeInTheDocument()
     await again.user.click(card('무선 청소기').getByRole('button', { name: '회고 고치기' }))
     await again.user.click(card('무선 청소기').getByRole('radio', { name: '잘 샀어요' }))
@@ -128,7 +128,7 @@ describe('구매 후 회고 (AC25)', () => {
   it('답을 고르지 않으면 저장하지 않고 안내한다', async () => {
     const { user } = setup()
     await addAndDecide(user, '무선 청소기', '189000', '구매함')
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await passTime(7 * DAY)
     await user.click(card('무선 청소기').getByRole('button', { name: '회고 저장' }))
     expect(card('무선 청소기').getByText('구매 후 느낌을 하나 골라 주세요')).toBeInTheDocument()
@@ -137,7 +137,7 @@ describe('구매 후 회고 (AC25)', () => {
   it('예시 데이터에는 회고를 물을 수 있는 구매 기록이 있다', async () => {
     const { user } = setup()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(card('(예시) 무선 청소기').getByText('잘 샀나요?')).toBeInTheDocument()
   })
 })

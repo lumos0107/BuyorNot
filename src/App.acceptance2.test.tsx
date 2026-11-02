@@ -74,7 +74,7 @@ describe('2차 검증 사례 통합 점검', () => {
     await user.click(form.getByRole('button', { name: '담아 두기' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     await user.click(card('무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(screen.getByRole('button', { name: '구매함 (0)' }))
     expect(screen.getByText('이 조건의 기록이 없어요.')).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: '무선 헤드폰' })).not.toBeInTheDocument()
@@ -91,7 +91,7 @@ describe('2차 검증 사례 통합 점검', () => {
     expect(card('전동 칫솔').queryByText(/번 연장/)).not.toBeInTheDocument()
     expect(card('전동 칫솔').queryByRole('list', { name: '답한 것' })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(screen.getByRole('button', { name: '전체 (2)', pressed: true })).toBeInTheDocument()
     for (const name of ['블루투스 스피커', '전기 포트']) {
       expect(card(name).queryByText('결정 메모')).not.toBeInTheDocument()

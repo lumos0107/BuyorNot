@@ -9,7 +9,7 @@ const now = new Date(2026, 10, 1, 9)
 const bought: WishItem = { id: 'w1', name: '전동 칫솔', priceKrw: 59000, reason: '고장', url: null, createdAt: now.toISOString(), updatedAt: now.toISOString(), reviewAt: '2026-11-02T00:00:00.000Z', status: 'purchased', decidedAt: now.toISOString() }
 beforeEach(() => { localStorage.clear(); localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [bought] })); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(now) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '결정 기록' })); await user.click(screen.getByText('산 뒤에')); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' })); await user.click(screen.getByText('산 뒤에')); return user }
 
 it('AC143: 반품 기한을 적으면 날짜·D-14와 판매처 기준 안내가 보인다', async () => {
   const user = await open()

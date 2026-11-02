@@ -166,10 +166,11 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
         {resale.count > 0 ? <p className="note">판 금액은 실제 입금을 확인한 금액이 아니에요.</p> : null}
         {receivedSupport > 0 ? <p className="note">직접 적은 받은 지원금 {formatWon(receivedSupport)} · 옮긴 돈과는 따로 보여요.</p> : null}
       </section> : null}
-      {benefitsPanel}
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />
       <TransferLog transfers={savings.store.transfers} onRemove={removeTransfer} onLostFocus={() => headingRef.current?.focus()} />
+      {/* 받을 수 있는 돈은 가끔 보는 곳이라 옮긴 기록 아래에 접어 둔다 (F86, 2026-11-03) */}
+      {benefitsPanel}
       {hasOriginalNumbers ? <section className="card stack" aria-label="모으기 계산 설명">
         <p className="card-title">숫자 계산 방법</p>
         <p className="note">{NOTE_REDUCED}</p>

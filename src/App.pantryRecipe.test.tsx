@@ -1,4 +1,4 @@
-import { renderWishlistApp } from './test/renderWishlistApp'
+import { renderShoppingApp } from './test/renderWishlistApp'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -13,7 +13,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today)
 })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); renderWishlistApp(); await user.click(screen.getByText('집에 있는 것')); return user }
+async function open() { const user = userEvent.setup(); renderShoppingApp(); await user.click(screen.getByText('집에 있는 것')); return user }
 
 it('AC123: 자주 해 먹는 것에 있는 재료 2/3개와 부족한 계란이 보인다', async () => {
   const user = await open()

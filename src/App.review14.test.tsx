@@ -59,7 +59,7 @@ describe('되돌리기 알림의 유효성 (중간)', () => {
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
     expect(within(screen.getByRole('status', { name: '결정 알림' })).getByRole('button', { name: '되돌리기' })).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '다시 고민하기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '옮기기' }))
     await user.click(screen.getByRole('tab', { name: '물건' }))
@@ -84,7 +84,7 @@ describe('되돌리기 알림의 유효성 (중간)', () => {
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기' }))
     await user.click(card('(예시) 무선 헤드폰').getByRole('button', { name: '구매 포기 확인' }))
     await user.click(within(screen.getByRole('status', { name: '결정 알림' })).getByRole('button', { name: '되돌리기' }))
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(within(screen.getByRole('region', { name: '결정 기록 요약' })).getByText('구매 포기 1건')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '구매 포기 (1)' })).toBeInTheDocument()
   })
@@ -94,7 +94,7 @@ describe('0원 결과는 담을 수 없음 (낮음)', () => {
   it('묶음 비교에서 가격이 0원인 상품은 담기 버튼 대신 안내를 보여준다', async () => {
     const user = userEvent.setup()
     renderWishlistApp()
-    await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '장보기' }))
     await user.click(screen.getByRole('tab', { name: '묶음상품 비교' }))
     const panel = within(screen.getByRole('tabpanel', { name: '묶음상품 비교' }))
     // 앱에서는 예시가 채워진 채로 열리므로 비우고 시작한다

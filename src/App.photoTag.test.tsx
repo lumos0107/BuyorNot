@@ -180,7 +180,7 @@ function goTo(tab: string) {
 }
 function openPhotoTab() {
   const view = openApp()
-  goTo('가격 비교')
+  goTo('장보기')
   goTo('가격표 사진')
   return view
 }
@@ -249,10 +249,10 @@ describe('가격표 사진 탭과 사진 고르기 (10장 앱 공통)', () => {
     const fetchSpy = vi.fn()
     vi.stubGlobal('fetch', fetchSpy)
     openApp()
-    goTo('가격 비교')
+    goTo('장보기')
 
     const tabs = within(screen.getByRole('tablist', { name: '가격 비교 종류' })).getAllByRole('tab')
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['가격표 사진 예시', '할인 비교', '묶음상품 비교', '배달'])
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['할인 비교', '묶음상품 비교', '배달', '가격표 사진 예시'])
     expect(screen.queryByLabelText('가격표 사진 찍기')).not.toBeInTheDocument()
     expect(screen.queryByText(PHOTO_NOTICE)).not.toBeInTheDocument()
     expect(fetchSpy).not.toHaveBeenCalled()
@@ -261,7 +261,7 @@ describe('가격표 사진 탭과 사진 고르기 (10장 앱 공통)', () => {
   it('AC61·AC129: 서버 주소가 있으면 가격표 사진은 네 번째 탭이고 전송 안내가 누르기 전부터 보인다', () => {
     const s = setup()
     openApp()
-    goTo('가격 비교')
+    goTo('장보기')
 
     const tabs = within(screen.getByRole('tablist', { name: '가격 비교 종류' })).getAllByRole('tab')
     expect(tabs.map((tab) => tab.textContent)).toEqual(['가격표 사진', '할인 비교', '묶음상품 비교', '배달'])
@@ -1125,10 +1125,10 @@ describe('다른 화면을 보는 동안 끝난 요청 (10장 앱 공통)', () =
     await settle()
 
     expect(keep).toHaveFocus()
-    expect(focusedInside(focusSpy, panelOf('가격 비교'))).toEqual([])
+    expect(focusedInside(focusSpy, panelOf('장보기'))).toEqual([])
     expect(held.signal?.aborted).toBe(false)
 
-    goTo('가격 비교')
+    goTo('장보기')
 
     expect(productsHeading()).toBeVisible()
     expect(field('상품명')).toHaveValue(ITEM.name)
@@ -1217,7 +1217,7 @@ describe('사진 미리보기 주소 (10장 앱 공통)', () => {
 describe('결과에서 고민 목록에 담기 (AC54)', () => {
   // 담기 폼이 있는 고민 목록 화면에서 시작해 가격표 사진 결과까지 간다
   async function reachResult() {
-    goTo('가격 비교')
+    goTo('장보기')
     goTo('가격표 사진')
     await readPhoto()
     await checkOnline()
@@ -1252,7 +1252,7 @@ describe('결과에서 고민 목록에 담기 (AC54)', () => {
     goTo('물건')
     fireEvent.change(wishForm().getByLabelText('상품명'), { target: { value: '라면' } })
     fireEvent.change(wishForm().getByLabelText('가격'), { target: { value: '4500' } })
-    goTo('가격 비교')
+    goTo('장보기')
     await reachResult()
 
     fireEvent.click(result().getByRole('button', { name: '고민 목록에 담기' }))
@@ -1270,7 +1270,7 @@ describe('결과에서 고민 목록에 담기 (AC54)', () => {
     goTo('물건')
     const linkArea = () => wishForm().getByLabelText('링크 (선택)').closest('details')
     expect(linkArea()).not.toHaveAttribute('open')
-    goTo('가격 비교')
+    goTo('장보기')
     await reachResult()
 
     fireEvent.click(result().getByRole('button', { name: '고민 목록에 담기' }))

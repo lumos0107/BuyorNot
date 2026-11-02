@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { isDay } from '../logic/guards'
 import { LEDGER_CATEGORY_LABEL, ledgerByCategory, ledgerDashboard, ledgerDayGroups, ledgerDayLabel, ledgerMonth, ledgerMonthChange, parseSaveTarget, shiftMonth, type LedgerCategory, type LedgerEntry, type LedgerKind } from '../logic/ledger'
 import { formatWon } from '../logic/number'
@@ -17,12 +17,14 @@ type Props = {
   bills: BillsStore
   spending: SpendingStore
   today: Date
+  /** 결제·지출 달력. 요약과 적기 다음, 내역 앞에 둔다 (F86) */
+  calendar?: ReactNode
 }
 
 const expenseCategories: LedgerCategory[] = ['food', 'daily', 'transport', 'housing', 'health', 'other']
 const incomeCategories: LedgerCategory[] = ['salary', 'other']
 
-export function LedgerSection({ ledger, bills, spending, today }: Props) {
+export function LedgerSection({ ledger, bills, spending, today, calendar }: Props) {
   const todayIso = toDayIso(today)
   const [month, setMonth] = useState(todayIso.slice(0, 7))
   const [kind, setKind] = useState<LedgerKind>('expense')
@@ -87,41 +89,31 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
         </div>
       </div>
       {monthChange ? <p className="ledger-change">{monthChange}</p> : null}
-      <p className="note">아래의 자잘한 지출 {formatWon(smallSpent)}·공과금 {formatWon(billsAmount)}은 중복 계산을 막기 위해 위 합계에 넣지 않았어요.</p>
+      {smallSpent > 0 || billsAmount > 0 ? <p className="note">아래의 자잘한 지출 {formatWon(smallSpent)}·공과금 {formatWon(billsAmount)}은 중복 계산을 막기 위해 위 합계에 넣지 않았어요.</p> : null}
     </section>
-    <DashboardCard key={month} income={summary.income} expense={summary.expense} target={saveTarget} demoTarget={showDemo && saveTarget === null ? LEDGER_DEMO_TARGET : null} onSave={(value) => ledger.setSaveTarget(month, value)} />
-    {byCategory.length > 0 ? <section className="card stack" aria-label="분류별 지출">
-      <p className="card-title">분류별 지출</p>
-      <ul className="category-list">
-        {byCategory.map((row) => <li key={row.category}>
-          <span className={`ledger-icon ledger-icon-${row.category}`} aria-hidden="true">{LEDGER_CATEGORY_LABEL[row.category].slice(0, 1)}</span>
-          <span className="category-body">
-            <span className="category-line"><span>{LEDGER_CATEGORY_LABEL[row.category]}</span><strong>{formatWon(row.amountKrw)}</strong></span>
-            <span className="category-bar" aria-hidden="true"><span style={{ width: `${row.percent}%` }} /></span>
-          </span>
-          <span className="category-percent">{row.percent}%</span>
-        </li>)}
-      </ul>
-    </section> : null}
-    <section className="card stack" aria-label="가계부 내역 적기">
-      <p className="card-title">수입·지출 적기</p>
-      <form className="stack" onSubmit={submit}>
-        <SelectField label="종류" value={kind} onChange={(event) => {
-          const next = event.target.value as LedgerKind
-          setKind(next)
-          setCategory(next === 'income' ? 'salary' : 'food')
-        }}><option value="expense">지출</option><option value="income">수입</option></SelectField>
-        <SelectField label="분류" value={category} onChange={(event) => setCategory(event.target.value as LedgerCategory)}>
-          {(kind === 'income' ? incomeCategories : expenseCategories).map((value) => <option key={value} value={value}>{LEDGER_CATEGORY_LABEL[value]}</option>)}
-        </SelectField>
-        <TextField label="내용" value={name} maxLength={60} onChange={(event) => setName(event.target.value)} placeholder="예: 점심 식사" />
-        <TextField label="금액" type="number" min="1" max="1000000000" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="원" />
-        <TextField label="날짜" type="date" value={day} onChange={(event) => setDay(event.target.value)} />
-        {error ? <p className="field-error" role="alert">{error}</p> : null}
-        <Button type="submit" variant="primary">기록하기</Button>
-      </form>
-      {message ? <p role="status">{message}</p> : null}
-    </section>
+    {/* 매일 쓰는 적기 폼은 접어 두고 한 번 눌러 연다 (F86) */}
+    <details className="card guide" aria-label="수입·지출 적기">
+      <summary className="card-title">수입·지출 적기</summary>
+      <div className="stack">
+        <form className="stack" onSubmit={submit}>
+          <SelectField label="종류" value={kind} onChange={(event) => {
+            const next = event.target.value as LedgerKind
+            setKind(next)
+            setCategory(next === 'income' ? 'salary' : 'food')
+          }}><option value="expense">지출</option><option value="income">수입</option></SelectField>
+          <SelectField label="분류" value={category} onChange={(event) => setCategory(event.target.value as LedgerCategory)}>
+            {(kind === 'income' ? incomeCategories : expenseCategories).map((value) => <option key={value} value={value}>{LEDGER_CATEGORY_LABEL[value]}</option>)}
+          </SelectField>
+          <TextField label="내용" value={name} maxLength={60} onChange={(event) => setName(event.target.value)} placeholder="예: 점심 식사" />
+          <TextField label="금액" type="number" min="1" max="1000000000" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="원" />
+          <TextField label="날짜" type="date" value={day} onChange={(event) => setDay(event.target.value)} />
+          {error ? <p className="field-error" role="alert">{error}</p> : null}
+          <Button type="submit" variant="primary">기록하기</Button>
+        </form>
+        {message ? <p role="status">{message}</p> : null}
+      </div>
+    </details>
+    {calendar}
     <section className="card stack" aria-label="가계부 내역">
       <p className="card-title">{month} 내역</p>
       {summary.entries.length === 0 ? <p className="note">이달에 직접 적은 내역이 없어요.</p> : dayGroups.map((group) => <div className="ledger-day" key={group.day}>
@@ -137,6 +129,20 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
         </ul>
       </div>)}
     </section>
+    <DashboardCard key={month} income={summary.income} expense={summary.expense} target={saveTarget} demoTarget={showDemo && saveTarget === null ? LEDGER_DEMO_TARGET : null} onSave={(value) => ledger.setSaveTarget(month, value)} />
+    {byCategory.length > 0 ? <section className="card stack" aria-label="분류별 지출">
+      <p className="card-title">분류별 지출</p>
+      <ul className="category-list">
+        {byCategory.map((row) => <li key={row.category}>
+          <span className={`ledger-icon ledger-icon-${row.category}`} aria-hidden="true">{LEDGER_CATEGORY_LABEL[row.category].slice(0, 1)}</span>
+          <span className="category-body">
+            <span className="category-line"><span>{LEDGER_CATEGORY_LABEL[row.category]}</span><strong>{formatWon(row.amountKrw)}</strong></span>
+            <span className="category-bar" aria-hidden="true"><span style={{ width: `${row.percent}%` }} /></span>
+          </span>
+          <span className="category-percent">{row.percent}%</span>
+        </li>)}
+      </ul>
+    </section> : null}
   </section>
 }
 

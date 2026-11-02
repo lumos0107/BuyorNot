@@ -1,23 +1,26 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './App'
 
 afterEach(() => { cleanup(); vi.unstubAllEnvs(); localStorage.clear() })
 
-it('AI 서버가 있으면 가격 비교의 가격표 사진부터 열린다 (AC195)', () => {
+it('AI 서버가 있어도 첫 화면은 가계부이고, 장보기를 누르면 가격표 사진이 첫 비교 종류다 (AC195)', async () => {
   vi.stubEnv('VITE_AI_SERVER_URL', 'https://ai.test')
   render(<App />)
-  expect(screen.getByRole('tab', { name: '가격 비교', selected: true })).toBeInTheDocument()
+  expect(screen.getByRole('tab', { name: '가계부', selected: true })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('tab', { name: '장보기' }))
   expect(screen.getByRole('tab', { name: '가격표 사진', selected: true })).toBeInTheDocument()
   expect(screen.getByRole('heading', { level: 3, name: '가격표 사진' })).toBeInTheDocument()
 })
 
-it('AI 서버가 없으면 가격표 사진 예시로 시작한다 (AC196)', () => {
+it('AI 서버가 없으면 장보기는 할인 비교부터이고 가격표 사진 예시는 마지막 비교 종류다 (AC196)', () => {
   vi.stubEnv('VITE_AI_SERVER_URL', '')
   render(<App />)
-  expect(screen.getByRole('tab', { name: '가격 비교', selected: true })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('tab', { name: '장보기' }))
   expect(screen.queryByRole('tab', { name: '가격표 사진' })).not.toBeInTheDocument()
-  expect(screen.getByRole('tab', { name: '가격표 사진 예시', selected: true })).toBeInTheDocument()
+  expect(screen.getByRole('tab', { name: '할인 비교', selected: true })).toBeInTheDocument()
+  const kinds = screen.getAllByRole('tab').filter((el) => el.closest('[aria-label="가격 비교 종류"]'))
+  expect(kinds.at(-1)).toHaveTextContent('가격표 사진 예시')
 })
 
 it('사진을 고르기 전에 행동과 조회 한계·개인정보 안내가 보인다 (AC197)', () => {

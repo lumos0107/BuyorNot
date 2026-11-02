@@ -16,7 +16,7 @@ afterEach(() => vi.useRealTimers())
 async function open() {
   const user = userEvent.setup()
   const view = render(<App />)
-  await user.click(screen.getByRole('tab', { name: '물건' }))
+  await user.click(screen.getByRole('tab', { name: '장보기' }))
   await user.click(screen.getByText('집에 있는 것'))
   await user.click(screen.getByText('장보기 초안'))
   return { user, view, draft: within(screen.getByRole('region', { name: '장보기 초안' })) }

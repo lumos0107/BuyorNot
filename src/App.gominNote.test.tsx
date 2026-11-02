@@ -366,7 +366,7 @@ describe('결정 버튼과 목록 먼저 (F22, AC39)', () => {
 
   it('물건이 있을 때 가격 비교에서 B안으로 담으면 상품명에 포커스를 두고 가격을 채운다 (F21)', async () => {
     const user = setup(thing())
-    await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '장보기' }))
     await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     await user.click(within(screen.getByRole('region', { name: '할인 비교 결과' })).getByRole('button', { name: 'B안으로 담기' }))
@@ -386,7 +386,7 @@ describe('결정 기록의 고민 효과 (F22, AC40)', () => {
       decided('c', '청소기', 'purchased', { desireStart: 3, desireChecks: [{ day: '2026-10-09', level: 4 }] }),
       decided('d', '포트', 'skipped'),
     )
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     const summary = within(screen.getByRole('region', { name: '결정 기록 요약' }))
     expect(summary.getByText('갖고 싶은 정도가 줄어든 물건 2개 · 그중 안 산 물건 2개')).toBeInTheDocument()
     expect(card('헤드폰').getByText('갖고 싶은 정도: 담을 때 4 → 2 (2단계 줄었어요)')).toBeInTheDocument()
@@ -395,7 +395,7 @@ describe('결정 기록의 고민 효과 (F22, AC40)', () => {
 
   it('줄어든 기록이 없으면 요약 문장이 없다', async () => {
     const user = setup(decided('c', '청소기', 'purchased', { desireStart: 3, desireChecks: [{ day: '2026-10-09', level: 4 }] }))
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(screen.queryByText(/고민하는 동안 갖고 싶은 정도가 줄어든/)).not.toBeInTheDocument()
   })
 
@@ -403,7 +403,7 @@ describe('결정 기록의 고민 효과 (F22, AC40)', () => {
     const user = setup()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
     expect(note('(예시) 무선 헤드폰').getByText('담을 때 4 → 3 → 2 (2단계 줄었어요)')).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     expect(screen.getByText('갖고 싶은 정도가 줄어든 물건 1개 · 그중 안 산 물건 1개')).toBeInTheDocument()
   })
 })

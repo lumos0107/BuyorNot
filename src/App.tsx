@@ -1,6 +1,6 @@
 import { ledgerDemoEntries } from './logic/ledgerDemo'
 import { JumpNav, type JumpTarget } from './ui/JumpNav'
-import { IconBag, IconCoins, IconHistory, IconTag, IconWallet } from './ui/NavIcons'
+import { IconBag, IconCoins, IconTag, IconWallet } from './ui/NavIcons'
 import { useEffect, useRef, useState } from 'react'
 import { aiServerUrl } from './ai/config'
 import evalSummaryJson from './ai/evalSummary.json'
@@ -36,47 +36,53 @@ import { BrandMark } from './ui/BrandMark'
 import { ResetConfirm } from './ui/ResetConfirm'
 import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
 
-type Screen = 'wishlist' | 'compare' | 'history' | 'subscriptions' | 'savings'
+// 주요 메뉴 네 개 (F86, 2026-11-03 제작자 요청 "탭은 4개로 가자", "3번은 가계부로 하자").
+// id는 저장·테스트와 이어진 기존 값을 그대로 쓴다: 가계부 = subscriptions, 장보기 = compare
+type Screen = 'subscriptions' | 'wishlist' | 'compare' | 'savings'
+type WishView = 'wishing' | 'history'
 
 const SCREENS: readonly TabItem<Screen>[] = [
-  { id: 'compare', label: '가격 비교', icon: <IconTag /> },
-  { id: 'wishlist', label: '물건', icon: <IconBag /> },
-  { id: 'history', label: '결정 기록', icon: <IconHistory /> },
   { id: 'subscriptions', label: '가계부', icon: <IconWallet /> },
+  { id: 'wishlist', label: '물건', icon: <IconBag /> },
+  { id: 'compare', label: '장보기', icon: <IconTag /> },
   { id: 'savings', label: '모으기', icon: <IconCoins /> },
 ]
 
+const WISH_VIEWS: readonly TabItem<WishView>[] = [
+  { id: 'wishing', label: '고민 중' },
+  { id: 'history', label: '결정 기록' },
+]
+
 const LEDGER_JUMPS: readonly JumpTarget[] = [
-  { label: '결제 달력', selector: '[aria-label="결제·지출 달력"]', open: true },
   { label: '수입·지출', selector: '[aria-label="이달 가계부 요약"]' },
-  { label: '고정비 목록', selector: '#fixed-title' },
-  { label: '공과금', selector: '#bills-section' },
+  { label: '달력', selector: '[aria-label="결제·지출 달력"]', open: true },
+  { label: '내역', selector: '[aria-label="가계부 내역"]' },
+  { label: '고정비·공과금', selector: '#fixed-group', open: true },
   { label: '자잘한 지출', selector: 'details[aria-label="자잘한 지출"]', open: true },
 ]
 
+// 주소 끝 ?tab=photo는 장보기의 가격표 사진(예시)을 바로 연다(README의 시연 링크). 다른 값은 무시한다
+const openPhoto = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'photo'
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('compare')
-  const [startTarget, setStartTarget] = useState<{ kind: 'wish' | 'shopping' | 'fixed' } | null>(null)
+  const [startPhoto] = useState(openPhoto)
+  const [screen, setScreen] = useState<Screen>(() => (startPhoto ? 'compare' : 'subscriptions'))
+  const [wishView, setWishView] = useState<WishView>('wishing')
   const [beforeBuyItemId, setBeforeBuyItemId] = useState<string | null>(null)
-  const startAt = (kind: 'wish' | 'shopping' | 'fixed') => setStartTarget({ kind })
-  useEffect(() => {
-    if (!startTarget) return
-    if (startTarget.kind === 'wish') {
-      const entry = document.getElementById('wish-entry') as HTMLDetailsElement | null
-      if (entry) entry.open = true
-      document.getElementById('wish-entry-title')?.focus()
-    } else if (startTarget.kind === 'shopping') {
-      const pantry = document.getElementById('pantry-section') as HTMLDetailsElement | null
-      const draft = document.getElementById('shopping-draft') as HTMLDetailsElement | null
-      if (pantry) pantry.open = true
-      if (draft) draft.open = true
-      document.getElementById('shopping-draft-title')?.focus()
-    } else {
-      document.getElementById('fixed-title')?.focus()
-    }
-  }, [startTarget])
+  // 가계부의 접힌 '고정비·공과금'. 고정비로 이동할 때는 카드에 포커스를 주기 전에 먼저 펼친다
+  const fixedRef = useRef<HTMLDetailsElement>(null)
   const [jump, setJump] = useState<{ screen: 'subscriptions' | 'history' | 'savings'; id: string } | null>(null)
-  const jumpTo = (target: 'subscriptions' | 'history' | 'savings', id: string) => { setJump({ screen: target, id }); setScreen(target) }
+  const jumpTo = (target: 'subscriptions' | 'history' | 'savings', id: string) => {
+    setJump({ screen: target, id })
+    if (target === 'history') {
+      setScreen('wishlist')
+      setWishView('history')
+      return
+    }
+    if (target === 'subscriptions' && fixedRef.current) fixedRef.current.open = true
+    setScreen(target)
+  }
+  const goWishing = () => { setScreen('wishlist'); setWishView('wishing') }
   // 가격 비교에서 고른 쪽(F21)이나 가격표 사진에서 읽은 값(F31)을 고민 목록의 담기 폼에 채운다
   const [draft, setDraft] = useState<FormDraft | null>(null)
   const [pantryDraft, setPantryDraft] = useState<{ form: BundleRawInput; token: number } | null>(null)
@@ -92,6 +98,9 @@ export default function App() {
   const spending = useSpending()
   // 손상된 기록을 초기화하면 배너가 사라지므로 바로 위의 사이트 제목으로 포커스를 옮긴다
   const brandRef = useRef<HTMLHeadingElement>(null)
+  // 고정비·공과금 저장에 문제가 있으면 접힌 묶음을 펼쳐 저장 안내가 보이게 한다 (F86)
+  const fixedTrouble = subscriptions.status.kind !== 'ok' || bills.status.kind !== 'ok'
+  useEffect(() => { if (fixedTrouble && fixedRef.current) fixedRef.current.open = true }, [fixedTrouble])
 
   return (
     <div className="app">
@@ -116,101 +125,106 @@ export default function App() {
         }}
       />
 
-      <Tabs label="주요 메뉴" main tabs={SCREENS} value={screen} onChange={(next) => { setJump(null); setScreen(next); document.documentElement.scrollTop = 0 }} />
+      <Tabs label="주요 메뉴" main tabs={SCREENS} value={screen} onChange={(next) => { setJump(null); setScreen(next); if (next === 'wishlist') setWishView('wishing'); document.documentElement.scrollTop = 0 }} />
 
       <main>
+        <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
+          <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconWallet /></span>가계부</h2>
+          <JumpNav label="가계부 안에서 이동" targets={LEDGER_JUMPS} />
+          <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now}
+            calendar={<PaymentCalendarSection subscriptions={subscriptions.items} expenses={ledger.store.entries.length === 0 ? ledgerDemoEntries(wishlist.now) : ledger.store.entries} expenseDemo={ledger.store.entries.length === 0} today={wishlist.now} />} />
+          <details className="card guide fixed-group" id="fixed-group" aria-label="고정비·공과금" ref={fixedRef}>
+            <summary className="card-title">고정비·공과금</summary>
+            <div className="stack">
+              <SubscriptionScreen
+                items={subscriptions.items}
+                today={wishlist.now}
+                status={subscriptions.status}
+                onAdd={subscriptions.add}
+                onEdit={subscriptions.edit}
+                onRemove={subscriptions.remove}
+                onCancel={subscriptions.cancel}
+                onResume={subscriptions.resume}
+                onAddDemo={subscriptions.addDemo}
+                onRemoveExamples={subscriptions.removeExamples}
+                onToggleUse={subscriptions.toggleUse}
+                onSetUsage={subscriptions.setUsage}
+                onImportUsage={subscriptions.importUsage}
+                onRetry={subscriptions.retrySave}
+                onReset={subscriptions.resetStorage}
+                onDismiss={subscriptions.dismissNotice}
+                focusId={screen === 'subscriptions' && jump?.screen === 'subscriptions' ? jump.id : undefined}
+                onFocusDone={() => setJump(null)}
+              />
+              <BillsSection bills={bills} today={wishlist.now} />
+            </div>
+          </details>
+          <SpendingSection spending={spending} today={wishlist.now} />
+        </TabPanel>
         <TabPanel id="wishlist" hidden={screen !== 'wishlist'}>
-          <nav className="start-actions" aria-label="지금 할 일">
-            <Button onClick={() => startAt('wish')}>살까 고민 중</Button>
-            <Button onClick={() => startAt('shopping')}>장보러 가요</Button>
-            <Button onClick={() => { setScreen('subscriptions'); startAt('fixed') }}>고정비 살펴보기</Button>
-          </nav>
-          <WishlistScreen
-            active={screen === 'wishlist'}
-            items={wishlist.items}
-            pantryItems={pantry.store.items}
-            subscriptions={subscriptions.items}
-            expiries={benefits.store.expiries}
-            onJump={jumpTo}
-            onBeforeBuy={setBeforeBuyItemId}
-            now={wishlist.now}
-            onAdd={wishlist.add}
-            onEdit={wishlist.edit}
-            onDecide={wishlist.decide}
-            onExtend={wishlist.extend}
-            onRemove={wishlist.remove}
-            onAddDemo={wishlist.addDemo}
-            onRemoveExamples={wishlist.removeExamples}
-            onReconsider={wishlist.reconsider}
-            onCheckDesire={wishlist.checkDesire}
-            onAnswer={wishlist.answer}
-            onSetFit={wishlist.setFit}
-            hourlyWage={settings.hourlyWage}
-            draft={draft}
-            onDraftUsed={() => setDraft(null)}
-          />
-          <BeforeBuySection wishlist={wishlist} pantry={pantry.store} today={wishlist.now} focusItemId={beforeBuyItemId} onFocusDone={() => setBeforeBuyItemId(null)} />
-          <PantrySection pantry={pantry} subscriptions={subscriptions.items} today={wishlist.now} onCompare={(purchase: PantryPurchase) => {
-            setPantryDraft({ form: { price: String(purchase.amountKrw), unit: purchase.unit, size: purchase.unit === 'ea' ? '' : String(purchase.size), count: purchase.unit === 'ea' ? String(purchase.size) : '1' }, token: ++pantryDraftSeq.current })
-            setScreen('compare')
-          }} />
+          <Tabs label="물건 보기" tabs={WISH_VIEWS} value={wishView} onChange={(next) => { setJump(null); setWishView(next) }} sub />
+          <TabPanel id="wishing" hidden={wishView !== 'wishing'}>
+            <WishlistScreen
+              active={screen === 'wishlist' && wishView === 'wishing'}
+              items={wishlist.items}
+              pantryItems={pantry.store.items}
+              subscriptions={subscriptions.items}
+              expiries={benefits.store.expiries}
+              onJump={jumpTo}
+              onBeforeBuy={setBeforeBuyItemId}
+              now={wishlist.now}
+              onAdd={wishlist.add}
+              onEdit={wishlist.edit}
+              onDecide={wishlist.decide}
+              onExtend={wishlist.extend}
+              onRemove={wishlist.remove}
+              onAddDemo={wishlist.addDemo}
+              onRemoveExamples={wishlist.removeExamples}
+              onReconsider={wishlist.reconsider}
+              onCheckDesire={wishlist.checkDesire}
+              onAnswer={wishlist.answer}
+              onSetFit={wishlist.setFit}
+              hourlyWage={settings.hourlyWage}
+              draft={draft}
+              onDraftUsed={() => setDraft(null)}
+            />
+            <BeforeBuySection wishlist={wishlist} pantry={pantry.store} today={wishlist.now} focusItemId={beforeBuyItemId} onFocusDone={() => setBeforeBuyItemId(null)} />
+          </TabPanel>
+          <TabPanel id="history" hidden={wishView !== 'history'}>
+            <HistoryScreen
+              items={wishlist.items}
+              now={wishlist.now}
+              hourlyWage={settings.hourlyWage}
+              onWageChange={settings.setHourlyWage}
+              onReview={wishlist.review}
+              onReconsider={wishlist.reconsider}
+              onRemove={wishlist.remove}
+            />
+            <AfterBuySection wishlist={wishlist} today={wishlist.now} focusItemId={screen === 'wishlist' && wishView === 'history' && jump?.screen === 'history' ? jump.id : undefined} onFocusDone={() => setJump(null)} />
+          </TabPanel>
         </TabPanel>
         <TabPanel id="compare" hidden={screen !== 'compare'}>
           <CompareScreen
             key={pantryDraft?.token ?? 'default'}
             startWithExample
+            initialKind={startPhoto && !pantryDraft ? 'photo' : undefined}
             pantryDraft={pantryDraft?.form}
             subscriptions={subscriptions.items}
-            onGoToWishlist={() => setScreen('wishlist')}
+            onGoToWishlist={goWishing}
             onAddToWishlist={(value) => {
               setDraft({ source: 'compare', value })
-              setScreen('wishlist')
+              goWishing()
             }}
             onAddPhotoDraft={(value) => {
               setDraft({ source: 'photo', value })
-              setScreen('wishlist')
+              goWishing()
             }}
           />
-        </TabPanel>
-        <TabPanel id="history" hidden={screen !== 'history'}>
-          <HistoryScreen
-            items={wishlist.items}
-            now={wishlist.now}
-            hourlyWage={settings.hourlyWage}
-            onWageChange={settings.setHourlyWage}
-            onReview={wishlist.review}
-            onReconsider={wishlist.reconsider}
-            onRemove={wishlist.remove}
-          />
-          <AfterBuySection wishlist={wishlist} today={wishlist.now} focusItemId={screen === 'history' && jump?.screen === 'history' ? jump.id : undefined} onFocusDone={() => setJump(null)} />
-        </TabPanel>
-        <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
-          <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconWallet /></span>가계부</h2>
-          <JumpNav label="가계부 안에서 이동" targets={LEDGER_JUMPS} />
-          <PaymentCalendarSection subscriptions={subscriptions.items} expenses={ledger.store.entries.length === 0 ? ledgerDemoEntries(wishlist.now) : ledger.store.entries} expenseDemo={ledger.store.entries.length === 0} today={wishlist.now} />
-          <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now} />
-          <SubscriptionScreen
-            items={subscriptions.items}
-            today={wishlist.now}
-            status={subscriptions.status}
-            onAdd={subscriptions.add}
-            onEdit={subscriptions.edit}
-            onRemove={subscriptions.remove}
-            onCancel={subscriptions.cancel}
-            onResume={subscriptions.resume}
-            onAddDemo={subscriptions.addDemo}
-            onRemoveExamples={subscriptions.removeExamples}
-            onToggleUse={subscriptions.toggleUse}
-            onSetUsage={subscriptions.setUsage}
-            onImportUsage={subscriptions.importUsage}
-            onRetry={subscriptions.retrySave}
-            onReset={subscriptions.resetStorage}
-            onDismiss={subscriptions.dismissNotice}
-            focusId={screen === 'subscriptions' && jump?.screen === 'subscriptions' ? jump.id : undefined}
-            onFocusDone={() => setJump(null)}
-          />
-          <BillsSection bills={bills} today={wishlist.now} />
-          <SpendingSection spending={spending} today={wishlist.now} />
+          <PantrySection pantry={pantry} subscriptions={subscriptions.items} today={wishlist.now} onCompare={(purchase: PantryPurchase) => {
+            setPantryDraft({ form: { price: String(purchase.amountKrw), unit: purchase.unit, size: purchase.unit === 'ea' ? '' : String(purchase.size), count: purchase.unit === 'ea' ? String(purchase.size) : '1' }, token: ++pantryDraftSeq.current })
+            setScreen('compare')
+            document.documentElement.scrollTop = 0
+          }} />
         </TabPanel>
         <TabPanel id="savings" hidden={screen !== 'savings'}>
           <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} spending={spending} benefits={benefits.store} today={wishlist.now} benefitsPanel={<BenefitsSection benefits={benefits} today={wishlist.now} focusExpiryId={screen === 'savings' && jump?.screen === 'savings' ? jump.id : undefined} onFocusDone={() => setJump(null)} />} />

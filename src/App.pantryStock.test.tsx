@@ -1,4 +1,4 @@
-import { renderWishlistApp } from './test/renderWishlistApp'
+import { renderShoppingApp } from './test/renderWishlistApp'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -9,7 +9,7 @@ const stamp = today.toISOString()
 const item: PantryItem = { id: 'p1', name: '세제', kind: 'essential', level: 'low', purchases: [{ id: 'a1', day: '2026-10-31', place: '마트', amountKrw: 5000, size: 1, unit: 'ea', createdAt: stamp }], createdAt: stamp, updatedAt: stamp }
 beforeEach(() => { localStorage.clear(); localStorage.setItem(PANTRY_KEY, JSON.stringify({ schemaVersion: 1, items: [item], recipes: [], events: [] })); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); renderWishlistApp(); await user.click(screen.getByText('집에 있는 것')); return user }
+async function open() { const user = userEvent.setup(); renderShoppingApp(); await user.click(screen.getByText('집에 있는 것')); return user }
 
 it('AC125: 있어서 안 산 금액은 마지막 산 값으로 기록하고 모으기에 따로 보인다', async () => {
   const user = await open()

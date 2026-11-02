@@ -15,7 +15,7 @@ it('AC216: 물건·결정 기록·모으기가 비어 있으면 저장되지 않
   const wish = within(screen.getByRole('region', { name: '고민 중인 물건 예시' }))
   expect(wish.getByText('(예시) 무선 이어폰')).toBeInTheDocument()
   expect(wish.getByText('이렇게 보여요 (저장되지 않는 예시)')).toBeInTheDocument()
-  await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+  await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
   expect(within(screen.getByRole('region', { name: '결정 기록 예시' })).getByText('구매 포기 · 3일 고민')).toBeInTheDocument()
   await user.click(screen.getByRole('tab', { name: '모으기' }))
   const demo = within(screen.getByRole('region', { name: '모으기 요약 예시' }))

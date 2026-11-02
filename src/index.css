@@ -2566,3 +2566,14 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* 주요 메뉴 네 개 (F86, 2026-11-03): 가계부 안 접힌 '고정비·공과금' 묶음.
+   묶음 이름이 이미 위에 있으므로 안쪽 '고정비' 제목은 작게 보인다 */
+.fixed-group .screen-title {
+  font-size: 1.05rem;
+  margin: 4px 0 0;
+}
+
+.fixed-group .screen-title .title-icon {
+  display: none;
+}

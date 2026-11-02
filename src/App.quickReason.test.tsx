@@ -27,6 +27,6 @@ it('AC167: 이유 없이 구매함으로 옮겨도 결정 기록에 빈 문단�
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [{ ...item, status: 'purchased', decidedAt: '2026-11-02T00:00:00.000Z' }] }))
   const user = userEvent.setup()
   renderWishlistApp()
-  await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+  await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
   expect(screen.getByText('사고 싶은 이유를 아직 적지 않았어요.')).toBeInTheDocument()
 })

@@ -176,7 +176,7 @@ function goTo(tab: string) {
 }
 function openBundle() {
   const view = render(<App />)
-  goTo('가격 비교')
+  goTo('장보기')
   goTo('묶음상품 비교')
   return view
 }
@@ -1093,10 +1093,10 @@ describe('다른 화면을 보는 동안 끝난 읽기 (10장 앱 공통)', () =
 
     if (keepFocus) expect(keep).toHaveFocus()
     else expect(document.body).toHaveFocus()
-    expect(focusedInside(focusSpy, panelOf('가격 비교'))).toEqual([])
+    expect(focusedInside(focusSpy, panelOf('장보기'))).toEqual([])
     expect(held.signal?.aborted).toBe(false)
 
-    goTo('가격 비교')
+    goTo('장보기')
 
     expect(boxEl(B)).toBeVisible()
     expect(box(B).getByText('채울 값: 가격 9,900원 · 2.5L × 1개')).toBeInTheDocument()

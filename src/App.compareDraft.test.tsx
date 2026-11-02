@@ -20,7 +20,7 @@ describe('비교 결과를 고민 목록에 담기 (F21)', () => {
   it('할인 비교에서 B안으로 담으면 고민 목록으로 가서 가격과 이유를 채우고 상품명에 포커스를 둔다', async () => {
     const user = userEvent.setup()
     renderWishlistApp()
-    await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '장보기' }))
     await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     await user.click(within(screen.getByRole('region', { name: '할인 비교 결과' })).getByRole('button', { name: 'B안으로 담기' }))
@@ -40,7 +40,7 @@ describe('비교 결과를 고민 목록에 담기 (F21)', () => {
   it('묶음 비교에서 상품 A로 담으면 그 상품의 가격과 단가를 채운다', async () => {
     const user = userEvent.setup()
     renderWishlistApp()
-    await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '장보기' }))
     await user.click(screen.getByRole('tab', { name: '묶음상품 비교' }))
     const bundlePanel = within(screen.getByRole('tabpanel', { name: '묶음상품 비교' }))
     await user.click(bundlePanel.getByRole('button', { name: '예시 넣기' }))
@@ -53,7 +53,7 @@ describe('비교 결과를 고민 목록에 담기 (F21)', () => {
     const user = userEvent.setup()
     renderWishlistApp()
     await user.type(wishForm().getByLabelText('상품명'), '캠핑 의자')
-    await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '장보기' }))
     await user.click(screen.getByRole('tab', { name: '할인 비교' }))
     await user.click(screen.getByRole('button', { name: '예시 넣기' }))
     await user.click(within(screen.getByRole('region', { name: '할인 비교 결과' })).getByRole('button', { name: 'A안으로 담기' }))

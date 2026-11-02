@@ -1,4 +1,4 @@
-import { renderWishlistApp } from './test/renderWishlistApp'
+import { renderShoppingApp } from './test/renderWishlistApp'
 import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -9,7 +9,7 @@ const stamp = today.toISOString()
 const item: PantryItem = { id: 'p1', name: '세제', kind: 'essential', level: 'low', purchases: [], createdAt: stamp, updatedAt: stamp }
 beforeEach(() => { localStorage.clear(); localStorage.setItem(PANTRY_KEY, JSON.stringify({ schemaVersion: 1, items: [item], recipes: [], events: [] })); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); renderWishlistApp(); await user.click(screen.getByText('집에 있는 것')); await user.click(within(screen.getByRole('group', { name: '세제' })).getByText('산 값 적기·비교')); return user }
+async function open() { const user = userEvent.setup(); renderShoppingApp(); await user.click(screen.getByText('집에 있는 것')); await user.click(within(screen.getByRole('group', { name: '세제' })).getByText('산 값 적기·비교')); return user }
 const form = () => within(screen.getByRole('form', { name: '세제 산 값 적기' }))
 async function add(user: ReturnType<typeof userEvent.setup>, place: string, amount: string, size: string, unit: string) {
   await user.clear(form().getByLabelText('곳'))
@@ -45,7 +45,7 @@ it('AC121: 산 값을 묶음 비교의 A안으로 보낸다', async () => {
   localStorage.setItem(PANTRY_KEY, JSON.stringify({ schemaVersion: 1, items: [{ ...item, purchases: [{ id: 'a1', day: '2026-10-31', place: '마트', amountKrw: 12000, size: 1, unit: 'kg', createdAt: stamp }] }], recipes: [], events: [] }))
   const user = await open()
   await user.click(screen.getByRole('button', { name: '묶음 비교로 보내기' }))
-  expect(screen.getByRole('tab', { name: '가격 비교', selected: true })).toBeInTheDocument()
+  expect(screen.getByRole('tab', { name: '장보기', selected: true })).toBeInTheDocument()
   expect(screen.getByRole('tab', { name: '묶음상품 비교', selected: true })).toBeInTheDocument()
   const a = within(screen.getByRole('group', { name: '상품 A' }))
   expect(a.getByLabelText('가격')).toHaveValue('12000')

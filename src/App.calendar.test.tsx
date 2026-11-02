@@ -134,7 +134,7 @@ describe('고민 끝나는 날 캘린더 줄 (F35, AC59)', () => {
   it('AC59: 결정한 물건에는 캘린더 줄이 없다 (고민 기간이 남았어도)', async () => {
     const user = setup(thing(), decided('purchased'), decided('skipped'))
     expect(screen.getAllByRole('link', { name: GOOGLE })).toHaveLength(1) // 고민 중인 한 건만
-    await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+    await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
     for (const name of ['결정한 purchased', '결정한 skipped']) {
       expect(card(name).queryByText(LABEL)).not.toBeInTheDocument()
       expect(card(name).queryByRole('link', { name: GOOGLE })).not.toBeInTheDocument()

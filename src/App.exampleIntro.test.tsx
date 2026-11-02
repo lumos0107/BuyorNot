@@ -11,7 +11,7 @@ beforeEach(() => {
 async function openCompare() {
   const user = userEvent.setup()
   renderWishlistApp()
-  await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+  await user.click(screen.getByRole('tab', { name: '장보기' }))
   await user.click(screen.getByRole('tab', { name: '할인 비교' }))
   return user
 }

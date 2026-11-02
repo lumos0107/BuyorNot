@@ -36,7 +36,7 @@ import { DeliveryCompare } from './DeliveryCompare'
 import type { Subscription } from '../logic/subscriptions'
 
 // 무료배송 채우기(F13)는 2026-10-13 제작자 결정으로 화면에서 뺐다. 계산 로직(logic/shipping.ts)은 남겨 두었다
-type CompareKind = 'discount' | 'bundle' | 'photo' | 'delivery'
+export type CompareKind = 'discount' | 'bundle' | 'photo' | 'delivery'
 
 const KINDS: readonly TabItem<CompareKind>[] = [
   { id: 'discount', label: '할인 비교' },
@@ -45,19 +45,23 @@ const KINDS: readonly TabItem<CompareKind>[] = [
 ]
 // 가격표 사진은 AI 서버가 연결된 빌드에서 비교 화면의 첫 탭이다.
 const KINDS_WITH_AI: readonly TabItem<CompareKind>[] = [{ id: 'photo', label: '가격표 사진' }, ...KINDS]
-const KINDS_WITH_DEMO: readonly TabItem<CompareKind>[] = [{ id: 'photo', label: '가격표 사진 예시' }, ...KINDS]
+// 공개 빌드의 저장된 사진 예시는 시연용이라 마지막 탭이다. README 링크는 주소 ?tab=photo로 바로 연다 (F86, 2026-11-03)
+const KINDS_WITH_DEMO: readonly TabItem<CompareKind>[] = [...KINDS, { id: 'photo', label: '가격표 사진 예시' }]
 
 export function CompareScreen({
   onGoToWishlist,
   onAddToWishlist,
   onAddPhotoDraft,
   startWithExample = false,
+  initialKind,
   pantryDraft,
   subscriptions = [],
 }: {
   onGoToWishlist?: () => void
   /** 처음부터 예시 값을 채워 결과가 바로 보이게 한다 (앱 화면에서 켠다, 2026-10-11 제작자 요청) */
   startWithExample?: boolean
+  /** 처음 고를 비교 종류. 없으면 AI 서버가 있는 빌드는 가격표 사진, 공개 빌드는 할인 비교 (F86) */
+  initialKind?: CompareKind
   /** 비교 결과를 고민 목록에 담기 (F21) */
   onAddToWishlist?: (draft: WishDraft) => void
   /** 가격표 사진 결과를 고민 목록의 담기 폼에 빈 칸만 채워 담기 (F31) */
@@ -65,11 +69,11 @@ export function CompareScreen({
   pantryDraft?: BundleRawInput | null
   subscriptions?: readonly Subscription[]
 }) {
-  const [kind, setKind] = useState<CompareKind>(() => pantryDraft ? 'bundle' : 'photo')
   const withAi = aiServerUrl() !== null
+  const [kind, setKind] = useState<CompareKind>(() => pantryDraft ? 'bundle' : initialKind ?? (withAi ? 'photo' : 'discount'))
   return (
     <div className="stack">
-      <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconTag /></span>가격 비교</h2>
+      <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconTag /></span>장보기</h2>
       <Tabs label="가격 비교 종류" tabs={withAi ? KINDS_WITH_AI : KINDS_WITH_DEMO} value={kind} onChange={setKind} sub />
       <TabPanel id="discount" hidden={kind !== 'discount'}>
         <DiscountCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />

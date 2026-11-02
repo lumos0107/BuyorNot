@@ -57,7 +57,7 @@ it('결정 기록 카드도 분류 아이콘을 보여 준다', async () => {
   }] }))
   const user = userEvent.setup()
   renderWishlistApp()
-  await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+  await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
   expect(title('게임기')).toHaveClass('has-icon')
   expect(title('게임기').querySelector('.card-icon-hobby')).not.toBeNull()
 })

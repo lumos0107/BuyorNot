@@ -45,6 +45,12 @@ export function PaymentCalendarSection({ subscriptions, expenses = [], expenseDe
   const listDays = [...new Set([...grouped.keys(), ...spentByDay.keys()])].sort()
   const firstWeekday = days[0].getDay()
   const rootRef = useRef<HTMLDetailsElement>(null)
+  // 달력 아래 날짜별 목록은 접어 두고, 날짜 칸을 누르면 펼친 뒤 그날로 포커스를 옮긴다 (F86)
+  const listRef = useRef<HTMLDetailsElement>(null)
+  const openDay = (iso: string) => {
+    if (listRef.current) listRef.current.open = true
+    document.getElementById(`payment-day-${iso}`)?.focus()
+  }
 
   return <details className="card guide payment-calendar" role="region" aria-label="결제·지출 달력" ref={rootRef} open>
     <summary className="card-title">
@@ -79,10 +85,12 @@ export function PaymentCalendarSection({ subscriptions, expenses = [], expenseDe
               {spends.length ? <span className={future ? 'payment-calendar-amount planned' : 'payment-calendar-amount spent'} aria-hidden="true">{shortWon(spendTotal)}</span> : null}</>
             const label = [pays.length ? `결제 예정 ${pays.length}건` : '', spends.length ? `${future ? '예상 지출' : '지출'} ${spends.length}건` : ''].filter(Boolean).join(', ')
             return pays.length || spends.length
-              ? <button className={classes} type="button" key={iso} aria-label={`${iso} ${label}`} onClick={() => document.getElementById(`payment-day-${iso}`)?.focus()}>{content}</button>
+              ? <button className={classes} type="button" key={iso} aria-label={`${iso} ${label}`} onClick={() => openDay(iso)}>{content}</button>
               : <span className={classes} key={iso}>{content}</span>
           })}
         </div>
+        <details className="payment-calendar-list" ref={listRef}>
+        <summary>날짜별 목록</summary>
         {listDays.map((day) => {
           const pays = grouped.get(day) ?? []
           const spends = spentByDay.get(day) ?? []
@@ -93,6 +101,7 @@ export function PaymentCalendarSection({ subscriptions, expenses = [], expenseDe
             {spends.map((entry) => <p key={entry.id} className={day > todayIso ? 'list-planned' : 'list-spent'}>{`${dateLabel(day)} · ${spendWord} · ${entry.name} · ${formatWon(entry.amountKrw)}`}</p>)}
           </section>
         })}
+        </details>
       </>}
     </div>
   </details>

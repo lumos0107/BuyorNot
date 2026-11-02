@@ -84,7 +84,7 @@ describe('GPT 10~11단계 검토 반영', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [wish({ name: '무선 헤드폰', priceKrw: 129000, status: 'skipped' })] }))
       const user = userEvent.setup()
       renderWishlistApp()
-      await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+      await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({ schemaVersion: 1, hourlyWage: 10000 }))
       act(() => {
         window.dispatchEvent(new StorageEvent('storage', { key: SETTINGS_KEY }))
@@ -165,7 +165,7 @@ describe('GPT 10~11단계 검토 반영', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [wish({})] }))
       const user = userEvent.setup()
       renderWishlistApp()
-      await user.click(screen.getByRole('tab', { name: '결정 기록' }))
+      await user.click(screen.getByRole('tab', { name: '물건' })); await user.click(screen.getByRole('tab', { name: '결정 기록' }))
       return user
     }
 
@@ -288,7 +288,7 @@ describe('열린 화면의 회고 시점', () => {
     vi.setSystemTime(T0)
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [wish({ decidedAt: iso(T0.getTime() - 7 * DAY + 10_000) })] }))
     renderWishlistApp()
-    fireEvent.click(screen.getByRole('tab', { name: '결정 기록' }))
+    fireEvent.click(screen.getByRole('tab', { name: '물건' })); fireEvent.click(screen.getByRole('tab', { name: '결정 기록' }))
     const ask = () => within(screen.getByRole('article', { name: '전기 포트' })).queryByText('잘 샀나요?')
     expect(ask()).toBeNull()
     await act(async () => {

@@ -77,7 +77,7 @@ describe('화면 연결과 안내', () => {
   it('가격 비교에서 고민 중인 물건으로 바로 갈 수 있다 (4-22)', async () => {
     const user = userEvent.setup()
     renderWishlistApp()
-    await user.click(screen.getByRole('tab', { name: '가격 비교' }))
+    await user.click(screen.getByRole('tab', { name: '장보기' }))
     await user.click(screen.getByRole('button', { name: '고민 중인 물건에 담으러 가기' }))
     expect(screen.getByRole('tab', { name: '물건', selected: true })).toBeInTheDocument()
     expect(screen.getByRole('form', { name: '물건 담기' })).toBeInTheDocument()
@@ -87,7 +87,7 @@ describe('화면 연결과 안내', () => {
     const user = userEvent.setup()
     renderWishlistApp()
     await user.click(screen.getByRole('button', { name: '예시 물건 넣기' }))
-    const panel = within(screen.getByRole('tabpanel'))
+    const panel = within(screen.getByRole('tabpanel', { name: '고민 중' }))
     const articles = panel.getAllByRole('article')
     expect(articles.length).toBeGreaterThanOrEqual(2)
     expect(panel.getAllByText(/^고민 중 · \d일 남음$/)).toHaveLength(2)
