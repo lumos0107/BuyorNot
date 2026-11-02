@@ -6,7 +6,7 @@
 //   git worktree add ../v1src v1 && (cd ../v1src && npm ci && npm run build -- --base /BuyorNot/v1/)
 //   mkdir -p dist/v1 && cp -a ../v1src/dist/. dist/v1/
 //   npx vite preview --port 4173
-//   node docs/midterm_compare/capture.cjs http://localhost:4173/BuyorNot/
+//   LANG=ko_KR.UTF-8 node docs/midterm_compare/capture.cjs http://localhost:4173/BuyorNot/   (LANG이 없으면 달 입력칸이 영어로 찍힌다)
 //
 // 모든 사진은 새 브라우저(빈 저장소), 휴대폰 화면 390×844, 2배 해상도로 찍는다.
 // 한 화면 사진은 780×1688(같은 비율), 부분 사진은 폭 780 안팎에 내용 높이만큼이다.
@@ -92,7 +92,7 @@ async function tab(page, name) {
 
     await tab(page, '가계부')
     await viewAt(page, '04-fixed-costs')
-    await part(page, '09-calendar-current', page.getByRole('region', { name: '앞으로 30일 결제 달력' }))
+    await part(page, '09-calendar-current', page.getByRole('region', { name: '결제·지출 달력' }))
     await part(page, '11-ledger-current', page.getByRole('region', { name: '이달 가계부 요약' }))
     await part(page, '15-ledger-dashboard', page.getByRole('region', { name: '이달 현황판' }))
 
