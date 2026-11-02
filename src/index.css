@@ -1827,3 +1827,309 @@ section.card[aria-label$='비교 결과'] {
     animation: none;
   }
 }
+
+/* ───────────────────────────────────────────────────────────────
+   2026-11-02 가계부 보기(F84): 가계부 앱에서 흔한 방식을 참고
+   큰 숫자 요약 · 달 넘기기 · 현황판 막대 · 분류별 순위 · 날짜별 내역 · 동그란 분류 표식
+   ─────────────────────────────────────────────────────────────── */
+
+/* 달 넘기기: ‹ [볼 달] › */
+.month-nav {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: end;
+  gap: 8px;
+}
+
+.month-step {
+  appearance: none;
+  width: 44px;
+  height: 48px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.month-step:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 수입·지출·차이 세 칸: 위에 이름, 아래에 큰 숫자 */
+.ledger-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ledger-stats .ledger-stat {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  min-width: 0;
+}
+
+.ledger-stat > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ledger-stat > strong {
+  font-size: clamp(13px, 3.9vw, 17px);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ledger-stats .ledger-stat {
+  padding: 12px 10px;
+  overflow: hidden;
+}
+
+.ledger-stat-income > strong {
+  color: var(--accent-ink);
+}
+
+.ledger-stats .ledger-stat-diff {
+  background: var(--accent-soft);
+}
+
+.ledger-stat-diff > span {
+  color: var(--accent-ink);
+}
+
+.ledger-change {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* 이달 현황판: 한 줄 막대를 지출(주황)·모을 금액(파랑)·남는 돈(옅은 파랑)으로 나눈다 */
+.dashboard-bar {
+  display: flex;
+  height: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e4e8f2;
+}
+
+.dashboard-bar .seg {
+  height: 100%;
+  min-width: 0;
+}
+
+.seg-expense,
+.lg-expense::before {
+  background: var(--point);
+}
+
+.seg-target,
+.lg-target::before {
+  background: var(--accent);
+}
+
+.seg-left,
+.lg-left::before {
+  background: #b9c7f5;
+}
+
+.dashboard-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dashboard-legend .lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dashboard-legend .lg::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.lg-expense::after {
+  content: '지출';
+}
+
+.lg-target::after {
+  content: '모을 금액';
+}
+
+.lg-left::after {
+  content: '남는 돈';
+}
+
+.dashboard-text {
+  font-size: 14px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-over {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.dashboard-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.dashboard-form .field-error {
+  grid-column: 1 / -1;
+}
+
+/* 동그란 분류 표식: 분류마다 옅은 바탕과 진한 글자(대비 4.5:1 이상) */
+.ledger-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ledger-icon-salary { background: #e8eeff; color: #2b44b0; }
+.ledger-icon-food { background: #fff1e0; color: #a35200; }
+.ledger-icon-daily { background: #e6f6ec; color: #1b6e3f; }
+.ledger-icon-transport { background: #e5f2fb; color: #125a87; }
+.ledger-icon-housing { background: #f1ebff; color: #5536b8; }
+.ledger-icon-health { background: #ffebee; color: #b0213a; }
+.ledger-icon-other { background: #eef0f5; color: #475467; }
+
+/* 분류별 지출: 표식 · 이름과 막대 · 비율 */
+.category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.category-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.category-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.category-line strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.category-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #eceff5;
+  overflow: hidden;
+}
+
+.category-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.category-percent {
+  width: 40px;
+  flex: none;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* 날짜별 내역: 날짜 머리 + 한 줄 기록(표식 · 이름 · 금액) */
+.ledger-day + .ledger-day {
+  margin-top: 6px;
+}
+
+.ledger-day-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ledger-entries li {
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.ledger-entries li + li {
+  border-top: 0;
+}
+
+.ledger-entry-body {
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ledger-entry-side {
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.ledger-entry-side .btn {
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.amount-income {
+  color: var(--accent-ink);
+}
+
+.amount-expense {
+  color: var(--ink);
+}
+
+/* 분류별 막대 색을 분류 표식 글자색과 맞춘다 */
+.category-list li:has(.ledger-icon-salary) .category-bar > span { background: #3b5bdb; }
+.category-list li:has(.ledger-icon-food) .category-bar > span { background: #f59f00; }
+.category-list li:has(.ledger-icon-daily) .category-bar > span { background: #2f9e5b; }
+.category-list li:has(.ledger-icon-transport) .category-bar > span { background: #1c7ed6; }
+.category-list li:has(.ledger-icon-housing) .category-bar > span { background: #7048e8; }
+.category-list li:has(.ledger-icon-health) .category-bar > span { background: #e03150; }
+.category-list li:has(.ledger-icon-other) .category-bar > span { background: #868e96; }

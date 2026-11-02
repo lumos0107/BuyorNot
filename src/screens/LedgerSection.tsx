@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { isDay } from '../logic/guards'
-import { LEDGER_CATEGORY_LABEL, ledgerMonth, type LedgerCategory, type LedgerEntry, type LedgerKind } from '../logic/ledger'
+import { LEDGER_CATEGORY_LABEL, ledgerByCategory, ledgerDashboard, ledgerDayGroups, ledgerDayLabel, ledgerMonth, ledgerMonthChange, parseSaveTarget, shiftMonth, type LedgerCategory, type LedgerEntry, type LedgerKind } from '../logic/ledger'
 import { formatWon } from '../logic/number'
 import { toDayIso } from '../logic/subscriptions'
 import { newId } from '../logic/wishlist'
@@ -38,7 +38,12 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
     { id: 'demo-food', kind: 'expense', category: 'food', name: '(예시) 점심 식사', amountKrw: 12000, day: todayIso, createdAt: today.toISOString() },
     { id: 'demo-transport', kind: 'expense', category: 'transport', name: '(예시) 교통비', amountKrw: 3500, day: todayIso, createdAt: today.toISOString() },
   ] : []
-  const summary = ledgerMonth(showDemo ? demoEntries : ledger.store.entries, month)
+  const shown = showDemo ? demoEntries : ledger.store.entries
+  const summary = ledgerMonth(shown, month)
+  const byCategory = ledgerByCategory(shown, month)
+  const dayGroups = ledgerDayGroups(summary.entries)
+  const monthChange = showDemo ? null : ledgerMonthChange(ledger.store.entries, month)
+  const saveTarget = ledger.store.saveTargets?.[month] ?? null
   const smallSpent = spending.entries.filter((entry) => entry.day.slice(0, 7) === month && entry.action === 'spent').reduce((sum, entry) => sum + entry.amountKrw, 0)
   const billsAmount = bills.items.filter((bill) => bill.month === month).reduce((sum, bill) => sum + bill.amountKrw, 0)
 
@@ -66,13 +71,34 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
       {ledger.status.kind === 'replaced' ? <Button onClick={ledger.dismissNotice}>확인</Button> : null}
     </div> : null}
     <section className="card stack" aria-label="이달 가계부 요약">
-      <TextField label="볼 달" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+      <div className="month-nav">
+        <button type="button" className="month-step" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button>
+        <TextField label="볼 달" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+        <button type="button" className="month-step" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}>›</button>
+      </div>
       {showDemo ? <p className="note">시연용 예시 금액입니다. 저장되지 않으며 첫 내역을 적으면 사라져요.</p> : null}
-      <p className="card-row"><span>{showDemo ? '수입 (예시)' : '직접 적은 수입'}</span><strong>{formatWon(summary.income)}</strong></p>
-      <p className="card-row"><span>{showDemo ? '지출 (예시)' : '직접 적은 지출'}</span><strong>{formatWon(summary.expense)}</strong></p>
-      <p className="card-row"><span>차이</span><strong>{formatWon(summary.income - summary.expense)}</strong></p>
+      <div className="ledger-stats">
+        <p className="card-row ledger-stat ledger-stat-income"><span>{showDemo ? '수입 (예시)' : '직접 적은 수입'}</span><strong>{formatWon(summary.income)}</strong></p>
+        <p className="card-row ledger-stat ledger-stat-expense"><span>{showDemo ? '지출 (예시)' : '직접 적은 지출'}</span><strong>{formatWon(summary.expense)}</strong></p>
+        <p className="card-row ledger-stat ledger-stat-diff"><span>차이</span><strong>{formatWon(summary.income - summary.expense)}</strong></p>
+      </div>
+      {monthChange ? <p className="ledger-change">{monthChange}</p> : null}
       <p className="note">아래의 자잘한 지출 {formatWon(smallSpent)}·공과금 {formatWon(billsAmount)}은 중복 계산을 막기 위해 위 합계에 넣지 않았어요.</p>
     </section>
+    <DashboardCard key={month} income={summary.income} expense={summary.expense} target={saveTarget} onSave={(value) => ledger.setSaveTarget(month, value)} />
+    {byCategory.length > 0 ? <section className="card stack" aria-label="분류별 지출">
+      <p className="card-title">분류별 지출</p>
+      <ul className="category-list">
+        {byCategory.map((row) => <li key={row.category}>
+          <span className={`ledger-icon ledger-icon-${row.category}`} aria-hidden="true">{LEDGER_CATEGORY_LABEL[row.category].slice(0, 1)}</span>
+          <span className="category-body">
+            <span className="category-line"><span>{LEDGER_CATEGORY_LABEL[row.category]}</span><strong>{formatWon(row.amountKrw)}</strong></span>
+            <span className="category-bar" aria-hidden="true"><span style={{ width: `${row.percent}%` }} /></span>
+          </span>
+          <span className="category-percent">{row.percent}%</span>
+        </li>)}
+      </ul>
+    </section> : null}
     <section className="card stack" aria-label="가계부 내역 적기">
       <p className="card-title">수입·지출 적기</p>
       <form className="stack" onSubmit={submit}>
@@ -94,14 +120,57 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
     </section>
     <section className="card stack" aria-label="가계부 내역">
       <p className="card-title">{month} 내역</p>
-      {summary.entries.length === 0 ? <p className="note">이달에 직접 적은 내역이 없어요.</p> : <ul className="result-list">
-        {summary.entries.map((entry) => <li key={entry.id}>
-          <div className="stack"><strong>{entry.name}</strong><span className="note">{entry.day} · {entry.kind === 'income' ? '수입' : '지출'} · {LEDGER_CATEGORY_LABEL[entry.category]}</span></div>
-          <div className="stack"><span className="price">{entry.kind === 'income' ? '+' : '−'}{formatWon(entry.amountKrw)}</span>
+      {summary.entries.length === 0 ? <p className="note">이달에 직접 적은 내역이 없어요.</p> : dayGroups.map((group) => <div className="ledger-day" key={group.day}>
+        <p className="ledger-day-head"><span>{ledgerDayLabel(group.day)}</span><span>{[group.income > 0 ? `수입 ${formatWon(group.income)}` : null, group.expense > 0 ? `지출 ${formatWon(group.expense)}` : null].filter(Boolean).join(' · ')}</span></p>
+        <ul className="result-list ledger-entries">
+        {group.entries.map((entry) => <li key={entry.id}>
+          <span className={`ledger-icon ledger-icon-${entry.category}`} aria-hidden="true">{LEDGER_CATEGORY_LABEL[entry.category].slice(0, 1)}</span>
+          <div className="stack ledger-entry-body"><strong>{entry.name}</strong><span className="note">{entry.day} · {entry.kind === 'income' ? '수입' : '지출'} · {LEDGER_CATEGORY_LABEL[entry.category]}</span></div>
+          <div className="stack ledger-entry-side"><span className={`price amount-${entry.kind}`}>{entry.kind === 'income' ? '+' : '−'}{formatWon(entry.amountKrw)}</span>
             {showDemo ? null : deleteId === entry.id ? <span className="btn-row"><Button variant="danger" onClick={() => { ledger.remove(entry.id); setDeleteId(null) }}>지우기 확인</Button><Button onClick={() => setDeleteId(null)}>취소</Button></span> : <Button onClick={() => setDeleteId(entry.id)}>지우기</Button>}
           </div>
         </li>)}
-      </ul>}
+        </ul>
+      </div>)}
     </section>
+  </section>
+}
+
+
+// 이달 현황판 (F84, AC206·AC207): 수입을 막대 전체로 두고 지출·모을 금액·남는 돈을 나눠 칠한다.
+// 막대는 장식이고 같은 내용을 아래 글로 보인다. 모을 금액은 목표일 뿐 모으기의 옮긴 돈과 합치지 않는다
+function DashboardCard({ income, expense, target, onSave }: { income: number; expense: number; target: number | null; onSave: (value: number | null) => boolean }) {
+  const [text, setText] = useState(target === null ? '' : String(target))
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const view = ledgerDashboard(income, expense, target)
+  const save = (event: FormEvent) => {
+    event.preventDefault()
+    setMessage('')
+    const parsed = parseSaveTarget(text)
+    if (!parsed.ok) { setError('모을 금액은 0원~10억 원 사이의 정수로 적어 주세요.'); return }
+    setError('')
+    if (!onSave(parsed.value)) { setError('다른 탭의 기록을 불러왔어요. 내용을 확인하고 다시 저장해 주세요.'); return }
+    setMessage(parsed.value === null ? '이번 달 모을 금액을 지웠어요.' : '이번 달 모을 금액을 저장했어요.')
+  }
+  const width = (value: number) => (view.kind === 'ok' ? `${Math.min(100, (value / Math.max(view.income, view.expense + view.target)) * 100)}%` : '0%')
+  return <section className="card stack dashboard" aria-label="이달 현황판">
+    <p className="card-title">이달 현황판</p>
+    {view.kind === 'no-income' ? <p className="note">이 달 수입을 적으면 현황판이 채워져요.</p> : <>
+      <div className="dashboard-bar" aria-hidden="true">
+        <span className="seg seg-expense" style={{ width: width(view.expense) }} />
+        <span className="seg seg-target" style={{ width: width(view.target) }} />
+        <span className="seg seg-left" style={{ width: width(view.left) }} />
+      </div>
+      {/* 막대 색 안내. 글자는 CSS가 그리고(중복 낭독 방지) 같은 내용은 아래 문장에 있다 */}
+      <div className="dashboard-legend" aria-hidden="true"><span className="lg lg-expense" /><span className="lg lg-target" /><span className="lg lg-left" /></div>
+      <p className="dashboard-text">{[`수입 ${formatWon(view.income)} 중 지출 ${formatWon(view.expense)}(${view.percent.expense}%)`, view.target > 0 ? `모을 금액 ${formatWon(view.target)}(${view.percent.target}%)` : null, view.over > 0 ? null : `남는 돈 ${formatWon(view.left)}(${view.percent.left}%)`].filter(Boolean).join(' · ')}</p>
+      {view.over > 0 ? <p className="dashboard-over">수입보다 {formatWon(view.over)} 많아요</p> : null}
+    </>}
+    <form className="dashboard-form" onSubmit={save} noValidate>
+      <TextField label="이번 달 모을 금액" inputMode="numeric" placeholder="원" value={text} onChange={(event) => setText(event.target.value)} error={error || undefined} />
+      <Button type="submit">저장</Button>
+    </form>
+    {message ? <p role="status" className="note">{message}</p> : null}
   </section>
 }

@@ -91,6 +91,7 @@ async function tab(page, name) {
     await viewAt(page, '04-fixed-costs')
     await part(page, '09-calendar-current', page.getByRole('region', { name: '앞으로 30일 결제 달력' }))
     await part(page, '11-ledger-current', page.getByRole('region', { name: '이달 가계부 요약' }))
+    await part(page, '15-ledger-dashboard', page.getByRole('region', { name: '이달 현황판' }))
 
     await tab(page, '모으기')
     await viewAt(page, '10-benefits-current')

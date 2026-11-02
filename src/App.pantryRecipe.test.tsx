@@ -36,6 +36,7 @@ it('AC124: 해 먹은 금액은 모으기에 따로 보이고 옮긴 돈에는 �
   await user.click(screen.getByRole('button', { name: '김치두부 해 먹었어요' }))
   await user.click(screen.getByRole('tab', { name: '모으기' }))
   expect(screen.getByText('해 먹었다고 적은 금액')).toBeInTheDocument()
-  expect(screen.getByText('12,000원')).toBeInTheDocument()
+  // 숨은 가계부 탭의 분류별 지출 예시(식비 12,000원)와 겹치지 않게 모으기 탭 안에서 찾는다 (F84)
+  expect(within(screen.getByRole('tabpanel', { name: '모으기' })).getByText('12,000원')).toBeInTheDocument()
   expect(screen.queryByText('아직 모은 기록이 없어요. 고민하던 물건을 구매 포기하거나, 고정비를 ‘해지했어요’로 옮기거나, 은행 앱에서 옮긴 돈을 적으면 여기에 보여요.')).not.toBeInTheDocument()
 })
