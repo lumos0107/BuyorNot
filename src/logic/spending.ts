@@ -6,7 +6,8 @@ import { josa } from './number'
 export type SpendingKind = 'convenience' | 'cafe' | 'delivery'
 export type SpendingTemplate = { id: string; name: string; kind: SpendingKind; amountKrw: number; limitPerMonth?: number; createdAt: string; updatedAt: string }
 export type SpendingEntry = { id: string; templateId: string; name: string; kind: SpendingKind; amountKrw: number; day: string; action: 'spent' | 'skipped'; createdAt: string }
-export type SpendingStore = { schemaVersion: 1; templates: SpendingTemplate[]; entries: SpendingEntry[] }
+export type WeeklyExperiment = { templateId: string; startedOn: string; baselineCount: number }
+export type SpendingStore = { schemaVersion: 1; templates: SpendingTemplate[]; entries: SpendingEntry[]; experiment?: WeeklyExperiment }
 export type SpendingLoadResult = { ok: true; store: SpendingStore } | { ok: false; reason: 'corrupt' | 'unavailable' }
 export const SPENDING_KEY = 'buyornot.spending.v1'
 export const EMPTY_SPENDING: SpendingStore = { schemaVersion: 1, templates: [], entries: [] }
@@ -38,9 +39,15 @@ function isEntry(v: unknown): v is SpendingEntry {
   return isTimestamp(v.createdAt)
 }
 export function isSpendingStore(v: unknown): v is SpendingStore {
-  if (!isRecord(v) || Object.keys(v).some((key) => !['schemaVersion', 'templates', 'entries'].includes(key))) return false
+  if (!isRecord(v) || Object.keys(v).some((key) => !['schemaVersion', 'templates', 'entries', 'experiment'].includes(key))) return false
   if (v.schemaVersion !== 1 || !Array.isArray(v.templates) || !Array.isArray(v.entries)) return false
   if (v.templates.length > SPENDING_TEMPLATE_MAX || v.entries.length > SPENDING_ENTRY_MAX) return false
+  if (v.experiment !== undefined) {
+    const experiment = v.experiment
+    if (!isRecord(experiment) || Object.keys(experiment).some((key) => !['templateId', 'startedOn', 'baselineCount'].includes(key))) return false
+    if (!idOkay(experiment.templateId) || !v.templates.some((template) => isRecord(template) && template.id === experiment.templateId)) return false
+    if (!isDay(experiment.startedOn) || !isIntBetween(experiment.baselineCount, 1, SPENDING_ENTRY_MAX)) return false
+  }
   return v.templates.every(isTemplate) && v.entries.every(isEntry) && uniqueIds(v.templates) && uniqueIds(v.entries)
 }
 export function parseSpending(raw: string | null): SpendingLoadResult {
@@ -97,4 +104,39 @@ export function weeklySpendingExperiment(entries: readonly SpendingEntry[], temp
 
 export function weeklySpendingLine(experiment: NonNullable<ReturnType<typeof weeklySpendingExperiment>>): string {
   return `직전 7일 ${experiment.previous}번 · 최근 7일 ${experiment.current}번 · 이번에는 ${experiment.target}번까지 시도해 보세요.`
+}
+
+export function startWeeklyExperiment(store: SpendingStore, templateId: string, today: Date): SpendingStore | 'no-baseline' {
+  if (!store.templates.some((template) => template.id === templateId)) return 'no-baseline'
+  const baselineCount = store.entries.filter((entry) => {
+    if (entry.templateId !== templateId || entry.action !== 'spent') return false
+    const day = parseDay(entry.day)
+    if (!day) return false
+    const age = calendarDaysBetween(day, today)
+    return age >= 1 && age <= 7
+  }).length
+  if (baselineCount === 0) return 'no-baseline'
+  const startedOn = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  return { ...store, experiment: { templateId, startedOn, baselineCount } }
+}
+
+export function weeklyExperimentProgress(experiment: WeeklyExperiment, entries: readonly SpendingEntry[], today: Date): { kind: 'active' | 'complete'; baseline: number; target: number; count: number } | null {
+  const start = parseDay(experiment.startedOn)
+  if (!start) return null
+  const elapsed = calendarDaysBetween(start, today)
+  if (elapsed < 0) return null
+  const count = entries.filter((entry) => {
+    if (entry.templateId !== experiment.templateId || entry.action !== 'spent') return false
+    const day = parseDay(entry.day)
+    if (!day) return false
+    const offset = calendarDaysBetween(start, day)
+    return offset >= 0 && offset <= 6 && offset <= elapsed
+  }).length
+  return { kind: elapsed >= 7 ? 'complete' : 'active', baseline: experiment.baselineCount, target: experiment.baselineCount - 1, count }
+}
+
+export function weeklyExperimentProgressLine(progress: NonNullable<ReturnType<typeof weeklyExperimentProgress>>): string {
+  return progress.kind === 'active'
+    ? `이번 주 시도 · 이전 7일 ${progress.baseline}번 · 목표 ${progress.target}번 이하 · 지금 ${progress.count}번`
+    : `이번 시도는 끝났어요. 목표 ${progress.target}번 이하 · 기록된 사용 ${progress.count}번.`
 }

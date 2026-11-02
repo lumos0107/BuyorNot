@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { formatWon, parseInteger } from '../logic/number'
 import {
   SPENDING_CORRUPT, SPENDING_KIND_LABEL, SPENDING_KINDS, SPENDING_REPLACED, SPENDING_SAVE_FAILED,
-  SPENDING_STORAGE_LABEL, SPENDING_UNAVAILABLE, spendingMonthSummary, spendingSavedMessage, weeklySpendingExperiment, weeklySpendingLine,
+  SPENDING_STORAGE_LABEL, SPENDING_UNAVAILABLE, spendingMonthSummary, spendingSavedMessage, weeklyExperimentProgress, weeklyExperimentProgressLine, weeklySpendingExperiment, weeklySpendingLine,
   type SpendingEntry, type SpendingKind, type SpendingTemplate,
 } from '../logic/spending'
 import { toDayIso } from '../logic/subscriptions'
@@ -27,6 +27,7 @@ export function SpendingSection({ spending, today }: { spending: ReturnType<type
   const { ref, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   const summary = spendingMonthSummary(spending.store.entries, today)
   const weekly = new Map(spending.store.templates.map((template) => [template.id, weeklySpendingExperiment(spending.store.entries, template.id, today)]))
+  const activeProgress = spending.store.experiment ? weeklyExperimentProgress(spending.store.experiment, spending.store.entries, today) : null
 
   const addTemplate = (event: FormEvent) => {
     event.preventDefault()
@@ -81,8 +82,14 @@ export function SpendingSection({ spending, today }: { spending: ReturnType<type
       <p className="card-title">{template.name}</p>
       <p>{`${SPENDING_KIND_LABEL[template.kind]} · ${formatWon(template.amountKrw)}`}</p>
       {template.limitPerMonth ? <p className="note">{`이번 달 ${spending.store.entries.filter((entry) => entry.templateId === template.id && entry.action === 'spent' && entry.day.slice(0, 7) === toDayIso(today).slice(0, 7)).length}번 / 정한 ${template.limitPerMonth}번`}</p> : null}
-      {weekly.get(template.id) ? <p className="note">{weeklySpendingLine(weekly.get(template.id)!)}</p> : null}
-      <div className="btn-row"><Button aria-label={`${template.name} 썼어요`} onClick={() => addEntry(template, 'spent', new Date())}>썼어요</Button><Button aria-label={`${template.name} 참았어요`} onClick={() => addEntry(template, 'skipped', new Date())}>참았어요</Button><Button onClick={() => setDeleteTemplateId(template.id)}>지우기</Button></div>
+      {spending.store.experiment?.templateId === template.id && activeProgress
+        ? <p className="note">{weeklyExperimentProgressLine(activeProgress)}</p>
+        : weekly.get(template.id) ? <p className="note">{weeklySpendingLine(weekly.get(template.id)!)}</p> : null}
+      <div className="btn-row"><Button aria-label={`${template.name} 썼어요`} onClick={() => addEntry(template, 'spent', new Date())}>썼어요</Button><Button aria-label={`${template.name} 참았어요`} onClick={() => addEntry(template, 'skipped', new Date())}>참았어요</Button><Button aria-label={`${template.name} ${spending.store.experiment?.templateId === template.id && activeProgress?.kind === 'active' ? '시도 중단' : '한 주 시도 시작'}`} onClick={() => {
+        if (spending.store.experiment?.templateId === template.id && activeProgress?.kind === 'active') { if (spending.stopExperiment()) setMessage(''); return }
+        const result = spending.startExperiment(template.id, today)
+        setMessage(result === 'no-baseline' ? '이전 7일에 쓴 기록이 있어야 시작할 수 있어요.' : '')
+      }}>{spending.store.experiment?.templateId === template.id && activeProgress?.kind === 'active' ? '시도 중단' : activeProgress?.kind === 'complete' && spending.store.experiment?.templateId === template.id ? '다시 시도하기' : '한 주 시도 시작'}</Button><Button onClick={() => setDeleteTemplateId(template.id)}>지우기</Button></div>
       {deleteTemplateId === template.id ? <div role="group" aria-label="자잘한 지출 버튼 지우기 확인" className="stack"><p>이 버튼을 지울까요? 적은 기록은 그대로 남아요.</p><div className="btn-row"><Button variant="danger" autoFocus onClick={() => { if (spending.removeTemplate(template.id)) titleRef.current?.focus(); setDeleteTemplateId(null) }}>지우기</Button><Button onClick={() => setDeleteTemplateId(null)}>취소</Button></div></div> : null}
     </div>)}
     {spending.store.entries.length > 0 ? <details><summary>{`자잘한 지출 기록 (${spending.store.entries.length}건)`}</summary><div className="stack">

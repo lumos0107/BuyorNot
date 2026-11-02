@@ -67,3 +67,39 @@ it('AC184: 지난주 두 번 썼으면 이번 주 한 번 덜 쓰기 문장을 �
   await user.click(screen.getByRole('button', { name: '커피 썼어요' }))
   expect(within(screen.getByRole('group', { name: '커피' })).getByText('직전 7일 2번 · 최근 7일 1번 · 이번에는 1번까지 시도해 보세요.')).toBeInTheDocument()
 })
+
+it('AC192·AC194: 한 주 시도 선택은 새로고침 뒤에도 남고 버튼을 지우면 없어진다', async () => {
+  const stamp = today.toISOString()
+  localStorage.setItem(SPENDING_KEY, JSON.stringify({ schemaVersion: 1, templates: [{ id: 't1', name: '커피', kind: 'cafe', amountKrw: 4500, createdAt: stamp, updatedAt: stamp }], entries: [
+    { id: 'e1', templateId: 't1', name: '커피', kind: 'cafe', amountKrw: 4500, day: '2026-10-25', action: 'spent', createdAt: stamp },
+    { id: 'e2', templateId: 't1', name: '커피', kind: 'cafe', amountKrw: 4500, day: '2026-10-31', action: 'spent', createdAt: stamp },
+  ] }))
+  const user = await open()
+  await user.click(screen.getByRole('button', { name: '커피 한 주 시도 시작' }))
+  expect(screen.getByText('이번 주 시도 · 이전 7일 2번 · 목표 1번 이하 · 지금 0번')).toBeInTheDocument()
+  expect(JSON.parse(localStorage.getItem(SPENDING_KEY) ?? '{}').experiment.templateId).toBe('t1')
+  const { cleanup } = await import('@testing-library/react')
+  cleanup()
+  await open()
+  expect(screen.getByText('이번 주 시도 · 이전 7일 2번 · 목표 1번 이하 · 지금 0번')).toBeInTheDocument()
+  await user.click(within(screen.getByRole('group', { name: '커피' })).getByRole('button', { name: '지우기' }))
+  await user.click(within(screen.getByRole('group', { name: '자잘한 지출 버튼 지우기 확인' })).getByRole('button', { name: '지우기' }))
+  expect(JSON.parse(localStorage.getItem(SPENDING_KEY) ?? '{}')).not.toHaveProperty('experiment')
+})
+
+it('AC194: 다른 버튼을 고르면 한 주 시도가 바뀌고 중단하면 선택이 사라진다', async () => {
+  const stamp = today.toISOString()
+  localStorage.setItem(SPENDING_KEY, JSON.stringify({ schemaVersion: 1, templates: [
+    { id: 't1', name: '커피', kind: 'cafe', amountKrw: 4500, createdAt: stamp, updatedAt: stamp },
+    { id: 't2', name: '배달', kind: 'delivery', amountKrw: 20000, createdAt: stamp, updatedAt: stamp },
+  ], entries: [
+    { id: 'e1', templateId: 't1', name: '커피', kind: 'cafe', amountKrw: 4500, day: '2026-10-31', action: 'spent', createdAt: stamp },
+    { id: 'e2', templateId: 't2', name: '배달', kind: 'delivery', amountKrw: 20000, day: '2026-10-31', action: 'spent', createdAt: stamp },
+  ] }))
+  const user = await open()
+  await user.click(screen.getByRole('button', { name: '커피 한 주 시도 시작' }))
+  await user.click(screen.getByRole('button', { name: '배달 한 주 시도 시작' }))
+  expect(JSON.parse(localStorage.getItem(SPENDING_KEY) ?? '{}').experiment.templateId).toBe('t2')
+  await user.click(screen.getByRole('button', { name: '배달 시도 중단' }))
+  expect(JSON.parse(localStorage.getItem(SPENDING_KEY) ?? '{}')).not.toHaveProperty('experiment')
+})
