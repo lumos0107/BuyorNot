@@ -17,6 +17,7 @@ import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
 import { ResetConfirm } from '../ui/ResetConfirm'
 import { useFocusFirstError } from '../ui/useFocusFirstError'
+import { ShoppingDraftSection } from './ShoppingDraftSection'
 
 type Props = { pantry: ReturnType<typeof usePantry>; subscriptions: readonly Subscription[]; today: Date; onCompare: (purchase: PantryPurchase) => void }
 const LEVEL_ORDER = { out: 0, low: 1, plenty: 2 }
@@ -146,6 +147,7 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
       {items.length === 0 ? <p className="note">아직 적은 것이 없어요.</p> : null}
       {expiring.length > 0 ? <section className="stack" aria-label="먼저 쓸 것"><p className="card-title">먼저 쓸 것</p>{expiring.map(row)}</section> : null}
       {needed.length > 0 ? <section className="stack" aria-label="살 때가 된 것"><p className="card-title">살 때가 된 것</p>{needed.map(row)}</section> : null}
+      <ShoppingDraftSection items={pantry.store.items} recipes={pantry.store.recipes} />
       {other.length > 0 ? <details><summary>{`집에 있는 것 (${other.length}개)`}</summary><div className="stack">{other.map(row)}</div></details> : null}
       {discarded.count > 0 ? <details><summary>{`버린 식재료 ${discarded.count}개 · ${formatWon(discarded.amountKrw)}`}</summary>
         <div className="stack">{pantry.store.events.filter((event) => event.action === 'discarded' && event.day.slice(0, 7) === toDayIso(today).slice(0, 7)).map((event) => <p key={event.id}>{`${event.day} · ${event.name} · ${formatWon(event.amountKrw)}`}</p>)}</div>

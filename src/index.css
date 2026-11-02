@@ -872,6 +872,29 @@ button.payment-calendar-day {
   font-size: 14px;
 }
 
+.shopping-draft {
+  border-top: 1px solid var(--line);
+}
+
+.shopping-draft > summary {
+  min-height: 44px;
+}
+
+.shopping-draft-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.shopping-draft .check-row {
+  min-height: 44px;
+  align-items: center;
+}
+
+.shopping-draft-row > .note {
+  display: block;
+  padding: 0 0 8px 26px;
+}
+
 /* 저축 목표 진행 막대 (F48): 색은 강조색 변수 */
 .goal-progress {
   width: 100%;

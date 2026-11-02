@@ -1,0 +1,54 @@
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import App from './App'
+import { PANTRY_KEY, type PantryItem, type PantryRecipe, type PantryStore } from './logic/pantry'
+
+const stamp = '2026-11-02T00:00:00.000Z'
+const item = (id: string, name: string, level: PantryItem['level'], kind: PantryItem['kind'] = 'essential'): PantryItem => ({
+  id, name, kind, level, purchases: [], createdAt: stamp, updatedAt: stamp,
+})
+const recipe: PantryRecipe = { id: 'r', name: '김치두부', ingredients: ['두부', '김치', '계란'], createdAt: stamp, updatedAt: stamp }
+const seed = (items: PantryItem[], recipes: PantryRecipe[] = []) => localStorage.setItem(PANTRY_KEY, JSON.stringify({ schemaVersion: 1, items, recipes, events: [] } satisfies PantryStore))
+beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 10, 2, 9)) })
+afterEach(() => vi.useRealTimers())
+
+async function open() {
+  const user = userEvent.setup()
+  const view = render(<App />)
+  await user.click(screen.getByText('집에 있는 것'))
+  await user.click(screen.getByText('장보기 초안'))
+  return { user, view, draft: within(screen.getByRole('region', { name: '장보기 초안' })) }
+}
+
+it('AC176·AC178: 부족한 것만 체크하고 접었다 열어도 남지만 재고·새로고침에는 반영되지 않는다', async () => {
+  seed([item('a', '세제', 'low'), item('b', '휴지', 'out'), item('c', '쌀', 'plenty')])
+  const { user, view, draft } = await open()
+  expect(draft.getByRole('checkbox', { name: '세제' })).not.toBeChecked()
+  expect(draft.getByRole('checkbox', { name: '휴지' })).toBeInTheDocument()
+  expect(draft.queryByRole('checkbox', { name: '쌀' })).not.toBeInTheDocument()
+  await user.click(draft.getByRole('checkbox', { name: '세제' }))
+  await user.click(draft.getByText('장보기 초안'))
+  await user.click(draft.getByText('장보기 초안'))
+  expect(draft.getByRole('checkbox', { name: '세제' })).toBeChecked()
+  expect(JSON.parse(localStorage.getItem(PANTRY_KEY) ?? '{}').items[0].level).toBe('low')
+  view.unmount()
+  const again = await open()
+  expect(again.draft.getByRole('checkbox', { name: '세제' })).not.toBeChecked()
+})
+
+it('AC177: 고른 요리의 없는 재료를 더하고 떨어진 재료는 중복하지 않는다', async () => {
+  seed([item('a', '두부', 'plenty', 'ingredient'), item('b', '계란', 'out', 'ingredient')], [recipe])
+  const { user, draft } = await open()
+  await user.selectOptions(draft.getByLabelText('이번에 해 먹을 것 (선택)'), 'r')
+  expect(draft.getAllByRole('checkbox', { name: '계란' })).toHaveLength(1)
+  expect(draft.getByRole('checkbox', { name: '김치' })).toBeInTheDocument()
+  expect(draft.queryByRole('checkbox', { name: '두부' })).not.toBeInTheDocument()
+})
+
+it('AC179: 부족한 것과 고른 요리가 없으면 빈 안내만 보인다', async () => {
+  seed([item('a', '쌀', 'plenty')])
+  const { draft } = await open()
+  expect(draft.getByText('지금 장보기 초안에 넣을 항목이 없어요.')).toBeVisible()
+  expect(draft.queryByRole('checkbox')).not.toBeInTheDocument()
+})
