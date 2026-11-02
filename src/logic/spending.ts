@@ -96,5 +96,5 @@ export function weeklySpendingExperiment(entries: readonly SpendingEntry[], temp
 }
 
 export function weeklySpendingLine(experiment: NonNullable<ReturnType<typeof weeklySpendingExperiment>>): string {
-  return `지난 7일 ${experiment.previous}번 · 이번 7일 ${experiment.current}번 · 이번에는 ${experiment.target}번까지 시도해 보세요.`
+  return `직전 7일 ${experiment.previous}번 · 최근 7일 ${experiment.current}번 · 이번에는 ${experiment.target}번까지 시도해 보세요.`
 }

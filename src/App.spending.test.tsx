@@ -65,5 +65,5 @@ it('AC184: 지난주 두 번 썼으면 이번 주 한 번 덜 쓰기 문장을 �
   ] }))
   const user = await open()
   await user.click(screen.getByRole('button', { name: '커피 썼어요' }))
-  expect(within(screen.getByRole('group', { name: '커피' })).getByText('지난 7일 2번 · 이번 7일 1번 · 이번에는 1번까지 시도해 보세요.')).toBeInTheDocument()
+  expect(within(screen.getByRole('group', { name: '커피' })).getByText('직전 7일 2번 · 최근 7일 1번 · 이번에는 1번까지 시도해 보세요.')).toBeInTheDocument()
 })

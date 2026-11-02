@@ -9,7 +9,7 @@ const item: PantryItem = { id: 'p', name: '휴지', kind: 'essential', level: 'p
 const sub: Subscription = { id: 's', name: '휴지', kind: 'delivery', priceKrw: 10000, cycle: 'monthly', billingDay: 9, lastUsedDate: null, createdAt: stamp, updatedAt: stamp }
 
 it('AC182: 넉넉한 생필품과 7일 뒤 같은 이름의 활성 정기배송을 연결한다', () => {
-  expect(deliveryOverlapLine(item, [sub], today)).toBe('집에 넉넉해요. 2026-11-09 정기배송 전에 계속 필요한지 확인해 보세요.')
+  expect(deliveryOverlapLine(item, [sub], today)).toBe('집에 넉넉해요. 2026-11-09 정기배송 결제 전에 계속 필요한지 확인해 보세요.')
 })
 
 it('AC183: 재고가 넉넉하지 않거나 이름이 다르거나 해지했으면 제외한다', () => {

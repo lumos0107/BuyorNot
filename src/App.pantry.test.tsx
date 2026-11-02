@@ -49,7 +49,7 @@ it('AC182: 넉넉한 휴지와 7일 뒤 정기배송이면 재고 카드에 확�
   const delivery: Subscription = { id: 's1', name: '휴지', kind: 'delivery', priceKrw: 10000, cycle: 'monthly', billingDay: 8, lastUsedDate: null, createdAt: stamp, updatedAt: stamp }
   localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [delivery] }))
   await open()
-  expect(within(screen.getByRole('group', { name: '휴지' })).getByText('집에 넉넉해요. 2026-11-08 정기배송 전에 계속 필요한지 확인해 보세요.')).toBeInTheDocument()
+  expect(within(screen.getByRole('group', { name: '휴지' })).getByText('집에 넉넉해요. 2026-11-08 정기배송 결제 전에 계속 필요한지 확인해 보세요.')).toBeInTheDocument()
 })
 
 it('AC119: 유통기한이 3일 남은 식재료는 먼저 쓸 것으로 보인다', async () => {
