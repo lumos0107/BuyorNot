@@ -55,6 +55,7 @@ import {
 import { formatWon } from '../logic/number'
 import { buildTrialIcs, trialGoogleCalendarUrl, trialIcsFileName } from '../logic/calendar'
 import { sameRecord } from '../logic/records'
+import { PaymentCalendarSection } from './PaymentCalendarSection'
 import { EmptyIllustration } from '../ui/EmptyIllustration'
 import { netflixRecord, parseNetflixCsv, type DayOrder } from '../logic/netflixCsv'
 import { usageInfo, validateUsageInput } from '../logic/usage'
@@ -243,6 +244,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           ) : null}
         </section>
       ) : null}
+      <PaymentCalendarSection subscriptions={items} today={today} />
       <SubscriptionForm label={ADD_FORM} submitLabel={ADD_BUTTON} today={today} onSubmit={onAdd} resetAfterSubmit />
       {active.length === 0 ? (
         <div className="empty card stack">

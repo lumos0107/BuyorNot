@@ -790,6 +790,88 @@ details > summary {
   border-top: 1px solid var(--line);
 }
 
+.payment-calendar.card {
+  padding: 12px 4px;
+}
+
+.payment-calendar > summary.card-title {
+  padding: 0 8px;
+}
+
+.payment-calendar-summary {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.payment-calendar-summary .note {
+  font-weight: 400;
+}
+
+.payment-calendar-body {
+  padding: 0 8px 8px;
+}
+
+.payment-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(44px, 1fr));
+  overflow-x: auto;
+  margin: 0 -8px;
+}
+
+.payment-calendar-weekday {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.payment-calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 48px;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+button.payment-calendar-day {
+  cursor: pointer;
+}
+
+.payment-calendar-has-event {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.payment-calendar-month {
+  min-height: 11px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.payment-calendar-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.payment-calendar-list-day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  font-size: 14px;
+}
+
 /* 저축 목표 진행 막대 (F48): 색은 강조색 변수 */
 .goal-progress {
   width: 100%;
