@@ -2,10 +2,21 @@ import { useState } from 'react'
 import { formatWon } from '../../logic/number'
 import { Button } from '../../ui/Button'
 
-// 2026-11-02 로컬 Gemini 가격표 시험의 저장된 응답(rt01~rt03). 공개 화면에서는 AI를 호출하지 않는다.
+// 2026-11-02 로컬 Gemini(gemini-3.5-flash-lite) /api/read-tag 응답에서 상품명·가격·개수만 고치지 않고 옮겼다.
+// ramen·jelly는 제작자가 직접 찍은 사진, rt01은 CC0 차 진열 사진이다. 처음에는 라면 진열대를 보여 준다(2026-11-02 제작자 요청). 공개 화면에서는 AI를 호출하지 않는다.
 const samples = [
   {
-    id: 'rt01', label: '차 진열대 위 칸',
+    id: 'ramen', label: '라면 진열대', alt: '라면 봉지와 컵라면, 선반 가격표가 보이는 라면 진열대',
+    items: [
+      { name: '농심)사천왕마라탕면컵', price: 2700, count: null },
+      { name: '신마이랑신룽푸마라탕면', price: 2000, count: null },
+      { name: '농심신라면', price: 1000, count: null },
+      { name: '농심)신라면더레드봉지', price: 1500, count: null },
+      { name: '농심)신라면블랙', price: 1900, count: null },
+    ],
+  },
+  {
+    id: 'rt01', label: '차 진열대', alt: '차 상자 여섯 개와 노란 가격표가 보이는 차 진열대',
     items: [
       { name: '샘표순작연근우엉차', price: 7100, count: null },
       { name: '샘표도라지생강차티백', price: 8300, count: null },
@@ -16,23 +27,25 @@ const samples = [
     ],
   },
   {
-    id: 'rt02', label: '차 진열대 가운데 칸',
+    id: 'jelly', label: '젤리 진열대', alt: '젤리 봉지가 걸려 있고 가격표가 붙은 젤리 진열대',
     items: [
-      { name: '현미녹차', price: 2400, count: 25 },
-      { name: '한잔용보리차', price: 1950, count: 20 },
-      { name: '한잔용옥수수차', price: 2050, count: 20 },
-      { name: '루이보스보리차', price: 2300, count: 25 },
-      { name: '둥글레차', price: 3150, count: 25 },
-    ],
-  },
-  {
-    id: 'rt03', label: '차 진열대 아래 칸',
-    items: [
-      { name: '동서 한잔용 보리차', price: 8300, count: 100 },
-      { name: '동서 한잔용 옥수수차', price: 8400, count: 100 },
-      { name: '동서 현미녹차', price: 7600, count: 100 },
-      { name: '동서 메밀차', price: 8300, count: 100 },
-      { name: '동서 캐모마일 현미녹차', price: 10150, count: 80 },
+      { name: '페타구구미', price: 1800, count: null },
+      { name: '피니해피소스믹스', price: 1200, count: null },
+      { name: '피니콜라보틀', price: 1000, count: null },
+      { name: '피니해피믹스', price: null, count: null },
+      { name: '피니피지웜', price: null, count: null },
+      { name: '구미다요', price: null, count: null },
+      { name: '리치알알이', price: 1200, count: null },
+      { name: '청포도알알이', price: 1200, count: null },
+      { name: '마이구미', price: 1000, count: null },
+      { name: '마이구미복숭아포도', price: 1000, count: null },
+      { name: '왕꿈틀이', price: 1000, count: null },
+      { name: '탱글탱글키위', price: 2500, count: null },
+      { name: '레전', price: 1700, count: null },
+      { name: '레전사워젤리', price: 1700, count: null },
+      { name: '제조애플탱탱', price: 2500, count: null },
+      { name: '까먹는포도젤리', price: 2000, count: null },
+      { name: '까먹는망고젤리', price: 2000, count: null },
     ],
   },
 ] as const
@@ -49,8 +62,8 @@ const danawaChecks = [
 export function DemoPhotoCompare() {
   const [selected, setSelected] = useState(0)
   const sample = samples[selected]
-  const withCount = sample.items.filter((item) => item.count !== null)
-  const cheapest = withCount.length ? [...withCount].sort((a, b) => a.price / a.count! - b.price / b.count!)[0] : null
+  const withCount = sample.items.filter((item) => item.count !== null && item.price !== null)
+  const cheapest = withCount.length ? [...withCount].sort((a, b) => a.price! / a.count! - b.price! / b.count!)[0] : null
 
   return <section className="stack" aria-label="가격표 사진 예시 시연">
     <h3 className="section-title">가격표 사진 예시</h3>
@@ -59,15 +72,15 @@ export function DemoPhotoCompare() {
       <div className="btn-row" role="group" aria-label="예시 사진 선택">
         {samples.map((item, index) => <Button key={item.id} aria-pressed={selected === index} onClick={() => setSelected(index)}>{item.label}</Button>)}
       </div>
-      <img src={`${import.meta.env.BASE_URL}demo/${sample.id}.jpg`} alt={`${sample.label}의 차 상품과 가격표`} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '12px' }} />
+      <img src={`${import.meta.env.BASE_URL}demo/${sample.id}.jpg`} alt={sample.alt} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '12px' }} />
     </div>
     {/* 처음부터 고른 사진의 저장된 결과를 펼쳐 둔다 (F83, 2026-11-02 제작자 요청 "들어가자마자 켜져 있도록") */}
     <section className="card stack" aria-label="미리 읽은 품목과 가격 비교">
       <h4 className="card-title">미리 읽은 품목과 가격</h4>
       <p className="note">2026-11-02 로컬 Gemini 응답을 그대로 옮겼습니다. 가격표가 흐려 잘못 읽은 항목이 있을 수 있어요.</p>
-      <ul className="result-list demo-photo-results">{sample.items.map((item) => <li key={item.name}><span>{item.name}</span><strong>{formatWon(item.price)}{item.count ? ` · ${item.count}개입, 1개당 ${formatWon(Math.round(item.price / item.count))}` : ''}</strong></li>)}</ul>
-      {cheapest ? <p><strong>개당 표시 가격이 가장 낮은 항목:</strong> {cheapest.name} · 약 {formatWon(Math.round(cheapest.price / cheapest.count!))}/개</p> : null}
-      <p className="note">서로 다른 차 종류와 포장량을 한 사진에서 비교한 예시입니다. 같은 상품의 최저가나 실제 결제액을 뜻하지 않습니다.</p>
+      <ul className="result-list demo-photo-results">{sample.items.map((item) => <li key={item.name}><span>{item.name}</span><strong>{item.price === null ? '가격표를 읽지 못함' : formatWon(item.price)}{item.price !== null && item.count ? ` · ${item.count}개입, 1개당 ${formatWon(Math.round(item.price / item.count))}` : ''}</strong></li>)}</ul>
+      {cheapest ? <p><strong>개당 표시 가격이 가장 낮은 항목:</strong> {cheapest.name} · 약 {formatWon(Math.round(cheapest.price! / cheapest.count!))}/개</p> : null}
+      <p className="note">한 사진에 보인 여러 상품의 가격표를 읽은 예시입니다. 같은 상품의 다른 판매처 가격이나 실제 결제액과 비교한 결과가 아닙니다.</p>
       {sample.id === 'rt01' ? <section className="stack" aria-label="다나와 표시 최저가 비교">
         <h4 className="card-title">다나와 표시 최저가 비교</h4>
         <p className="note">2026-11-02에 확인한 저장된 가격입니다. 사진 가격표와 이름·입수가 비슷한 상품 페이지를 연결했습니다. 배송비·쿠폰은 빠진 표시 가격이며, 포장과 실제 결제액은 구매 전에 다시 확인하세요. 지금 실시간으로 조회하지 않습니다.</p>

@@ -68,7 +68,8 @@ async function tab(page, name) {
     const { context, page } = await open(browser, BASE)
     await viewAt(page, '02-home')
 
-    // 가격표 사진 예시: 저장된 결과와 다나와 조회값을 나눠 찍는다(한 장으로 찍으면 세로로 너무 길다).
+    // 가격표 사진 예시: 첫 화면은 라면 진열대라, 다나와 조회값이 있는 차 진열대를 골라 저장된 결과와 다나와 조회값을 나눠 찍는다(한 장으로 찍으면 세로로 너무 길다).
+    await page.getByRole('button', { name: '차 진열대', exact: true }).click()
     const result = page.getByRole('region', { name: '미리 읽은 품목과 가격 비교' })
     const danawa = page.getByRole('region', { name: '다나와 표시 최저가 비교' })
     await result.scrollIntoViewIfNeeded()
@@ -76,8 +77,11 @@ async function tab(page, name) {
     const d = await danawa.boundingBox()
     const y = await page.evaluate(() => window.scrollY)
     const split = d.y - 16
+    // 아래에 붙은 주요 메뉴가 전체 화면 촬영에서 내용 중간을 가리지 않도록 이 두 사진에서만 숨긴다
+    const hideNav = await page.addStyleTag({ content: '.tabs.tabs-main{visibility:hidden}' })
     await page.screenshot({ path: file('12-photo-demo'), fullPage: true, clip: { x: r.x, y: r.y + y, width: r.width, height: split - r.y } })
     await page.screenshot({ path: file('14-danawa-prices'), fullPage: true, clip: { x: r.x, y: split + y, width: r.width, height: r.y + r.height - split } })
+    await hideNav.evaluate((el) => el.remove())
 
     await tab(page, '물건')
     await viewAt(page, '05-wishlist')
