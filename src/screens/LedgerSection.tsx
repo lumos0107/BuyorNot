@@ -4,6 +4,7 @@ import { LEDGER_CATEGORY_LABEL, ledgerByCategory, ledgerDashboard, ledgerDayGrou
 import { formatWon } from '../logic/number'
 import { toDayIso } from '../logic/subscriptions'
 import { newId } from '../logic/wishlist'
+import { LEDGER_DEMO_TARGET, ledgerDemoEntries } from '../logic/ledgerDemo'
 import type { BillsStore } from '../logic/bills'
 import type { SpendingStore } from '../logic/spending'
 import type { useLedger } from '../store/useLedger'
@@ -33,11 +34,8 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
   const [error, setError] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const showDemo = ledger.store.entries.length === 0 && month === todayIso.slice(0, 7)
-  const demoEntries: LedgerEntry[] = showDemo ? [
-    { id: 'demo-income', kind: 'income', category: 'salary', name: '(예시) 이번 달 용돈', amountKrw: 500000, day: todayIso, createdAt: today.toISOString() },
-    { id: 'demo-food', kind: 'expense', category: 'food', name: '(예시) 점심 식사', amountKrw: 12000, day: todayIso, createdAt: today.toISOString() },
-    { id: 'demo-transport', kind: 'expense', category: 'transport', name: '(예시) 교통비', amountKrw: 3500, day: todayIso, createdAt: today.toISOString() },
-  ] : []
+  // 저장되지 않는 예시(쓴 돈·오늘 뒤 예상 지출·모을 금액). 결제·지출 달력도 같은 예시를 쓴다
+  const demoEntries: LedgerEntry[] = showDemo ? ledgerDemoEntries(today) : []
   const shown = showDemo ? demoEntries : ledger.store.entries
   const summary = ledgerMonth(shown, month)
   const byCategory = ledgerByCategory(shown, month)
@@ -81,17 +79,17 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
         <p className="card-row ledger-stat ledger-stat-income"><span>{showDemo ? '수입 (예시)' : '직접 적은 수입'}</span><strong>{formatWon(summary.income)}</strong></p>
         <p className="card-row ledger-stat ledger-stat-expense"><span>{showDemo ? '지출 (예시)' : '직접 적은 지출'}</span><strong>{formatWon(summary.expense)}</strong></p>
         <p className="card-row ledger-stat ledger-stat-diff"><span>차이</span><strong>{formatWon(summary.income - summary.expense)}</strong></p>
-        {/* 이번 달 모을 금액 칸 (F84 보강, 2026-11-03 제작자 "저축/모으고 싶은 금액 하나 추가"). 값은 아래 이달 현황판에서 정한다 */}
+        {/* 이번 달 모을 금액 칸 (F84 보강, 2026-11-03 제작자 "저축/모으고 싶은 금액 하나 추가"). 값은 아래 이달 현황판에서 정한다.
+            버튼을 이름 줄 오른쪽에 두어 네 칸의 높이를 맞춘다. 예시 화면에서는 저장되지 않는 예시 금액을 보인다 */}
         <div className="ledger-stat ledger-stat-target">
-          <span>이번 달 모을 금액</span>
-          <strong>{saveTarget === null ? '정하지 않음' : formatWon(saveTarget)}</strong>
-          <button type="button" className="link-button" aria-label={saveTarget === null ? "이번 달 모을 금액 정하기" : "이번 달 모을 금액 바꾸기"} onClick={() => document.querySelector<HTMLInputElement>('[aria-label="이달 현황판"] input')?.focus()}>{saveTarget === null ? '정하기' : '바꾸기'}</button>
+          <span className="ledger-stat-head"><span>{showDemo && saveTarget === null ? '모을 금액 (예시)' : '이번 달 모을 금액'}</span><button type="button" className="link-button" aria-label={saveTarget === null ? "이번 달 모을 금액 정하기" : "이번 달 모을 금액 바꾸기"} onClick={() => document.querySelector<HTMLInputElement>('[aria-label="이달 현황판"] input')?.focus()}>{saveTarget === null ? '정하기' : '바꾸기'}</button></span>
+          <strong>{saveTarget !== null ? formatWon(saveTarget) : showDemo ? formatWon(LEDGER_DEMO_TARGET) : '정하지 않음'}</strong>
         </div>
       </div>
       {monthChange ? <p className="ledger-change">{monthChange}</p> : null}
       <p className="note">아래의 자잘한 지출 {formatWon(smallSpent)}·공과금 {formatWon(billsAmount)}은 중복 계산을 막기 위해 위 합계에 넣지 않았어요.</p>
     </section>
-    <DashboardCard key={month} income={summary.income} expense={summary.expense} target={saveTarget} onSave={(value) => ledger.setSaveTarget(month, value)} />
+    <DashboardCard key={month} income={summary.income} expense={summary.expense} target={saveTarget} demoTarget={showDemo && saveTarget === null ? LEDGER_DEMO_TARGET : null} onSave={(value) => ledger.setSaveTarget(month, value)} />
     {byCategory.length > 0 ? <section className="card stack" aria-label="분류별 지출">
       <p className="card-title">분류별 지출</p>
       <ul className="category-list">
@@ -145,11 +143,12 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
 
 // 이달 현황판 (F84, AC206·AC207): 수입을 막대 전체로 두고 지출·모을 금액·남는 돈을 나눠 칠한다.
 // 막대는 장식이고 같은 내용을 아래 글로 보인다. 모을 금액은 목표일 뿐 모으기의 옮긴 돈과 합치지 않는다
-function DashboardCard({ income, expense, target, onSave }: { income: number; expense: number; target: number | null; onSave: (value: number | null) => boolean }) {
+function DashboardCard({ income, expense, target, demoTarget = null, onSave }: { income: number; expense: number; target: number | null; demoTarget?: number | null; onSave: (value: number | null) => boolean }) {
   const [text, setText] = useState(target === null ? '' : String(target))
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  const view = ledgerDashboard(income, expense, target)
+  // 예시 화면에서는 저장되지 않는 예시 모을 금액으로 막대를 채운다(입력칸은 비워 둔다)
+  const view = ledgerDashboard(income, expense, target ?? demoTarget)
   const save = (event: FormEvent) => {
     event.preventDefault()
     setMessage('')
@@ -162,6 +161,7 @@ function DashboardCard({ income, expense, target, onSave }: { income: number; ex
   const width = (value: number) => (view.kind === 'ok' ? `${Math.min(100, (value / Math.max(view.income, view.expense + view.target)) * 100)}%` : '0%')
   return <section className="card stack dashboard" aria-label="이달 현황판">
     <p className="card-title">이달 현황판</p>
+    {demoTarget !== null ? <p className="note">{`예시 모을 금액 ${formatWon(demoTarget)}을 넣어 보여 주고 있어요. 직접 정하면 그 금액으로 바뀌어요.`}</p> : null}
     {view.kind === 'no-income' ? <p className="note">이 달 수입을 적으면 현황판이 채워져요.</p> : <>
       <div className="dashboard-bar" aria-hidden="true">
         <span className="seg seg-expense" style={{ width: width(view.expense) }} />

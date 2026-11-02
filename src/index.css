@@ -2474,3 +2474,47 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
 .ledger-stats .ledger-stat {
   justify-content: flex-start;
 }
+
+/* 예상 지출(오늘 뒤 날짜로 적은 가계부 지출): 보라 (2026-11-03) */
+.payment-calendar-amount.planned,
+.payment-calendar-legend .legend-planned::before { color: #7048e8; }
+
+.payment-calendar-list-day .list-planned {
+  color: #5f3dc4;
+}
+
+/* 모을 금액 칸: 이름과 버튼을 한 줄에 두어 네 칸 높이를 맞춘다. 넓은 화면에서는 네 칸을 한 줄로 */
+.ledger-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+}
+
+.ledger-stat-head > span {
+  font-size: 12px;
+  color: #1b6e3f;
+}
+
+.ledger-stat-target > .ledger-stat-head > .link-button,
+.ledger-stat-head > .link-button {
+  flex: none;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #1b6e3f;
+  border-radius: 999px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1b6e3f;
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .ledger-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

@@ -1,3 +1,4 @@
+import { ledgerDemoEntries } from './logic/ledgerDemo'
 import { JumpNav, type JumpTarget } from './ui/JumpNav'
 import { IconBag, IconCoins, IconHistory, IconTag, IconWallet } from './ui/NavIcons'
 import { useEffect, useRef, useState } from 'react'
@@ -186,7 +187,7 @@ export default function App() {
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
           <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconWallet /></span>가계부</h2>
           <JumpNav label="가계부 안에서 이동" targets={LEDGER_JUMPS} />
-          <PaymentCalendarSection subscriptions={subscriptions.items} expenses={ledger.store.entries} today={wishlist.now} />
+          <PaymentCalendarSection subscriptions={subscriptions.items} expenses={ledger.store.entries.length === 0 ? ledgerDemoEntries(wishlist.now) : ledger.store.entries} expenseDemo={ledger.store.entries.length === 0} today={wishlist.now} />
           <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now} />
           <SubscriptionScreen
             items={subscriptions.items}

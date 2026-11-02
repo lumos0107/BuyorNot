@@ -101,6 +101,8 @@ it('AC208: 지난달 지출과 비교한 한 줄, 지난달 기록이 없으면 
 })
 
 it('AC214: 요약에 이번 달 모을 금액 칸이 있고, 정하기를 누르면 현황판의 입력칸으로 가며 저장하면 칸에 금액이 보인다', async () => {
+  // 기록이 있는 달(예시가 아닌 화면)
+  seed([e('용돈', 'income', 'salary', 500000, '2026-11-02')])
   const user = await openLedger()
   const summary = within(screen.getByRole('region', { name: '이달 가계부 요약' }))
   expect(summary.getByText('이번 달 모을 금액')).toBeInTheDocument()
@@ -112,4 +114,25 @@ it('AC214: 요약에 이번 달 모을 금액 칸이 있고, 정하기를 누르
   await user.click(board.getByRole('button', { name: '저장' }))
   expect(summary.getByText('100,000원')).toBeInTheDocument()
   expect(summary.getByRole('button', { name: '이번 달 모을 금액 바꾸기' })).toBeInTheDocument()
+})
+
+it('AC215: 가계부 기록이 없으면 저장되지 않는 예시(쓴 돈·예상 지출·모을 금액 100,000원)를 요약·현황판·달력에 함께 보인다', async () => {
+  const user = await openLedger()
+  const summary = within(screen.getByRole('region', { name: '이달 가계부 요약' }))
+  expect(summary.getByText('모을 금액 (예시)')).toBeInTheDocument()
+  expect(summary.getByText('100,000원')).toBeInTheDocument()
+  // 11월 2일 기준 이번 달 예시 지출: 장보기(10/31은 지난달이라 빠짐)·카페 11/1·점심·교통비 11/2·선물 11/6·병원 11/12·미용실 11/19
+  expect(summary.getByText('83,300원')).toBeInTheDocument()
+  const board = within(screen.getByRole('region', { name: '이달 현황판' }))
+  expect(board.getByText('예시 모을 금액 100,000원을 넣어 보여 주고 있어요. 직접 정하면 그 금액으로 바뀌어요.')).toBeInTheDocument()
+  expect(board.getByLabelText('이번 달 모을 금액')).toHaveValue('')
+  expect(board.getByText(/모을 금액 100,000원\(20%\)/)).toBeInTheDocument()
+  const calendar = within(screen.getByRole('region', { name: '결제·지출 달력' }))
+  expect(calendar.getByText('예시 가계부 지출 3건 · 20,300원')).toBeInTheDocument()
+  expect(calendar.getByText('예시 예상 지출 3건 · 63,000원')).toBeInTheDocument()
+  const future = calendar.getByRole('button', { name: '2026-11-06 예상 지출 1건' })
+  expect(future.querySelector('.payment-calendar-amount.planned')).toHaveTextContent('30,000')
+  await user.click(future)
+  expect(calendar.getByText('11월 6일 · 예상 지출 · (예시) 친구 생일 선물 · 30,000원')).toBeInTheDocument()
+  expect(localStorage.getItem(LEDGER_KEY)).toBeNull()
 })

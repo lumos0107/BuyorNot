@@ -2,7 +2,13 @@
 
 **사기 전에 한 번 더 생각하고, 산다면 실제로 드는 돈을 비교하는 웹앱**입니다. 물건을 며칠 보류하고, 집에 있는 것과 매달 나가는 돈을 확인한 뒤 직접 결정하도록 돕습니다. 20~30대 자취생을 생각하며 만들었습니다.
 
-**직접 실행:** [1차 실습 과제(v1)](https://lumos0107.github.io/BuyorNot/v1/) · [중간 과제 개선본](https://lumos0107.github.io/BuyorNot/) · [GitHub 커밋 비교](https://github.com/lumos0107/BuyorNot/compare/v1...main)
+**직접 실행해 보기**
+
+| 버전 | 주소 |
+| --- | --- |
+| 1차 실습 과제 (v1, 2026-10-13) | https://lumos0107.github.io/BuyorNot/v1/ |
+| 2차 중간 과제 (지금 버전) | https://lumos0107.github.io/BuyorNot/ |
+| 1차 → 2차 코드 변경 비교 (GitHub) | https://github.com/lumos0107/BuyorNot/compare/v1...main |
 
 > 개선본은 공개 사이트에서 실행됩니다. **실시간 사진·음성 AI는 공개 링크에서 사용할 수 없습니다.** 공개 사이트의 사진·음성 버튼은 미리 저장해 둔 결과(사진 3장의 읽기 결과, 준비한 음성 문장)를 다시 보여 줄 뿐이며, 버튼을 눌러도 AI나 마이크를 호출하지 않습니다. 실제 Gemini가 읽은 로컬 화면은 [3장](#3-ai-시연과-검증-범위)에 따로 표시했습니다.
 
