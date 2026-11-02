@@ -1576,3 +1576,167 @@ details[aria-label='자잘한 지출'] {
     scroll-behavior: auto !important;
   }
 }
+
+/* ───────────────────────────────────────────────────────────────
+   2026-11-02 디자인 개선 2차: 입력을 짧게, 결론을 먼저 눈에 띄게
+   ─────────────────────────────────────────────────────────────── */
+
+/* 가격 비교 A·B 입력: 휴대폰에서도 칸을 두 줄로 나란히 놓아 스크롤을 줄인다.
+   제목·안내 문장·사진 버튼처럼 칸이 아닌 것은 한 줄을 다 쓴다 */
+.ab-grid > fieldset.card,
+.ab-grid > form.card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 10px;
+  row-gap: 12px;
+  align-items: start;
+}
+
+.ab-grid > fieldset.card > *,
+.ab-grid > form.card > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.ab-grid > fieldset.card > .field,
+.ab-grid > form.card > .field {
+  grid-column: auto;
+}
+
+.ab-grid > fieldset.card > legend {
+  margin-bottom: 0;
+}
+
+.ab-grid .field-hint,
+.ab-grid .field-error {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ab-grid .field-label {
+  font-size: 13px;
+}
+
+/* A안·B안 제목에 작은 표식을 달아 두 카드를 한눈에 구분한다 */
+.ab-grid > fieldset.card > legend.card-title::before,
+.ab-grid > form.card > .card-title:first-child::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.ab-grid > fieldset.card:nth-child(2) > legend.card-title::before,
+.ab-grid > form.card:nth-child(2) > .card-title:first-child::before {
+  background: #f79009;
+}
+
+/* 비교 결과: 결론 한 줄을 강조 바탕의 큰 글씨로. 카드 자체도 강조색 테두리 */
+section.card[aria-label$='비교 결과'] {
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-lift);
+}
+
+section.card[aria-label$='비교 결과'] > .card-title {
+  color: var(--accent-ink);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+section.card[aria-label$='비교 결과'] > .price-lg {
+  margin: 4px -4px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 22px;
+  line-height: 1.35;
+}
+
+/* '이럴 때 써요' 예시: 결론을 말풍선처럼 */
+.example-intro .intro-conclusion {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  font-size: 15px;
+}
+
+.example-intro .intro-side {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+/* 요약 숫자 목록: 이름은 회색, 숫자는 크고 진하게, 줄 사이에 옅은 선 */
+.result-list li {
+  align-items: baseline;
+  padding: 6px 0;
+}
+
+.result-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.result-list li > :last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* 물건 카드: 가격을 크게, 결정 영역은 선으로 나눠 '정하는 곳'이 보이게 */
+article.card > .price {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  margin-top: -4px;
+}
+
+article.card > p.field-label {
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+/* 비교해 볼 곳 링크를 작은 칩으로 */
+.link-list a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link-list a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 캘린더 넣기 같은 보조 버튼은 한 단계 작게 */
+article.card [role='group'] .btn-row .btn {
+  min-height: 42px;
+  font-size: 14px;
+}
+
+/* 수정·삭제 같은 글자 버튼은 카드 맨 아래 한 줄에 모은다 */
+.card-actions {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.card-actions .link-btn {
+  text-decoration: none;
+}
+
+/* '오늘의 고민' 상자와 체크리스트: 바탕을 깔아 카드 본문과 구분 */
+.gomin-note {
+  background: var(--surface-2);
+  border-color: var(--line);
+  border-radius: var(--radius-sm);
+}
