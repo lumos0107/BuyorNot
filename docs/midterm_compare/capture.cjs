@@ -53,8 +53,8 @@ async function tab(page, name) {
 ;(async () => {
   const browser = await chromium.launch({ channel: 'chromium', args: ['--lang=ko-KR'] })
 
-  // 1차 제출본
-  {
+  // 1차 제출본. 1차 사진(01·03)은 바뀌지 않으므로 SKIP_V1=1이면 v1 빌드 없이 개선본만 다시 찍는다 (2026-11-03)
+  if (!process.env.SKIP_V1) {
     const { context, page } = await open(browser, new URL('v1/', BASE).href)
     await viewAt(page, '01-home')
     await tab(page, '구독')
@@ -65,10 +65,18 @@ async function tab(page, name) {
 
   // 중간 과제 공개 빌드
   {
+    // 2026-11-03 F86: 첫 화면은 가계부. 가격표 사진 예시는 장보기의 마지막 비교 종류이고 주소 ?tab=photo로 바로 연다
     const { context, page } = await open(browser, BASE)
     await viewAt(page, '02-home')
+    await viewAt(page, '04-fixed-costs', page.getByRole('region', { name: '결제·지출 달력' }))
+    await part(page, '09-calendar-current', page.getByRole('region', { name: '결제·지출 달력' }))
+    await part(page, '11-ledger-current', page.getByRole('region', { name: '이달 가계부 요약' }))
+    await part(page, '15-ledger-dashboard', page.getByRole('region', { name: '이달 현황판' }))
 
-    // 가격표 사진 예시: 첫 화면은 라면 진열대라, 다나와 조회값이 있는 차 진열대를 골라 저장된 결과와 다나와 조회값을 나눠 찍는다(한 장으로 찍으면 세로로 너무 길다).
+    // 가격표 사진 예시: 처음 보이는 사진은 라면 진열대라, 다나와 조회값이 있는 차 진열대를 골라 저장된 결과와 다나와 조회값을 나눠 찍는다(한 장으로 찍으면 세로로 너무 길다).
+    await page.goto(new URL('?tab=photo', BASE).href)
+    await page.waitForLoadState('networkidle')
+    await page.addStyleTag({ content: '::-webkit-scrollbar{display:none} html{scrollbar-width:none}' })
     await page.getByRole('button', { name: '차 진열대', exact: true }).click()
     const result = page.getByRole('region', { name: '미리 읽은 품목과 가격 비교' })
     const danawa = page.getByRole('region', { name: '다나와 표시 가격 비교' })
@@ -89,12 +97,6 @@ async function tab(page, name) {
     if (!(await entry.evaluate((el) => el.open))) await page.locator('#wish-entry-title').click()
     await page.getByRole('button', { name: '예시 음성 결과 채우기' }).click()
     await viewAt(page, '06-quick-add', entry)
-
-    await tab(page, '가계부')
-    await viewAt(page, '04-fixed-costs')
-    await part(page, '09-calendar-current', page.getByRole('region', { name: '결제·지출 달력' }))
-    await part(page, '11-ledger-current', page.getByRole('region', { name: '이달 가계부 요약' }))
-    await part(page, '15-ledger-dashboard', page.getByRole('region', { name: '이달 현황판' }))
 
     await tab(page, '모으기')
     await viewAt(page, '10-benefits-current')
