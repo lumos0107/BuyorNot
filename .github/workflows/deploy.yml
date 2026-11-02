@@ -27,6 +27,14 @@ jobs:
       - run: npm ci
       - run: npm test -- --testTimeout=20000
       - run: npm run build
+      # 1차 제출본도 별도 주소에서 실행할 수 있도록 같은 Pages 배포에 포함한다.
+      - uses: actions/checkout@v4
+        with:
+          ref: v1
+          path: v1-source
+      - run: npm ci --prefix v1-source
+      - run: npm run build --prefix v1-source -- --base /BuyorNot/v1/
+      - run: mkdir -p dist/v1 && cp -a v1-source/dist/. dist/v1/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
