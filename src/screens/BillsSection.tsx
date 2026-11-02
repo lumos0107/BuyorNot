@@ -66,7 +66,7 @@ export function BillsSection({ bills, today }: Props) {
   const sorted = sortBillsForLog(bills.store.items)
 
   return (
-    <section className="card stack" aria-label={BILLS_TITLE}>
+    <section className="card stack" aria-label={BILLS_TITLE} id="bills-section">
       <p className="card-title" tabIndex={-1} ref={headingRef}>{BILLS_TITLE}</p>
       {bills.status.kind !== 'ok' ? (
         <div className="banner stack" role="status" aria-label={BILLS_STORAGE_LABEL}>

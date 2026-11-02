@@ -1,6 +1,7 @@
 import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 
-export type TabItem<T extends string> = { id: T; label: string }
+// icon은 장식이다(aria-hidden). 탭의 이름은 언제나 label 글자다
+export type TabItem<T extends string> = { id: T; label: string; icon?: ReactNode }
 
 type TabsProps<T extends string> = {
   label: string
@@ -8,11 +9,13 @@ type TabsProps<T extends string> = {
   value: T
   onChange: (next: T) => void
   sub?: boolean
+  /** 휴대폰에서 화면 아래에 붙는 주요 메뉴 */
+  main?: boolean
 }
 
 // ARIA 탭 패턴: 선택된 탭만 Tab 순서에 있고, 좌우 방향키·Home·End로 옮기면 바로 선택된다.
 // 화면 전환은 주소가 아니라 상태로 처리한다. GitHub Pages에서 새로고침해도 404가 나지 않게 하기 위해서다. (PRD #8)
-export function Tabs<T extends string>({ label, tabs, value, onChange, sub }: TabsProps<T>) {
+export function Tabs<T extends string>({ label, tabs, value, onChange, sub, main }: TabsProps<T>) {
   const buttons = useRef(new Map<T, HTMLButtonElement>())
 
   const moveTo = (index: number) => {
@@ -35,7 +38,7 @@ export function Tabs<T extends string>({ label, tabs, value, onChange, sub }: Ta
   }
 
   return (
-    <div className={sub ? 'tabs tabs-sub' : 'tabs'} role="tablist" aria-label={label}>
+    <div className={sub ? 'tabs tabs-sub' : main ? 'tabs tabs-main' : 'tabs'} role="tablist" aria-label={label}>
       {tabs.map((tab, index) => {
         const selected = tab.id === value
         return (
@@ -55,7 +58,8 @@ export function Tabs<T extends string>({ label, tabs, value, onChange, sub }: Ta
             onClick={() => onChange(tab.id)}
             onKeyDown={(event) => onKeyDown(event, index)}
           >
-            {tab.label}
+            {tab.icon ? <span className="tab-icon" aria-hidden="true">{tab.icon}</span> : null}
+            <span className="tab-label">{tab.label}</span>
           </button>
         )
       })}

@@ -29,10 +29,10 @@ async function open(browser, url) {
 
 const file = (name) => path.join(OUT, `${name}.png`)
 
-// 요소의 위쪽을 화면 맨 위(여백 12px)에 두고 한 화면을 찍는다.
+// 요소의 위쪽을 위에 붙은 머리글 바로 아래(여백 72px)에 두고 한 화면을 찍는다.
 async function viewAt(page, name, locator) {
   if (locator) {
-    await locator.evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 12))
+    await locator.evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 72))
   } else {
     await page.evaluate(() => window.scrollTo(0, 0))
   }

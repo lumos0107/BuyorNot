@@ -1,3 +1,5 @@
+import { JumpNav, type JumpTarget } from './ui/JumpNav'
+import { IconBag, IconCoins, IconHistory, IconTag, IconWallet } from './ui/NavIcons'
 import { useEffect, useRef, useState } from 'react'
 import { aiServerUrl } from './ai/config'
 import evalSummaryJson from './ai/evalSummary.json'
@@ -36,11 +38,19 @@ import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
 type Screen = 'wishlist' | 'compare' | 'history' | 'subscriptions' | 'savings'
 
 const SCREENS: readonly TabItem<Screen>[] = [
-  { id: 'compare', label: '가격 비교' },
-  { id: 'wishlist', label: '물건' },
-  { id: 'history', label: '결정 기록' },
-  { id: 'subscriptions', label: '가계부' },
-  { id: 'savings', label: '모으기' },
+  { id: 'compare', label: '가격 비교', icon: <IconTag /> },
+  { id: 'wishlist', label: '물건', icon: <IconBag /> },
+  { id: 'history', label: '결정 기록', icon: <IconHistory /> },
+  { id: 'subscriptions', label: '가계부', icon: <IconWallet /> },
+  { id: 'savings', label: '모으기', icon: <IconCoins /> },
+]
+
+const LEDGER_JUMPS: readonly JumpTarget[] = [
+  { label: '결제 달력', selector: '[aria-label="앞으로 30일 결제 달력"]', open: true },
+  { label: '수입·지출', selector: '[aria-label="이달 가계부 요약"]' },
+  { label: '고정비 목록', selector: '#fixed-title' },
+  { label: '공과금', selector: '#bills-section' },
+  { label: '자잘한 지출', selector: 'details[aria-label="자잘한 지출"]', open: true },
 ]
 
 export default function App() {
@@ -105,7 +115,7 @@ export default function App() {
         }}
       />
 
-      <Tabs label="주요 메뉴" tabs={SCREENS} value={screen} onChange={(next) => { setJump(null); setScreen(next) }} />
+      <Tabs label="주요 메뉴" main tabs={SCREENS} value={screen} onChange={(next) => { setJump(null); setScreen(next); document.documentElement.scrollTop = 0 }} />
 
       <main>
         <TabPanel id="wishlist" hidden={screen !== 'wishlist'}>
@@ -175,6 +185,7 @@ export default function App() {
         </TabPanel>
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
           <h2 className="screen-title">가계부</h2>
+          <JumpNav label="가계부 안에서 이동" targets={LEDGER_JUMPS} />
           <PaymentCalendarSection subscriptions={subscriptions.items} today={wishlist.now} />
           <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now} />
           <SubscriptionScreen
