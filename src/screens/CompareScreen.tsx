@@ -30,6 +30,7 @@ import { SelectField, TextField } from '../ui/Field'
 import { TabPanel, Tabs, type TabItem } from '../ui/Tabs'
 import { BundlePhotoFill } from './ai/BundlePhotoFill'
 import { TagPhotoCheck } from './ai/TagPhotoCheck'
+import { DemoPhotoCompare } from './ai/DemoPhotoCompare'
 import { DeliveryCompare } from './DeliveryCompare'
 import type { Subscription } from '../logic/subscriptions'
 
@@ -43,6 +44,7 @@ const KINDS: readonly TabItem<CompareKind>[] = [
 ]
 // 가격표 사진은 AI 서버가 연결된 빌드에서 비교 화면의 첫 탭이다.
 const KINDS_WITH_AI: readonly TabItem<CompareKind>[] = [{ id: 'photo', label: '가격표 사진' }, ...KINDS]
+const KINDS_WITH_DEMO: readonly TabItem<CompareKind>[] = [...KINDS, { id: 'photo', label: '가격표 사진 예시' }]
 
 export function CompareScreen({
   onGoToWishlist,
@@ -67,7 +69,7 @@ export function CompareScreen({
   return (
     <div className="stack">
       <h2 className="screen-title">가격 비교</h2>
-      <Tabs label="가격 비교 종류" tabs={withAi ? KINDS_WITH_AI : KINDS} value={kind} onChange={setKind} sub />
+      <Tabs label="가격 비교 종류" tabs={withAi ? KINDS_WITH_AI : KINDS_WITH_DEMO} value={kind} onChange={setKind} sub />
       <TabPanel id="discount" hidden={kind !== 'discount'}>
         <DiscountCompare onAdd={onAddToWishlist} startWithExample={startWithExample} />
       </TabPanel>
@@ -77,11 +79,9 @@ export function CompareScreen({
       <TabPanel id="delivery" hidden={kind !== 'delivery'}>
         <DeliveryCompare subscriptions={subscriptions} />
       </TabPanel>
-      {withAi ? (
-        <TabPanel id="photo" hidden={kind !== 'photo'}>
-          <TagPhotoCheck onAdd={onAddPhotoDraft} />
-        </TabPanel>
-      ) : null}
+      <TabPanel id="photo" hidden={kind !== 'photo'}>
+        {withAi ? <TagPhotoCheck onAdd={onAddPhotoDraft} /> : <DemoPhotoCompare />}
+      </TabPanel>
       {onGoToWishlist ? (
         // 비교해 봐도 필요한 소비인지 확실하지 않으면 먼저 담아 둔다 (PRD #4). 입력값은 넘기지 않는다
         <div className="card stack">

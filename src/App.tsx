@@ -10,6 +10,7 @@ import { BillsSection } from './screens/BillsSection'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { LedgerSection } from './screens/LedgerSection'
+import { PaymentCalendarSection } from './screens/PaymentCalendarSection'
 import { SavingsScreen } from './screens/SavingsScreen'
 import { SpendingSection } from './screens/SpendingSection'
 import { SubscriptionScreen } from './screens/SubscriptionScreen'
@@ -173,6 +174,8 @@ export default function App() {
           <AfterBuySection wishlist={wishlist} today={wishlist.now} focusItemId={screen === 'history' && jump?.screen === 'history' ? jump.id : undefined} onFocusDone={() => setJump(null)} />
         </TabPanel>
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
+          <h2 className="screen-title">가계부</h2>
+          <PaymentCalendarSection subscriptions={subscriptions.items} today={wishlist.now} />
           <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now} />
           <SubscriptionScreen
             items={subscriptions.items}

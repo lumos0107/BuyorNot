@@ -16,10 +16,10 @@ function card(name: string) {
 }
 
 describe('가격 비교 탭 (2026-10-13 제작자 결정: 무료배송 채우기를 뺌)', () => {
-  it('AC129: 할인·묶음상품·배달 세 탭이 있고 무료배송 채우기 탭은 없다', () => {
+  it('AC129: 할인·묶음상품·배달·사진 예시 탭이 있고 무료배송 채우기 탭은 없다', () => {
     render(<CompareScreen />)
     const tabs = within(screen.getByRole('tablist', { name: '가격 비교 종류' })).getAllByRole('tab')
-    expect(tabs.map((t) => t.textContent)).toEqual(['할인 비교', '묶음상품 비교', '배달'])
+    expect(tabs.map((t) => t.textContent)).toEqual(['할인 비교', '묶음상품 비교', '배달', '가격표 사진 예시'])
   })
 })
 

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { isDay } from '../logic/guards'
-import { LEDGER_CATEGORY_LABEL, ledgerMonth, type LedgerCategory, type LedgerKind } from '../logic/ledger'
+import { LEDGER_CATEGORY_LABEL, ledgerMonth, type LedgerCategory, type LedgerEntry, type LedgerKind } from '../logic/ledger'
 import { formatWon } from '../logic/number'
 import { toDayIso } from '../logic/subscriptions'
 import { newId } from '../logic/wishlist'
@@ -32,7 +32,13 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const summary = ledgerMonth(ledger.store.entries, month)
+  const showDemo = ledger.store.entries.length === 0 && month === todayIso.slice(0, 7)
+  const demoEntries: LedgerEntry[] = showDemo ? [
+    { id: 'demo-income', kind: 'income', category: 'salary', name: '(예시) 이번 달 용돈', amountKrw: 500000, day: todayIso, createdAt: today.toISOString() },
+    { id: 'demo-food', kind: 'expense', category: 'food', name: '(예시) 점심 식사', amountKrw: 12000, day: todayIso, createdAt: today.toISOString() },
+    { id: 'demo-transport', kind: 'expense', category: 'transport', name: '(예시) 교통비', amountKrw: 3500, day: todayIso, createdAt: today.toISOString() },
+  ] : []
+  const summary = ledgerMonth(showDemo ? demoEntries : ledger.store.entries, month)
   const smallSpent = spending.entries.filter((entry) => entry.day.slice(0, 7) === month && entry.action === 'spent').reduce((sum, entry) => sum + entry.amountKrw, 0)
   const billsAmount = bills.items.filter((bill) => bill.month === month).reduce((sum, bill) => sum + bill.amountKrw, 0)
 
@@ -52,7 +58,6 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
   }
 
   return <section className="stack" aria-label="가계부">
-    <h2 className="screen-title">가계부</h2>
     <p className="note">실제로 들어오거나 나간 돈을 날짜별로 적어요. 계좌 사이에 옮긴 돈은 모으기에서 따로 기록해요.</p>
     {ledger.status.kind !== 'ok' ? <div className="banner stack" role="status" aria-label="가계부 저장 상태">
       <p>{ledger.status.kind === 'corrupt' ? '저장된 가계부를 읽을 수 없어요.' : ledger.status.kind === 'replaced' ? '다른 탭에서 저장한 가계부를 불러왔어요.' : ledger.status.kind === 'save-failed' ? '가계부를 저장하지 못했어요. 브라우저 저장 공간과 설정을 확인해 주세요.' : '이 브라우저에서는 가계부를 저장할 수 없어요.'}</p>
@@ -62,8 +67,9 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
     </div> : null}
     <section className="card stack" aria-label="이달 가계부 요약">
       <TextField label="볼 달" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
-      <p className="card-row"><span>직접 적은 수입</span><strong>{formatWon(summary.income)}</strong></p>
-      <p className="card-row"><span>직접 적은 지출</span><strong>{formatWon(summary.expense)}</strong></p>
+      {showDemo ? <p className="note">시연용 예시 금액입니다. 저장되지 않으며 첫 내역을 적으면 사라져요.</p> : null}
+      <p className="card-row"><span>{showDemo ? '수입 (예시)' : '직접 적은 수입'}</span><strong>{formatWon(summary.income)}</strong></p>
+      <p className="card-row"><span>{showDemo ? '지출 (예시)' : '직접 적은 지출'}</span><strong>{formatWon(summary.expense)}</strong></p>
       <p className="card-row"><span>차이</span><strong>{formatWon(summary.income - summary.expense)}</strong></p>
       <p className="note">아래의 자잘한 지출 {formatWon(smallSpent)}·공과금 {formatWon(billsAmount)}은 중복 계산을 막기 위해 위 합계에 넣지 않았어요.</p>
     </section>
@@ -92,7 +98,7 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
         {summary.entries.map((entry) => <li key={entry.id}>
           <div className="stack"><strong>{entry.name}</strong><span className="note">{entry.day} · {entry.kind === 'income' ? '수입' : '지출'} · {LEDGER_CATEGORY_LABEL[entry.category]}</span></div>
           <div className="stack"><span className="price">{entry.kind === 'income' ? '+' : '−'}{formatWon(entry.amountKrw)}</span>
-            {deleteId === entry.id ? <span className="btn-row"><Button variant="danger" onClick={() => { ledger.remove(entry.id); setDeleteId(null) }}>지우기 확인</Button><Button onClick={() => setDeleteId(null)}>취소</Button></span> : <Button onClick={() => setDeleteId(entry.id)}>지우기</Button>}
+            {showDemo ? null : deleteId === entry.id ? <span className="btn-row"><Button variant="danger" onClick={() => { ledger.remove(entry.id); setDeleteId(null) }}>지우기 확인</Button><Button onClick={() => setDeleteId(null)}>취소</Button></span> : <Button onClick={() => setDeleteId(entry.id)}>지우기</Button>}
           </div>
         </li>)}
       </ul>}

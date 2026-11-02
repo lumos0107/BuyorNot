@@ -55,7 +55,6 @@ import {
 import { formatWon } from '../logic/number'
 import { buildTrialIcs, trialGoogleCalendarUrl, trialIcsFileName } from '../logic/calendar'
 import { sameRecord } from '../logic/records'
-import { PaymentCalendarSection } from './PaymentCalendarSection'
 import { EmptyIllustration } from '../ui/EmptyIllustration'
 import { netflixRecord, parseNetflixCsv, type DayOrder } from '../logic/netflixCsv'
 import { usageInfo, validateUsageInput } from '../logic/usage'
@@ -228,7 +227,6 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
           ) : null}
         </section>
       ) : null}
-      <PaymentCalendarSection subscriptions={items} today={today} />
       {active.length > 0 ? <details className="card guide">
         <summary className="card-title">고정비 분석·계산 방법</summary>
         <div className="stack">

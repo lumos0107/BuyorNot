@@ -470,13 +470,14 @@ function AddForm({
   // 물건을 담으면 올린다: 진행 중인 녹음·받아쓰기를 끊어 늦은 응답이 비운 폼을 다시 채우지 않게 한다(판정 R13)
   const [voiceCancel, setVoiceCancel] = useState(0)
   // 응답이 온 순간의 폼 값에 합친다: 빈 칸만 채우고 적어 둔 칸(받아쓰는 동안 적은 칸 포함)은 그대로 둔다. 저장은 하지 않는다
-  const fillFromVoice = (fill: VoiceFillResponse) => {
+  const fillFromVoice = (fill: VoiceFillResponse, demo = false) => {
     const target = { name: raw.name, price: raw.price, reason: raw.reason, desire, preset: raw.preset, customDays: raw.customDays }
     const { next, filled, kept } = applyVoiceFill(target, fill)
     setRaw((r) => ({ ...r, name: next.name, price: next.price, reason: next.reason, preset: next.preset, customDays: next.customDays }))
     setDesire(next.desire)
     setAdded(null)
-    setVoiceMessage({ kind: 'status', lines: voiceStatusLines(fill.transcript, filled, kept) })
+    const lines = voiceStatusLines(fill.transcript, filled, kept)
+    setVoiceMessage({ kind: 'status', lines: demo ? lines.map((line) => line.replace('AI가 받아쓴 내용:', '미리 준비한 예시 문장:')) : lines })
     setVoiceFocus({ field: filled[0] ?? null })
     if (moreRef.current) moreRef.current.open = true
   }
@@ -577,25 +578,22 @@ function AddForm({
           예시를 입력했어요. ‘담아 두기’를 누르면 체크리스트 답도 물건 카드에 표시돼요.
         </p>
       ) : null}
-      {/* 말로 담기 (F33): 안내 문구 아래, 상품명 위. AI 서버 주소가 있을 때만 */}
+      {/* 말로 담기 (F33): 서버가 없으면 미리 저장한 음성 예시만 보여 준다. */}
       {withAi ? (
-        <>
-          <VoiceFillButton
-            active={active}
-            onFill={fillFromVoice}
-            onMessage={(message) => setVoiceMessage(message.lines.length > 0 ? message : null)}
-            buttonRef={voiceButton}
-            cancelKey={voiceCancel}
-          />
-          {voiceMessage ? (
-            <div className={voiceMessage.kind === 'alert' ? 'field-error' : 'note'} role={voiceMessage.kind}>
-              {voiceMessage.lines.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </div>
-          ) : null}
-        </>
-      ) : null}
+        <VoiceFillButton
+          active={active}
+          onFill={fillFromVoice}
+          onMessage={(message) => setVoiceMessage(message.lines.length > 0 ? message : null)}
+          buttonRef={voiceButton}
+          cancelKey={voiceCancel}
+        />
+      ) : <div className="stack">
+        <Button ref={voiceButton} onClick={() => fillFromVoice({ transcript: '무선 헤드폰 8만 원, 통학할 때 쓰려고 해요', name: '무선 헤드폰', price: 80000, reason: '통학할 때 쓰려고 해요', desire: null, periodDays: null }, true)}>예시 음성 결과 채우기</Button>
+        <p className="note">녹음하거나 AI를 호출하지 않아요. 미리 준비한 문장으로 입력 흐름을 체험할 수 있어요.</p>
+      </div>}
+      {voiceMessage ? <div className={voiceMessage.kind === 'alert' ? 'field-error' : 'note'} role={voiceMessage.kind}>
+        {voiceMessage.lines.map((line) => <p key={line}>{line}</p>)}
+      </div> : null}
       <TextField
         label="상품명"
         placeholder="예: 무선 헤드폰"

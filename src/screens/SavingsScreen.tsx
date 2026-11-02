@@ -122,11 +122,6 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
               <span className="price">{formatWon(n.movedTotal)}</span>
             </li>
           </ul>
-          <p className="note">{NOTE_REDUCED}</p>
-          {n.loweredCount > 0 ? <p className="note">{NOTE_LOWERED}</p> : null}
-          <p className="note">{NOTE_SKIPPED}</p>
-          <p className="note">{NOTE_MOVED}</p>
-          <p className="note">{NOTE_SEPARATE}</p>
         </section>
       ) : null}
       {avoided.cookedCount > 0 || avoided.stockCount > 0 ? <section className="card stack" aria-label="직접 적은 대체 금액">
@@ -153,6 +148,14 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />
       <TransferLog transfers={savings.store.transfers} onRemove={removeTransfer} onLostFocus={() => headingRef.current?.focus()} />
+      {hasOriginalNumbers ? <section className="card stack" aria-label="모으기 계산 설명">
+        <p className="card-title">숫자 계산 방법</p>
+        <p className="note">{NOTE_REDUCED}</p>
+        {n.loweredCount > 0 ? <p className="note">{NOTE_LOWERED}</p> : null}
+        <p className="note">{NOTE_SKIPPED}</p>
+        <p className="note">{NOTE_MOVED}</p>
+        <p className="note">{NOTE_SEPARATE}</p>
+      </section> : null}
     </div>
   )
 }

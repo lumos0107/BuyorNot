@@ -25,10 +25,12 @@ it('AC175: 처음부터 열린 달력에 결제 건수·요금 합계를 보이�
   expect(calendar.getByText('11월 3일 · 인터넷 요금 · 30,000원')).toBeInTheDocument()
 })
 
-it('AC175: 적어 둔 고정비가 없으면 30일 달력에 빈 안내를 보인다', async () => {
+it('AC175: 적어 둔 고정비가 없으면 저장되지 않는 예시 결제를 보인다', async () => {
   const user = userEvent.setup()
   render(<App />)
   await user.click(screen.getByRole('tab', { name: '가계부' }))
   const calendar = within(screen.getByRole('region', { name: '앞으로 30일 결제 달력' }))
-  expect(calendar.getByText('앞으로 30일에 적어 둔 결제 예정이 없어요.')).toBeVisible()
+  expect(calendar.getByText('예시 결제 4건 · 36,280원')).toBeVisible()
+  expect(calendar.getByText('달력의 예시 결제는 저장되지 않아요. 고정비를 등록하면 실제 입력한 요금으로 바뀝니다.')).toBeVisible()
+  expect(localStorage.getItem(SUBS_KEY)).toBeNull()
 })
