@@ -1,5 +1,5 @@
 import { isDay, isIntBetween, isRecord, isString, isTimestamp } from './guards'
-import { daysInMonth } from './dates'
+import { calendarDaysBetween, daysInMonth, parseDay } from './dates'
 import { josa } from './number'
 
 // PRD F59: 자주 쓰는 버튼과 쓴/참은 기록. 은행에서 옮긴 돈과 별도다.
@@ -79,4 +79,22 @@ export function spendingMonthSummary(entries: readonly SpendingEntry[], today: D
 export function skippedSpendingTotal(entries: readonly SpendingEntry[]): CountAmount {
   const skipped = entries.filter((entry) => entry.action === 'skipped')
   return { count: skipped.length, amountKrw: skipped.reduce((sum, entry) => sum + entry.amountKrw, 0) }
+}
+
+export function weeklySpendingExperiment(entries: readonly SpendingEntry[], templateId: string, today: Date): { previous: number; current: number; target: number } | null {
+  let previous = 0
+  let current = 0
+  for (const entry of entries) {
+    if (entry.templateId !== templateId || entry.action !== 'spent') continue
+    const day = parseDay(entry.day)
+    if (!day) continue
+    const age = calendarDaysBetween(day, today)
+    if (age >= 0 && age <= 6) current++
+    else if (age >= 7 && age <= 13) previous++
+  }
+  return previous ? { previous, current, target: previous - 1 } : null
+}
+
+export function weeklySpendingLine(experiment: NonNullable<ReturnType<typeof weeklySpendingExperiment>>): string {
+  return `지난 7일 ${experiment.previous}번 · 이번 7일 ${experiment.current}번 · 이번에는 ${experiment.target}번까지 시도해 보세요.`
 }

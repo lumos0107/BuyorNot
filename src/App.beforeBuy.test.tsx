@@ -9,7 +9,25 @@ const now = new Date(2026, 10, 1, 9)
 const item: WishItem = { id: 'w1', name: '청소기', priceKrw: 300000, reason: '필요', url: null, createdAt: now.toISOString(), updatedAt: now.toISOString(), reviewAt: '2026-11-04T00:00:00.000Z', status: 'considering', decidedAt: null }
 beforeEach(() => { localStorage.clear(); localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [item] })); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(now) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByText('사기 전에')); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByText('사기 전에')); await user.click(screen.getByText('자세히 확인·적기')); return user }
+
+it('AC186·AC187: 요약을 먼저 보고 자세한 입력은 접었다 열어도 작성 중 값이 남는다', async () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, items: [{ ...item, priceKrw: 50000, installment: { months: 2, monthlyKrw: 30000 }, usesPerYear: 2, targetPriceKrw: 40000 }] }))
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(screen.getByText('사기 전에'))
+  expect(screen.getByText('한눈에 확인')).toBeVisible()
+  expect(screen.getByText('할부로 내면 총 60,000원 · 일시불보다 10,000원 더')).toBeVisible()
+  expect(screen.getByText('1년에 2번')).toBeVisible()
+  expect(screen.getByText('목표가 40,000원')).toBeVisible()
+  expect(screen.getByRole('form', { name: '청소기 대용량 사용' }).closest('details')).not.toHaveAttribute('open')
+  await user.click(screen.getByText('자세히 확인·적기'))
+  await user.type(screen.getByLabelText('총량'), '10')
+  await user.click(screen.getByText('자세히 확인·적기'))
+  expect(screen.getByText('한눈에 확인')).toBeVisible()
+  await user.click(screen.getByText('자세히 확인·적기'))
+  expect(screen.getByLabelText('총량')).toHaveValue('10')
+})
 
 it('AC133: 할부를 적으면 카드와 저장값에 총액 계산이 반영된다', async () => {
   const user = await open()

@@ -118,3 +118,15 @@ export function priceHistoryLine(item: Pick<WishItem, 'targetPriceKrw' | 'priceN
 export function priceTargetMetLine(item: Pick<WishItem, 'targetPriceKrw' | 'priceNotes'>): string | null {
   return item.targetPriceKrw !== undefined && item.priceNotes?.some((note) => note.priceKrw <= item.targetPriceKrw!) ? '적어 둔 값 가운데 목표가 이하가 있어요.' : null
 }
+
+export function beforeBuySummaryLines(item: WishItem, pantry: readonly PantryItem[]): string[] {
+  const lines = [`일시불 ${formatWon(item.priceKrw)}`]
+  const duplicate = pantryDuplicateLine(item.name, pantry)
+  const installment = installmentLine(item)
+  const history = priceHistoryLine(item)
+  if (duplicate) lines.push(duplicate)
+  if (installment) lines.push(installment)
+  if (item.usesPerYear !== undefined) lines.push(`1년에 ${item.usesPerYear}번`)
+  if (history) lines.push(history)
+  return lines
+}

@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ALTERNATIVE_LINKS, ALTERNATIVE_NOTE, addPriceNote, bulkUseLine, installmentLine, pantryDuplicateLine, priceHistoryLine, priceTargetMetLine, usageCostLine, validateBulkUse, validateInstallment, validateSeenPrice, validateTargetPrice, validateUsesPerYear } from '../logic/beforeBuy'
-import { formatWon } from '../logic/number'
+import { ALTERNATIVE_LINKS, ALTERNATIVE_NOTE, addPriceNote, beforeBuySummaryLines, bulkUseLine, priceTargetMetLine, usageCostLine, validateBulkUse, validateInstallment, validateSeenPrice, validateTargetPrice, validateUsesPerYear } from '../logic/beforeBuy'
 import type { PantryStore } from '../logic/pantry'
 import type { WishItem } from '../logic/wishlist'
 import { toDayIso } from '../logic/subscriptions'
@@ -92,15 +91,19 @@ function BeforeCard({ item, wishlist, pantry, today }: { item: WishItem; wishlis
   }
   return <section className="card stack" aria-label={`${item.name} 사기 전 확인`}>
     <p className="card-title">{item.name}</p>
-    <p className="note">{`일시불 ${formatWon(item.priceKrw)}`}</p>
-    {pantryDuplicateLine(item.name, pantry.items) ? <p>{pantryDuplicateLine(item.name, pantry.items)}</p> : null}
+    <div className="stack" aria-label="한눈에 확인">
+      <p className="field-label">한눈에 확인</p>
+      {beforeBuySummaryLines(item, pantry.items).map((line) => <p key={line} className="note">{line}</p>)}
+    </div>
+    <details>
+      <summary>자세히 확인·적기</summary>
+      <div className="stack">
     <form className="stack" aria-label={`${item.name} 할부`} ref={ref} onSubmit={save} noValidate>
       <p className="field-label">할부 (선택)</p>
       <TextField label="할부 개월" inputMode="numeric" value={months} error={errors.months} onChange={(e) => { setMonths(e.target.value); setErrors({}) }} />
       <TextField label="월 납입금" inputMode="numeric" value={monthly} error={errors.monthly} onChange={(e) => { setMonthly(e.target.value); setErrors({}) }} />
       <div className="btn-row"><Button type="submit">할부 적기</Button></div>
     </form>
-    {installmentLine(item) ? <p>{installmentLine(item)}</p> : null}
     <form className="stack" aria-label={`${item.name} 사용 횟수`} onSubmit={saveUses} noValidate>
       <TextField label="1년에 몇 번 쓸까요? (선택)" inputMode="numeric" value={uses} error={usesError || undefined} onChange={(e) => { setUses(e.target.value); setUsesError('') }} />
       <div className="btn-row"><Button type="submit">횟수 적기</Button></div>
@@ -109,7 +112,7 @@ function BeforeCard({ item, wishlist, pantry, today }: { item: WishItem; wishlis
       <p>{usageCostLine(item)}</p>
       <p className="note">{ALTERNATIVE_NOTE}</p>
       <div className="btn-row">{ALTERNATIVE_LINKS.map((link) => <a key={link.href} className="btn" href={link.href} target="_blank" rel="noopener noreferrer">{link.name}</a>)}</div>
-    </> : item.usesPerYear ? <p className="note">{`1년에 ${item.usesPerYear}번`}</p> : null}
+    </> : null}
     <form className="stack" aria-label={`${item.name} 대용량 사용`} onSubmit={saveBulk} noValidate>
       <p className="field-label">대용량 사용 (선택)</p>
       <TextField label="총량" inputMode="decimal" value={bulkTotal} error={bulkErrors.total} onChange={(e) => { setBulkTotal(e.target.value); setBulkErrors({}) }} />
@@ -128,7 +131,8 @@ function BeforeCard({ item, wishlist, pantry, today }: { item: WishItem; wishlis
       <div className="btn-row"><Button type="submit">본 값 적기</Button></div>
     </form>
     {seenFull ? <p role="alert" className="field-error">본 값은 30개까지 적을 수 있어요.</p> : null}
-    {priceHistoryLine(item) ? <p>{priceHistoryLine(item)}</p> : null}
     {priceTargetMetLine(item) ? <p className="note">{priceTargetMetLine(item)}</p> : null}
+      </div>
+    </details>
   </section>
 }

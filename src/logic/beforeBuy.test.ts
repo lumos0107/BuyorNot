@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { ALTERNATIVE_LINKS, addPriceNote, bulkUseLine, installmentLine, pantryDuplicateLine, priceHistoryLine, priceTargetMetLine, usageCostLine, validateBulkUse, validateInstallment, validateUsesPerYear } from './beforeBuy'
+import { ALTERNATIVE_LINKS, addPriceNote, beforeBuySummaryLines, bulkUseLine, installmentLine, pantryDuplicateLine, priceHistoryLine, priceTargetMetLine, usageCostLine, validateBulkUse, validateInstallment, validateUsesPerYear } from './beforeBuy'
 import type { PantryItem } from './pantry'
 import type { WishItem } from './wishlist'
 
@@ -42,6 +42,11 @@ it('AC141: 목표가·마지막 본 값·적은 값 중 가장 낮은 값은 날
   const changed = { ...item, targetPriceKrw: 30000, priceNotes: [{ day: '2026-10-20', priceKrw: 29900 }, { day: '2026-11-03', priceKrw: 34900 }] }
   expect(priceHistoryLine(changed)).toBe('목표가 30,000원 · 마지막으로 본 값 34,900원(11/3) · 본 값 가운데 가장 낮은 값 29,900원(10/20)')
   expect(priceTargetMetLine(changed)).toBe('적어 둔 값 가운데 목표가 이하가 있어요.')
+})
+
+it('AC186: 사기 전 요약은 적힌 가격·할부·횟수·목표가만 모은다', () => {
+  const lines = beforeBuySummaryLines({ ...item, priceKrw: 50000, installment: { months: 2, monthlyKrw: 30000 }, usesPerYear: 2, targetPriceKrw: 40000 }, [])
+  expect(lines).toEqual(['일시불 50,000원', '할부로 내면 총 60,000원 · 일시불보다 10,000원 더', '1년에 2번', '목표가 40,000원'])
 })
 it('AC142: 본 값 30건 뒤 다른 날짜는 막고 같은 날짜는 바꾼다', () => {
   const notes = Array.from({ length: 30 }, (_, i) => ({ day: `2026-10-${String(i + 1).padStart(2, '0')}`, priceKrw: 30000 }))

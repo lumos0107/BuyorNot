@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { formatWon, parseInteger } from '../logic/number'
 import {
   SPENDING_CORRUPT, SPENDING_KIND_LABEL, SPENDING_KINDS, SPENDING_REPLACED, SPENDING_SAVE_FAILED,
-  SPENDING_STORAGE_LABEL, SPENDING_UNAVAILABLE, spendingMonthSummary, spendingSavedMessage,
+  SPENDING_STORAGE_LABEL, SPENDING_UNAVAILABLE, spendingMonthSummary, spendingSavedMessage, weeklySpendingExperiment, weeklySpendingLine,
   type SpendingEntry, type SpendingKind, type SpendingTemplate,
 } from '../logic/spending'
 import { toDayIso } from '../logic/subscriptions'
@@ -26,6 +26,7 @@ export function SpendingSection({ spending, today }: { spending: ReturnType<type
   const titleRef = useRef<HTMLParagraphElement>(null)
   const { ref, focusFirstError } = useFocusFirstError<HTMLFormElement>()
   const summary = spendingMonthSummary(spending.store.entries, today)
+  const weekly = new Map(spending.store.templates.map((template) => [template.id, weeklySpendingExperiment(spending.store.entries, template.id, today)]))
 
   const addTemplate = (event: FormEvent) => {
     event.preventDefault()
@@ -80,6 +81,7 @@ export function SpendingSection({ spending, today }: { spending: ReturnType<type
       <p className="card-title">{template.name}</p>
       <p>{`${SPENDING_KIND_LABEL[template.kind]} · ${formatWon(template.amountKrw)}`}</p>
       {template.limitPerMonth ? <p className="note">{`이번 달 ${spending.store.entries.filter((entry) => entry.templateId === template.id && entry.action === 'spent' && entry.day.slice(0, 7) === toDayIso(today).slice(0, 7)).length}번 / 정한 ${template.limitPerMonth}번`}</p> : null}
+      {weekly.get(template.id) ? <p className="note">{weeklySpendingLine(weekly.get(template.id)!)}</p> : null}
       <div className="btn-row"><Button aria-label={`${template.name} 썼어요`} onClick={() => addEntry(template, 'spent', new Date())}>썼어요</Button><Button aria-label={`${template.name} 참았어요`} onClick={() => addEntry(template, 'skipped', new Date())}>참았어요</Button><Button onClick={() => setDeleteTemplateId(template.id)}>지우기</Button></div>
       {deleteTemplateId === template.id ? <div role="group" aria-label="자잘한 지출 버튼 지우기 확인" className="stack"><p>이 버튼을 지울까요? 적은 기록은 그대로 남아요.</p><div className="btn-row"><Button variant="danger" autoFocus onClick={() => { if (spending.removeTemplate(template.id)) titleRef.current?.focus(); setDeleteTemplateId(null) }}>지우기</Button><Button onClick={() => setDeleteTemplateId(null)}>취소</Button></div></div> : null}
     </div>)}
