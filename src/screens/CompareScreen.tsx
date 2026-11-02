@@ -254,8 +254,10 @@ function DiscountResultCard({ a, b, onAdd }: { a: DiscountSide; b: DiscountSide;
   return (
     <section className="card stack" aria-label="할인 비교 결과">
       <p className="card-title">결과</p>
-      <DiscountSideSummary name="A안" side={a} />
-      <DiscountSideSummary name="B안" side={b} />
+      <div className="side-tiles">
+        <DiscountSideSummary name="A안" side={a} best={comparison.cheaper === 'A'} />
+        <DiscountSideSummary name="B안" side={b} best={comparison.cheaper === 'B'} />
+      </div>
       <p className="price price-lg">{verdictText}</p>
       {onAdd ? (
         <AddButtons
@@ -301,9 +303,10 @@ function AddButtons({ sides }: { sides: [string, number, () => void][] }) {
   )
 }
 
-function DiscountSideSummary({ name, side }: { name: string; side: DiscountSide }) {
+// best: 더 싼 쪽 칸을 강조색 테두리로(결론 문장이 따로 있어 색만으로 정보를 전하지 않는다)
+function DiscountSideSummary({ name, side, best }: { name: string; side: DiscountSide; best?: boolean }) {
   return (
-    <div>
+    <div className={best ? 'side-tile is-best' : 'side-tile'}>
       <div className="card-row">
         <span>{name} 결제액</span>
         <span className="price">{formatWon(side.total)}</span>

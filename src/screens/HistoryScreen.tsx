@@ -199,7 +199,7 @@ function HistoryCard({
   return (
     <article className="card stack" aria-label={item.name}>
       <div className="card-row">
-        <p className="card-title">{item.name}</p>
+        <p className="card-title" data-initial={item.name.replace(/^\(예시\)\s*/, '').slice(0, 1)} data-tone={purchased ? 'bought' : 'skipped'}>{item.name}</p>
         <span className={purchased ? 'status' : 'status status-muted'}>{purchased ? '구매함' : '구매 포기'}</span>
       </div>
       <p className="price">{formatWon(item.priceKrw)}</p>

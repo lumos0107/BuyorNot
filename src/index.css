@@ -2133,3 +2133,163 @@ section.card[aria-label$='비교 결과'] {
 .category-list li:has(.ledger-icon-housing) .category-bar > span { background: #7048e8; }
 .category-list li:has(.ledger-icon-health) .category-bar > span { background: #e03150; }
 .category-list li:has(.ledger-icon-other) .category-bar > span { background: #868e96; }
+
+/* ───────────────────────────────────────────────────────────────
+   2026-11-02 다른 탭도 가계부처럼: 동그란 표식 · 큰 숫자 칸 · 오른쪽 굵은 금액
+   ─────────────────────────────────────────────────────────────── */
+
+/* 카드 이름 앞의 동그란 첫 글자 표식(물건·결정 기록·고정비). 글자는 CSS가 그려 문구는 그대로 */
+.card-title[data-initial] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-title[data-initial]::before {
+  content: attr(data-initial);
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.card-title[data-tone='bought']::before { background: #e8eeff; color: #2b44b0; }
+.card-title[data-tone='skipped']::before { background: #e6f6ec; color: #1b6e3f; }
+.card-title[data-tone='fixed']::before { background: #fff1e0; color: #a35200; }
+.card-title[data-tone='cancelled']::before { background: #eef0f5; color: #475467; }
+
+/* 요약 숫자 칸: 모으기 '지금까지'는 세 칸, 결정 기록 요약은 큰 숫자 하나 */
+section[aria-label='모으기 요약'] > .result-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+section[aria-label='모으기 요약'] > .result-list li,
+section[aria-label='결정 기록 요약'] > .result-list li {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  min-width: 0;
+}
+
+section[aria-label='모으기 요약'] > .result-list li > span:first-child,
+section[aria-label='결정 기록 요약'] > .result-list li > span:first-child {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+section[aria-label='모으기 요약'] > .result-list li > .price {
+  font-size: clamp(14px, 4vw, 18px);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+section[aria-label='결정 기록 요약'] > .result-list li {
+  background: var(--accent-soft);
+}
+
+section[aria-label='결정 기록 요약'] > .result-list li > span:first-child {
+  color: var(--accent-ink);
+}
+
+section[aria-label='결정 기록 요약'] > .result-list li > .price {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  color: var(--accent-ink);
+}
+
+/* 할인 비교 결과: A안·B안 결제액을 나란히 두 칸, 더 싼 쪽은 강조 테두리 */
+.side-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.side-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  min-width: 0;
+}
+
+.side-tile > .card-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.side-tile > .card-row > span:first-child {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.side-tile .price {
+  font-size: clamp(16px, 4.6vw, 20px);
+  letter-spacing: -0.02em;
+}
+
+.side-tile .note,
+.side-tile .field-error {
+  font-size: 12px;
+}
+
+.side-tile.is-best {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.side-tile.is-best .price {
+  color: var(--accent-ink);
+}
+
+/* 묶음 비교 결과의 두 줄도 금액을 오른쪽에 크게 */
+section[aria-label='묶음상품 비교 결과'] > .result-list .price {
+  font-size: 17px;
+}
+
+/* 저축 목표 진행 막대: 굵고 둥근 막대 */
+.goal-progress {
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e4e8f2;
+}
+
+.goal-progress::-webkit-progress-bar {
+  background: #e4e8f2;
+  border-radius: 999px;
+}
+
+.goal-progress::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.goal-progress::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* '오늘 확인할 것' 줄도 목록처럼 */
+.today-action + .today-action {
+  border-top: 1px solid var(--line);
+}

@@ -615,7 +615,7 @@ function SubscriptionCard({
   return (
     <article className="card stack" aria-label={sub.name} id={`fixed-card-${sub.id}`} tabIndex={-1}>
       <div className="card-row">
-        <p className="card-title">{sub.name}</p>
+        <p className="card-title" data-initial={sub.name.replace(/^\(예시\)\s*/, '').slice(0, 1)} data-tone="fixed">{sub.name}</p>
         {candidate ? (
           <span className="status status-warn">해지 후보</span>
         ) : tracked && needsUsageCheck(sub) ? (
@@ -797,7 +797,7 @@ function CancelledCard({ sub, onResume, onRemove }: { sub: Subscription; onResum
   }
   return (
     <article className="card stack" aria-label={sub.name}>
-      <p className="card-title">{sub.name}</p>
+      <p className="card-title" data-initial={sub.name.replace(/^\(예시\)\s*/, '').slice(0, 1)} data-tone="cancelled">{sub.name}</p>
       <p className="card-meta">{KIND_LABEL[kindOf(sub)]}</p>
       <p className="price">{cancelledLine(sub)}</p>
       {sub.memo ? <p>{sub.memo}</p> : null}

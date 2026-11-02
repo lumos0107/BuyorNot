@@ -804,7 +804,8 @@ function WishCard({ item, items, now, hourlyWage, justAdded, onEdit, onDecide, o
     <article className="card stack" aria-label={item.name}>
       <div className="card-row">
         {/* 담은 직후 포커스가 오는 곳. 이름 아래 줄이 이름의 설명이라 포커스가 갈 때 함께 읽힌다 (F24) */}
-        <p className="card-title" id={cardNameId(item.id)} tabIndex={-1} aria-describedby={justAdded ? justAddedId(item.id) : undefined}>
+        {/* data-initial: 이름 첫 글자를 CSS가 동그란 표식으로 그린다(장식, 글자 내용은 그대로) */}
+        <p className="card-title" data-initial={item.name.replace(/^\(예시\)\s*/, '').slice(0, 1)} data-tone="wish" id={cardNameId(item.id)} tabIndex={-1} aria-describedby={justAdded ? justAddedId(item.id) : undefined}>
           {item.name}
         </p>
         {state.phase === 'ready' ? (
