@@ -7,7 +7,7 @@ import { SPENDING_KEY } from './logic/spending'
 const today = new Date(2026, 10, 1, 9)
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today) })
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '모으기' })); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '가계부' })); return user }
 async function addCoffee(user: ReturnType<typeof userEvent.setup>) {
   const form = within(screen.getByRole('form', { name: '자잘한 지출 버튼 만들기' }))
   await user.type(form.getByLabelText('이름'), '커피')
@@ -29,6 +29,7 @@ it('AC128: 참았어요는 실제 옮긴 돈과 별도 카드로 보인다', asy
   const user = await open()
   await addCoffee(user)
   await user.click(screen.getByRole('button', { name: '커피 참았어요' }))
+  await user.click(screen.getByRole('tab', { name: '모으기' }))
   expect(screen.getByText('참았다고 적은 작은 지출')).toBeInTheDocument()
   expect(screen.getByText('4,500원')).toBeInTheDocument()
   expect(screen.getByText('참았다고 적은 금액은 실제로 옮긴 돈이 아니에요.')).toBeInTheDocument()

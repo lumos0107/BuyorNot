@@ -3,6 +3,7 @@ import { makeBackup, parseBackup } from './backup'
 import { BASIS_MAX } from './fit'
 import { EMPTY_SAVINGS } from './savings'
 import { EMPTY_BENEFITS } from './benefits'
+import { EMPTY_LEDGER } from './ledger'
 import { STORAGE_KEY, loadStore, parseStore, saveStore, type WishStore } from './storage'
 import type { WishItem } from './wishlist'
 
@@ -92,7 +93,7 @@ describe('놓을 자리 저장과 복원 (F44, AC65)', () => {
   it('AC65: 백업 파일을 받은 뒤 불러와도 fit과 basis가 그대로예요', () => {
     const items = [item({ fit: { ...FIT, basis: '포장 치수' } }), item({ id: 'w2' })] as WishItem[]
     const parsed = parseBackup(makeBackup({ items, hourlyWage: null, subscriptions: [] }, new Date('2026-10-30T12:00:00.000Z')))
-    expect(parsed).toEqual({ ok: true, data: { items, hourlyWage: null, subscriptions: [], savings: EMPTY_SAVINGS, bills: { schemaVersion: 1, items: [] }, pantry: { schemaVersion: 1, items: [], recipes: [], events: [] }, spending: { schemaVersion: 1, templates: [], entries: [] }, benefits: EMPTY_BENEFITS } })
+    expect(parsed).toEqual({ ok: true, data: { items, hourlyWage: null, subscriptions: [], savings: EMPTY_SAVINGS, bills: { schemaVersion: 1, items: [] }, pantry: { schemaVersion: 1, items: [], recipes: [], events: [] }, spending: { schemaVersion: 1, templates: [], entries: [] }, benefits: EMPTY_BENEFITS, ledger: EMPTY_LEDGER } })
     if (!parsed.ok) return
     expect(parsed.data.items[0].fit).toEqual({ ...FIT, basis: '포장 치수' })
     expect('fit' in parsed.data.items[1]).toBe(false)

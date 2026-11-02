@@ -112,7 +112,7 @@ describe('백업 v2 (F20 보강, AC99)', () => {
     const user = await openBackup()
     await user.click(screen.getByRole('button', { name: '백업 파일 받기' }))
     const saved = JSON.parse(await readBlob(blob!))
-    expect(saved.backupVersion).toBe(3)
+    expect(saved.backupVersion).toBe(4)
     expect(saved.savings).toEqual(nowSavings)
   })
 

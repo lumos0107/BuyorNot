@@ -16,7 +16,7 @@ it('AC175: 처음부터 열린 달력에 결제 건수·요금 합계를 보이�
   localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub('a', '인터넷 요금', 3, 30000), sub('b', '음악 구독', 5, 12000)] }))
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('tab', { name: '고정비' }))
+  await user.click(screen.getByRole('tab', { name: '가계부' }))
   const calendar = within(screen.getByRole('region', { name: '앞으로 30일 결제 달력' }))
   expect(calendar.getByText('결제 예정 2건 · 적어 둔 요금 합계 42,000원')).toBeInTheDocument()
   expect(calendar.getByText('실제 청구일과 금액은 서비스에서 확인해 주세요.')).toBeVisible()
@@ -28,7 +28,7 @@ it('AC175: 처음부터 열린 달력에 결제 건수·요금 합계를 보이�
 it('AC175: 적어 둔 고정비가 없으면 30일 달력에 빈 안내를 보인다', async () => {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('tab', { name: '고정비' }))
+  await user.click(screen.getByRole('tab', { name: '가계부' }))
   const calendar = within(screen.getByRole('region', { name: '앞으로 30일 결제 달력' }))
   expect(calendar.getByText('앞으로 30일에 적어 둔 결제 예정이 없어요.')).toBeVisible()
 })

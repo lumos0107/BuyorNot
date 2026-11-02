@@ -10,7 +10,7 @@ const bill = (over: Partial<Bill> = {}): Bill => ({ id: 'b1', kind: 'electric', 
 const seed = (...items: Bill[]) => localStorage.setItem(BILLS_KEY, JSON.stringify({ schemaVersion: 1, items }))
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(now) })
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '고정비' })); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '가계부' })); return user }
 const form = () => within(screen.getByRole('form', { name: '공과금 적기' }))
 async function enterAmount(user: ReturnType<typeof userEvent.setup>, amount: string) { await user.clear(form().getByLabelText('금액')); await user.type(form().getByLabelText('금액'), amount) }
 

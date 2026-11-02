@@ -12,7 +12,7 @@ const second = sub('b', '쿠팡 와우 멤버십', 7890, ['shopping', 'delivery'
 const seed = (...items: Subscription[]) => localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items }))
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '고정비' })); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '가계부' })); return user }
 
 it('AC109: 배달에 쓰는 멤버십 둘은 요약과 카드에 겹침이 보인다', async () => {
   seed(first, second)

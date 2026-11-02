@@ -43,7 +43,6 @@ import { resaleTotal, returnedAmount } from '../logic/afterBuy'
 import { programIncome, type BenefitsStore } from '../logic/benefits'
 import { skippedSpendingTotal } from '../logic/spending'
 import type { useSpending } from '../store/useSpending'
-import { SpendingSection } from './SpendingSection'
 import { sameRecord } from '../logic/records'
 import { toDayIso, yearsLater, type Subscription } from '../logic/subscriptions'
 import { newId, type WishItem } from '../logic/wishlist'
@@ -154,7 +153,6 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />
       <TransferLog transfers={savings.store.transfers} onRemove={removeTransfer} onLostFocus={() => headingRef.current?.focus()} />
-      <SpendingSection spending={spending} today={today} />
     </div>
   )
 }

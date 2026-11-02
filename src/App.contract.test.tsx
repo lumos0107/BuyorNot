@@ -10,7 +10,7 @@ const phone = (over: Partial<Subscription> = {}): Subscription => ({ id: 'p1', n
 const seed = (...items: Subscription[]) => localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items }))
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '고정비' })); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '가계부' })); return user }
 
 it('AC111: 약정 끝 45일 전인 휴대폰은 안내와 비교 링크를 보여 준다', async () => {
   seed(phone({ contractEndDate: '2026-12-16' }))

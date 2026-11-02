@@ -10,7 +10,7 @@ const base: Subscription = { id: 's1', name: '넷플릭스', priceKrw: 13500, cy
 const seed = (sub: Subscription) => localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [sub] }))
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '고정비' })); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '가계부' })); return user }
 async function edit(user: ReturnType<typeof userEvent.setup>, name = '넷플릭스') { await user.click(within(screen.getByRole('article', { name })).getByRole('button', { name: '수정' })); return within(screen.getByRole('form', { name: '고정비 수정' })) }
 
 it('AC104: 요금을 바꾸면 이유를 고르게 하고 서비스 인상은 카드와 요약에 보인다', async () => {

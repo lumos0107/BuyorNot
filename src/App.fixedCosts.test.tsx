@@ -34,7 +34,7 @@ const storedItems = (): Record<string, unknown>[] => JSON.parse(localStorage.get
 async function openFixed() {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('tab', { name: '고정비' }))
+  await user.click(screen.getByRole('tab', { name: '가계부' }))
   return user
 }
 
@@ -171,7 +171,7 @@ describe('예전 기록과 예시 (F45)', () => {
 describe('이름 바꿈 (F45)', () => {
   it('AC83: 탭과 화면 제목, 담기 폼, 이름 칸, 빈 목록, 수정 폼 이름이 고정비다', async () => {
     const user = await openFixed()
-    expect(screen.getByRole('tab', { name: '고정비', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '가계부', selected: true })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: '고정비' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 2, name: '구독' })).not.toBeInTheDocument()
     expect(form().getByText('고정비 담기')).toBeInTheDocument()

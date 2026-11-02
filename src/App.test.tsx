@@ -72,7 +72,7 @@ describe('키보드 조작 (ARIA 탭 패턴)', () => {
     expect(tab('가격 비교')).toHaveAttribute('tabindex', '0')
     expect(tab('물건')).toHaveAttribute('tabindex', '-1')
     expect(tab('결정 기록')).toHaveAttribute('tabindex', '-1')
-    expect(tab('고정비')).toHaveAttribute('tabindex', '-1')
+    expect(tab('가계부')).toHaveAttribute('tabindex', '-1')
     const panel = screen.getByRole('tabpanel', { name: '가격 비교' })
     expect(tab('가격 비교')).toHaveAttribute('aria-controls', panel.id)
   })

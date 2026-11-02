@@ -11,7 +11,7 @@ const monthly: Subscription = { id: 'm1', name: '넷플릭스', priceKrw: 13500,
 const seed = (...items: Subscription[]) => localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items }))
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(now) })
 afterEach(() => { vi.useRealTimers() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '고정비' })); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '가계부' })); return user }
 const form = () => within(screen.getByRole('form', { name: '고정비 담기' }))
 
 it('AC100: 4주마다 생수의 요금과 다음 배송, 구독과 합계가 보인다', async () => {

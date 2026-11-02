@@ -8,7 +8,7 @@ const base = { items: [], hourlyWage: null, subscriptions: [] }
 
 it('AC131: 판 3 백업은 집에 있는 것과 작은 지출을 담는다', () => {
   const raw = makeBackup({ ...base, pantry: EMPTY_PANTRY, spending: EMPTY_SPENDING }, now)
-  expect(JSON.parse(raw)).toMatchObject({ backupVersion: 3, pantry: EMPTY_PANTRY, spending: EMPTY_SPENDING })
+  expect(JSON.parse(raw)).toMatchObject({ backupVersion: 4, pantry: EMPTY_PANTRY, spending: EMPTY_SPENDING })
   expect(parseBackup(raw)).toMatchObject({ ok: true, data: { pantry: EMPTY_PANTRY, spending: EMPTY_SPENDING } })
 })
 

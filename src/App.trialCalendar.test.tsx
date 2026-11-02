@@ -12,7 +12,7 @@ const sub = (over: Partial<Subscription> = {}): Subscription => ({ id: 's1', nam
 const seed = (s: Subscription) => localStorage.setItem(SUBS_KEY, JSON.stringify({ schemaVersion: 1, items: [s] }))
 beforeEach(() => { localStorage.clear(); vi.mocked(downloadText).mockClear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(now) })
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
-async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '고정비' })); return user }
+async function open() { const user = userEvent.setup(); render(<App />); await user.click(screen.getByRole('tab', { name: '가계부' })); return user }
 
 it('AC103: 체험 중인 카드에는 전날 캘린더 줄과 안내가 있다', async () => {
   seed(sub())

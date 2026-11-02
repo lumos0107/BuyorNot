@@ -23,7 +23,7 @@ it('AC150: 물건 담기를 접었다 펼쳐도 입력 중인 상품명이 남�
 it('AC150: 고정비 담기를 접었다 펼쳐도 입력 중인 이름이 남는다', async () => {
   const user = userEvent.setup()
   renderWishlistApp()
-  await user.click(screen.getByRole('tab', { name: '고정비' }))
+  await user.click(screen.getByRole('tab', { name: '가계부' }))
   const form = within(screen.getByRole('form', { name: '고정비 담기' }))
   const trigger = form.getByText('고정비 담기')
   expect(trigger.closest('details')).not.toHaveAttribute('open')
@@ -38,7 +38,7 @@ it('AC150: 고정비 담기를 접었다 펼쳐도 입력 중인 이름이 남�
 it('AC150: 고정비를 추가하면 담기 폼이 다시 접힌다', async () => {
   const user = userEvent.setup()
   renderWishlistApp()
-  await user.click(screen.getByRole('tab', { name: '고정비' }))
+  await user.click(screen.getByRole('tab', { name: '가계부' }))
   const form = within(screen.getByRole('form', { name: '고정비 담기' }))
   const trigger = form.getByText('고정비 담기')
   await user.click(trigger)

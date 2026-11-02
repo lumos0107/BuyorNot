@@ -33,7 +33,7 @@ it('AC166: 결제·반품·만료 보기는 원래 탭의 첫 카드로 이동�
   renderWishlistApp()
   const panel = within(screen.getByRole('region', { name: '오늘 확인할 것' }))
   await user.click(panel.getByRole('button', { name: '고정비 보기' }))
-  expect(screen.getByRole('tab', { name: '고정비' })).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getByRole('tab', { name: '가계부' })).toHaveAttribute('aria-selected', 'true')
   expect(screen.getByRole('article', { name: '인터넷 요금' })).toHaveFocus()
   await user.click(screen.getByRole('tab', { name: '물건' }))
   await user.click(panel.getByRole('button', { name: '반품 기한 보기' }))

@@ -4,7 +4,7 @@
   "compatibility_date": "2026-10-01",
   "vars": {
     "ALLOWED_ORIGINS": "https://lumos0107.github.io",
-    "AI_ENABLED": "true",
+    "AI_ENABLED": "false",
     "DANAWA_ENABLED": "false"
   }
 }

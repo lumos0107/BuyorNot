@@ -9,7 +9,9 @@ import { BackupSection } from './screens/BackupSection'
 import { BillsSection } from './screens/BillsSection'
 import { CompareScreen } from './screens/CompareScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
+import { LedgerSection } from './screens/LedgerSection'
 import { SavingsScreen } from './screens/SavingsScreen'
+import { SpendingSection } from './screens/SpendingSection'
 import { SubscriptionScreen } from './screens/SubscriptionScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
 import { PantrySection } from './screens/PantrySection'
@@ -17,6 +19,7 @@ import { BeforeBuySection } from './screens/BeforeBuySection'
 import { AfterBuySection } from './screens/AfterBuySection'
 import { BenefitsSection } from './screens/BenefitsSection'
 import { useSavings } from './store/useSavings'
+import { useLedger } from './store/useLedger'
 import { useBills } from './store/useBills'
 import { useBenefits } from './store/useBenefits'
 import { usePantry } from './store/usePantry'
@@ -35,7 +38,7 @@ const SCREENS: readonly TabItem<Screen>[] = [
   { id: 'compare', label: '가격 비교' },
   { id: 'wishlist', label: '물건' },
   { id: 'history', label: '결정 기록' },
-  { id: 'subscriptions', label: '고정비' },
+  { id: 'subscriptions', label: '가계부' },
   { id: 'savings', label: '모으기' },
 ]
 
@@ -70,6 +73,7 @@ export default function App() {
   const settings = useSettings()
   const subscriptions = useSubscriptions()
   const savings = useSavings()
+  const ledger = useLedger()
   const bills = useBills()
   const benefits = useBenefits()
   const pantry = usePantry()
@@ -169,6 +173,7 @@ export default function App() {
           <AfterBuySection wishlist={wishlist} today={wishlist.now} focusItemId={screen === 'history' && jump?.screen === 'history' ? jump.id : undefined} onFocusDone={() => setJump(null)} />
         </TabPanel>
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
+          <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now} />
           <SubscriptionScreen
             items={subscriptions.items}
             today={wishlist.now}
@@ -190,6 +195,7 @@ export default function App() {
             onFocusDone={() => setJump(null)}
           />
           <BillsSection bills={bills} today={wishlist.now} />
+          <SpendingSection spending={spending} today={wishlist.now} />
         </TabPanel>
         <TabPanel id="savings" hidden={screen !== 'savings'}>
           <SavingsScreen items={wishlist.items} subscriptions={subscriptions.items} savings={savings} pantry={pantry.store} spending={spending} benefits={benefits.store} today={wishlist.now} benefitsPanel={<BenefitsSection benefits={benefits} today={wishlist.now} focusExpiryId={screen === 'savings' && jump?.screen === 'savings' ? jump.id : undefined} onFocusDone={() => setJump(null)} />} />
@@ -197,7 +203,7 @@ export default function App() {
       </main>
 
       <BackupSection
-        data={{ items: wishlist.items, hourlyWage: settings.hourlyWage, subscriptions: subscriptions.items, savings: savings.store, bills: bills.store, pantry: pantry.store, spending: spending.store, benefits: benefits.store }}
+        data={{ items: wishlist.items, hourlyWage: settings.hourlyWage, subscriptions: subscriptions.items, savings: savings.store, bills: bills.store, pantry: pantry.store, spending: spending.store, benefits: benefits.store, ledger: ledger.store }}
         onImport={(data) => {
           // 저장하지 못한 부분의 이름을 돌려준다. 물건 기록·구독은 각 화면의 저장 안내에서 다시 저장할 수 있다
           const failed: string[] = []
@@ -209,6 +215,7 @@ export default function App() {
           if (data.pantry !== null && pantry.replaceAll(data.pantry).kind !== 'ok') failed.push('집에 있는 것 기록')
           if (data.spending !== null && spending.replaceAll(data.spending).kind !== 'ok') failed.push('자잘한 지출 기록')
           if (data.benefits !== null && benefits.replaceAll(data.benefits).kind !== 'ok') failed.push('받을 수 있는 돈 기록')
+          if (data.ledger !== null && ledger.replaceAll(data.ledger).kind !== 'ok') failed.push('가계부 기록')
           return failed
         }}
       />

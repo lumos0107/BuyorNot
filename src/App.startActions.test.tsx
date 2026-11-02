@@ -21,6 +21,6 @@ it('AC191: 물건 고민과 고정비 시작은 목적지 제목으로 이동한
   expect(screen.getByRole('form', { name: '물건 담기' }).querySelector('details')).toHaveAttribute('open')
   expect(document.activeElement).toHaveTextContent('물건 담기')
   await user.click(screen.getByRole('button', { name: '고정비 살펴보기' }))
-  expect(screen.getByRole('tab', { name: '고정비' })).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getByRole('tab', { name: '가계부' })).toHaveAttribute('aria-selected', 'true')
   expect(document.activeElement).toHaveTextContent('고정비')
 })

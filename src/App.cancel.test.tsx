@@ -36,7 +36,7 @@ const storedItems = (): Record<string, unknown>[] => JSON.parse(localStorage.get
 async function openFixed() {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('tab', { name: '고정비' }))
+  await user.click(screen.getByRole('tab', { name: '가계부' }))
   return user
 }
 

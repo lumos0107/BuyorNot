@@ -49,7 +49,7 @@ const wish = (over: Record<string, unknown>) => ({
 
 async function openSubs(user: ReturnType<typeof userEvent.setup>) {
   renderWishlistApp()
-  await user.click(screen.getByRole('tab', { name: '고정비' }))
+  await user.click(screen.getByRole('tab', { name: '가계부' }))
 }
 
 async function addMonthly(user: ReturnType<typeof userEvent.setup>, name: string, price = '13500', day = '15') {

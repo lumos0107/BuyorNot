@@ -181,7 +181,10 @@ const transferForm = () => within(screen.getByRole('form', { name: '옮긴 돈 �
 const transferNotice = () => screen.getByRole('status', { name: '옮긴 돈 알림' })
 const goalCard = () => within(screen.getByRole('region', { name: '저축 목표' }))
 const banner = () => within(screen.getByRole('status', { name: '모으기 저장 상태' }))
-const setDay = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } })
+const setDay = (label: string, value: string) => fireEvent.change(
+  label === '날짜' ? transferForm().getByLabelText(label) : screen.getByLabelText(label),
+  { target: { value } },
+)
 const REPLACED = '다른 탭에서 저장한 모으기 기록을 불러왔어요. 이 탭에서 저장하지 않은 변경은 반영되지 않았어요.'
 
 type User = ReturnType<typeof userEvent.setup>

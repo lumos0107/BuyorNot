@@ -33,7 +33,7 @@ describe('받을 수 있는 돈 저장', () => {
 
 it('AC162: 새 판 3 백업은 받을 수 있는 돈을 왕복하고 옛 판 3에는 없으면 현재 기록을 유지한다', () => {
   const fresh = JSON.parse(makeBackup({ ...base, benefits: store }, new Date('2026-11-02T00:00:00Z')))
-  expect(fresh.backupVersion).toBe(3)
+  expect(fresh.backupVersion).toBe(4)
   expect(fresh.benefits).toEqual(store)
   expect(parseBackup(JSON.stringify(fresh))).toMatchObject({ ok: true, data: { benefits: store } })
   delete fresh.benefits

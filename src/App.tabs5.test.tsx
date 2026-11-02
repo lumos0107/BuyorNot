@@ -15,7 +15,7 @@ describe('주요 메뉴 다섯 개 (F49)', () => {
     render(<App />)
     const main = screen.getByRole('tablist', { name: '주요 메뉴' })
     const names = Array.from(main.querySelectorAll('[role="tab"]')).map((el) => el.textContent)
-    expect(names).toEqual(['가격 비교', '물건', '결정 기록', '고정비', '모으기'])
+    expect(names).toEqual(['가격 비교', '물건', '결정 기록', '가계부', '모으기'])
     expect(tab('가격 비교')).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('heading', { level: 2, name: '가격 비교' })).toBeInTheDocument()
   })
@@ -23,7 +23,7 @@ describe('주요 메뉴 다섯 개 (F49)', () => {
   it('AC97: 고정비에서 오른쪽 화살표는 모으기, 모으기에서 오른쪽은 가격 비교, 가격 비교에서 왼쪽은 모으기다', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(tab('고정비'))
+    await user.click(tab('가계부'))
     await user.keyboard('{ArrowRight}')
     expect(screen.getByRole('tab', { name: '모으기', selected: true })).toHaveFocus()
     await user.keyboard('{ArrowRight}')
