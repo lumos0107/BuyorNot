@@ -38,6 +38,13 @@ async function openFixed() {
   return user
 }
 
+it('AC188·AC189: 가까운 구독은 사용 확인, 월세는 결제 확인을 보인다', async () => {
+  seed(sub({ name: '영상', billingDay: 8 }), sub({ id: 's2', name: '월세', kind: 'housing', billingDay: 8 }))
+  await openFixed()
+  expect(card('영상').getByText('결제 전에 최근 사용 기록을 확인해 보세요.')).toBeInTheDocument()
+  expect(card('월세').getByText('예정된 결제일과 금액을 확인해 보세요.')).toBeInTheDocument()
+})
+
 const form = () => within(screen.getByRole('form', { name: '고정비 담기' }))
 const card = (name: string) => within(screen.getByRole('article', { name }))
 const summary = () => within(screen.getByRole('region', { name: '고정비 요약' }))

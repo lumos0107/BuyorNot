@@ -561,8 +561,8 @@ function AddForm({
           {added.text}
         </p>
       ) : null}
-      <details className="entry-disclosure" ref={entryRef}>
-      <summary className="entry-trigger">물건 담기</summary>
+      <details className="entry-disclosure" ref={entryRef} id="wish-entry">
+      <summary className="entry-trigger" id="wish-entry-title">물건 담기</summary>
       <div className="entry-content stack">
       {draftNotice ? (
         <p className="note" role="status">

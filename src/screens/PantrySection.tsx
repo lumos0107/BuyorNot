@@ -128,7 +128,7 @@ export function PantrySection({ pantry, subscriptions, today, onCompare }: Props
     </div>
   }
 
-  return <details className="card guide">
+  return <details className="card guide" id="pantry-section">
     <summary className="card-title" ref={summaryRef}>집에 있는 것</summary>
     <div className="stack">
       {pantry.status.kind !== 'ok' ? <div className="banner stack" role="status" aria-label={PANTRY_STORAGE_LABEL}>

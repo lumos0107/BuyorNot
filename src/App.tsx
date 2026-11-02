@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { aiServerUrl } from './ai/config'
 import evalSummaryJson from './ai/evalSummary.json'
 import type { FormDraft } from './logic/draft'
@@ -41,6 +41,24 @@ const SCREENS: readonly TabItem<Screen>[] = [
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('wishlist')
+  const [startTarget, setStartTarget] = useState<{ kind: 'wish' | 'shopping' | 'fixed' } | null>(null)
+  const startAt = (kind: 'wish' | 'shopping' | 'fixed') => setStartTarget({ kind })
+  useEffect(() => {
+    if (!startTarget) return
+    if (startTarget.kind === 'wish') {
+      const entry = document.getElementById('wish-entry') as HTMLDetailsElement | null
+      if (entry) entry.open = true
+      document.getElementById('wish-entry-title')?.focus()
+    } else if (startTarget.kind === 'shopping') {
+      const pantry = document.getElementById('pantry-section') as HTMLDetailsElement | null
+      const draft = document.getElementById('shopping-draft') as HTMLDetailsElement | null
+      if (pantry) pantry.open = true
+      if (draft) draft.open = true
+      document.getElementById('shopping-draft-title')?.focus()
+    } else {
+      document.getElementById('fixed-title')?.focus()
+    }
+  }, [startTarget])
   const [jump, setJump] = useState<{ screen: 'subscriptions' | 'history' | 'savings'; id: string } | null>(null)
   const jumpTo = (target: 'subscriptions' | 'history' | 'savings', id: string) => { setJump({ screen: target, id }); setScreen(target) }
   // 가격 비교에서 고른 쪽(F21)이나 가격표 사진에서 읽은 값(F31)을 고민 목록의 담기 폼에 채운다
@@ -85,6 +103,11 @@ export default function App() {
 
       <main>
         <TabPanel id="wishlist" hidden={screen !== 'wishlist'}>
+          <nav className="start-actions" aria-label="지금 할 일">
+            <Button onClick={() => startAt('wish')}>살까 고민 중</Button>
+            <Button onClick={() => startAt('shopping')}>장보러 가요</Button>
+            <Button onClick={() => { setScreen('subscriptions'); startAt('fixed') }}>고정비 살펴보기</Button>
+          </nav>
           <WishlistScreen
             active={screen === 'wishlist'}
             items={wishlist.items}

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { deliveryOverlapLine } from './savingActions'
+import { billingReviewLine, deliveryOverlapLine } from './savingActions'
 import type { PantryItem } from './pantry'
 import type { Subscription } from './subscriptions'
 
@@ -18,4 +18,13 @@ it('AC183: 재고가 넉넉하지 않거나 이름이 다르거나 해지했으�
   expect(deliveryOverlapLine(item, [{ ...sub, cancelledOn: '2026-11-01' }], today)).toBeNull()
   expect(deliveryOverlapLine({ ...item, kind: 'ingredient' }, [sub], today)).toBeNull()
   expect(deliveryOverlapLine(item, [{ ...sub, billingDay: 10 }], today)).toBeNull()
+})
+
+it('AC188·AC189: 7일 안 활성 구독은 사용 확인, 월세는 결제 확인만 보인다', () => {
+  const subscription = { ...sub, kind: 'subscription' as const }
+  expect(billingReviewLine(subscription, today)).toBe('결제 전에 최근 사용 기록을 확인해 보세요.')
+  expect(billingReviewLine({ ...subscription, kind: 'membership' }, today)).toBe('결제 전에 최근 사용 기록을 확인해 보세요.')
+  expect(billingReviewLine({ ...subscription, kind: 'housing' }, today)).toBe('예정된 결제일과 금액을 확인해 보세요.')
+  expect(billingReviewLine({ ...subscription, billingDay: 10 }, today)).toBeNull()
+  expect(billingReviewLine({ ...subscription, cancelledOn: '2026-11-01' }, today)).toBeNull()
 })

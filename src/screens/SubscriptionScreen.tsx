@@ -90,6 +90,7 @@ import {
 } from '../logic/subscriptions'
 import type { StorageStatus } from '../store/useWishlist'
 import { Button } from '../ui/Button'
+import { billingReviewLine } from '../logic/savingActions'
 import { downloadText } from '../ui/download'
 import { SelectField, TextAreaField, TextField } from '../ui/Field'
 import { ResetConfirm } from '../ui/ResetConfirm'
@@ -164,7 +165,7 @@ export function SubscriptionScreen({ items, today, status, onAdd, onEdit, onRemo
   }
   return (
     <div className="stack">
-      <h2 className="screen-title" tabIndex={-1} ref={headingRef}>
+      <h2 className="screen-title" tabIndex={-1} ref={headingRef} id="fixed-title">
         {FIXED_TITLE}
       </h2>
       <SubsBanner
@@ -573,6 +574,7 @@ function SubscriptionCard({
     setMode('view')
   }
   const next = nextBillingDate(sub, today)
+  const billingReview = billingReviewLine(sub, today)
   // 수정 폼에 채우는 다음 갱신일은 체험 끝나는 날이 아니라 결제일 규칙의 날이다 (F46)
   const cycleNext = nextBillingDate({ ...sub, trialEndDate: undefined }, today)
   const trialText = trialLine(sub, today)
@@ -633,6 +635,7 @@ function SubscriptionCard({
       <p className="card-meta">
         {nextLabel(sub)} {next} · D-{dday}
       </p>
+      {billingReview ? <p className="note">{billingReview}</p> : null}
       {skipLine(sub, today) ? <p className="note">{skipLine(sub, today)}</p> : null}
       {contractLines(sub, today).map((line) => <p key={line} className="card-meta">{line}</p>)}
       {tracked ? <p className="card-meta">{lastUsed ? `마지막 사용 ${lastUsed}` : '사용 기록 없음'}</p> : null}

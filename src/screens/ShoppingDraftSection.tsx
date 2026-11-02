@@ -17,8 +17,8 @@ export function ShoppingDraftSection({ items, recipes }: { items: readonly Pantr
     else next.add(key)
     return next
   })
-  return <details className="shopping-draft" role="region" aria-label="장보기 초안">
-    <summary className="field-label">장보기 초안</summary>
+  return <details className="shopping-draft" role="region" aria-label="장보기 초안" id="shopping-draft">
+    <summary className="field-label" id="shopping-draft-title">장보기 초안</summary>
     <div className="stack">
       {recipes.length > 0 ? <SelectField label="이번에 해 먹을 것 (선택)" value={recipe?.id ?? ''} onChange={(event) => {
         setRecipeId(event.target.value)

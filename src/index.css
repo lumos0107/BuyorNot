@@ -361,6 +361,19 @@ a.btn {
   flex: 1 1 auto;
 }
 
+.start-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.start-actions .btn {
+  min-width: 0;
+  padding: 10px 6px;
+  font-size: 0.85rem;
+}
+
 /* 눌린 상태의 필터 버튼: 색과 함께 테두리로도 구분한다 */
 .btn[aria-pressed='true'] {
   background: var(--accent-soft);
