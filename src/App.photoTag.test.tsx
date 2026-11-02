@@ -45,7 +45,7 @@ const DIRECT_LINK = '다나와에서 직접 보기'
 const UNKNOWN_COUNT = '개수를 확인하지 못했어요. 상품명과 표기를 보고 같은 규격인지 확인해 주세요.'
 const SAME_SPEC = '규격이 같아요'
 const END_NOTE = '살지 말지 아직 모르겠다면 먼저 담아 두고 며칠 뒤 다시 생각해 보세요.'
-const DRAFT_GUIDE = '가격표 사진에서 상품명과 가격을 가져왔어요. 사고 싶은 이유를 적고 담아 두세요.'
+const DRAFT_GUIDE = '가격표 사진에서 상품명과 가격을 가져왔어요. 이유는 나중에 적어도 돼요.'
 
 // 가정한 이름 (위 목록)
 const READING = '읽는 중'
@@ -1278,15 +1278,14 @@ describe('결과에서 고민 목록에 담기 (AC54)', () => {
     expect(linkArea()).toHaveAttribute('open')
   })
 
-  it('AC54: 이유를 비운 채 담아 두면 "사고 싶은 이유를 적어 주세요"가 나오고 담기지 않는다', async () => {
+  it('AC54: 이유를 비운 채 담아도 카드에 미작성으로 남는다', async () => {
     start()
     await reachResult()
     fireEvent.click(result().getByRole('button', { name: '고민 목록에 담기' }))
 
     fireEvent.click(wishForm().getByRole('button', { name: '담아 두기' }))
 
-    expect(wishForm().getByText('사고 싶은 이유를 적어 주세요')).toBeInTheDocument()
-    expect(screen.queryByRole('article', { name: ITEM.name })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('article', { name: ITEM.name })).getByText('사고 싶은 이유를 아직 적지 않았어요.')).toBeInTheDocument()
   })
 
   it('AC54: 이유를 적고 담은 뒤 구매함을 누르면, 이유에 자동 비교 문장이 없어 사기 전 점검이 할인 근거로 세지 않는다', async () => {

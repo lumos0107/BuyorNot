@@ -44,7 +44,7 @@ export function mergePhotoDraft(current: { name: string; price: string; url: str
 
 /** 사진 결과를 담기 폼에 넣은 뒤의 안내. 적어 둔 칸을 그대로 두었으면 그 칸 이름을 덧붙인다 (AC54) */
 export function photoDraftNotice(kept: DraftMerge['kept']): string {
-  const base = '가격표 사진에서 상품명과 가격을 가져왔어요. 사고 싶은 이유를 적고 담아 두세요.'
+  const base = '가격표 사진에서 상품명과 가격을 가져왔어요. 이유는 나중에 적어도 돼요.'
   return kept.length > 0 ? `${base} 이미 적은 칸은 그대로 뒀어요: ${kept.join('·')}` : base
 }
 

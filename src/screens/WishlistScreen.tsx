@@ -92,7 +92,7 @@ type Props = {
 const NOT_APPLIED = () => false
 
 // 서비스 설명 (F24, AC79): 고민 중인 물건이 없을 때 담기 폼 위에 보인다. 빈 목록 상자에 있던 문장을 그대로 옮겼다
-const SERVICE_INTRO = '사고 싶은 물건을 담아 두면 날마다 다시 생각해 보고, 처음 적은 이유와 지금 마음을 비교할 수 있어요.'
+const SERVICE_INTRO = '물건을 담아 두면 며칠 뒤 다시 보고 결정할 수 있어요.'
 
 export function WishlistScreen({
   items,
@@ -383,6 +383,7 @@ function AddForm({
   // 담을 때의 체크리스트 (F28, 선택): 접어 두고 답한 것만 카드로 보낸다
   const [answers, setAnswers] = useState<Answers>({})
   const entryRef = useRef<HTMLDetailsElement>(null)
+  const moreRef = useRef<HTMLDetailsElement>(null)
   const checklistRef = useRef<HTMLDetailsElement>(null)
   const [attempted, setAttempted] = useState(false)
   // 링크는 접어 두고, 잘못돼 담지 못하면 펼친다 (F24)
@@ -433,6 +434,7 @@ function AddForm({
   useEffect(() => {
     if (!draft) return
     if (entryRef.current) entryRef.current.open = true
+    if ((draft.source === 'compare' || draftFocus === 'reason' || draftFilledLink) && moreRef.current) moreRef.current.open = true
     if (draftFilledLink && linkRef.current) linkRef.current.open = true
     focusField(formRef.current, draftFocus)
     onDraftUsed?.()
@@ -455,6 +457,7 @@ function AddForm({
   useEffect(() => {
     if (exampleFill === 0) return
     if (entryRef.current) entryRef.current.open = true
+    if (moreRef.current) moreRef.current.open = true
     if (checklistRef.current) checklistRef.current.open = true
     formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
   }, [exampleFill, formRef])
@@ -472,6 +475,7 @@ function AddForm({
     setAdded(null)
     setVoiceMessage({ kind: 'status', lines: voiceStatusLines(fill.transcript, filled, kept) })
     setVoiceFocus({ field: filled[0] ?? null })
+    if (moreRef.current) moreRef.current.open = true
   }
   // 숨은 화면(다른 메뉴)에서 끝났거나 사용자가 다른 칸에 적고 있으면 포커스를 옮기지 않는다
   useEffect(() => {
@@ -490,7 +494,8 @@ function AddForm({
   const similar = findSimilar(raw.name, items, now)
   const pantryMatch = pantryDuplicateLine(raw.name, pantryItems)
   const days = raw.preset === 'custom' ? raw.customDays : String(raw.preset)
-  const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url })
+  const validDays = days.trim() !== '' && Number.isInteger(Number(days)) && Number(days) >= 1 && Number(days) <= 30
+  const { value, errors } = validateWishInput({ name: raw.name, price: raw.price, reason: raw.reason, days, url: raw.url }, true)
   const shown: WishFieldErrors = attempted ? errors : {}
   const set = <K extends keyof AddRaw>(key: K, v: AddRaw[K]) => {
     setRaw((r) => ({ ...r, [key]: v }))
@@ -518,6 +523,7 @@ function AddForm({
     if (!value) {
       setAttempted(true)
       // 접힌 링크 영역 안의 오류가 숨지 않게 펼치고, 폼에서 첫 번째 오류 입력으로 포커스를 옮긴다
+      if ((errors.reason || errors.days || errors.url) && moreRef.current) moreRef.current.open = true
       if (errors.url && linkRef.current) linkRef.current.open = true
       focusFirstError()
       return
@@ -527,16 +533,18 @@ function AddForm({
     // 다른 탭이 먼저 저장해 반영되지 않았으면(null) 담은 것으로 보지 않는다: 안내도 포커스 이동도 없이,
     // 입력·정도·체크리스트 답·말로 담기 상태를 하나도 비우지 않는다. 안내를 본 뒤 다시 누르면 담긴다 (판정 R30)
     if (id === null) return
+    const addedText = value.reason === ''
+      ? `‘${value.name}’${josa(value.name, '을/를')} 담았어요. ${value.days}일 뒤에 다시 볼게요. 사고 싶은 이유는 물건 카드에서 나중에 적을 수 있어요.`
+      : `‘${value.name}’${josa(value.name, '을/를')} 담았어요. ${value.days}일 뒤에 처음 적은 이유와 갖고 싶은 정도의 변화를 다시 보여 드릴게요. ${answeredCount === QUESTION_ORDER.length ? '체크리스트 답은 카드에서 다시 고칠 수 있어요.' : '그동안 카드의 오늘의 고민에서 질문에 하나씩 답해 보세요.'}`
     setAdded({
       id: typeof id === 'string' ? id : null,
-      text: `‘${value.name}’${josa(value.name, '을/를')} 담았어요. ${value.days}일 뒤에 처음 적은 이유와 갖고 싶은 정도의 변화를 다시 보여 드릴게요. ${
-        answeredCount === QUESTION_ORDER.length ? '체크리스트 답은 카드에서 다시 고칠 수 있어요.' : '그동안 카드의 오늘의 고민에서 질문에 하나씩 답해 보세요.'
-      }`,
+      text: addedText,
     })
     setRaw(EMPTY_ADD)
     setDesire(undefined)
     setAnswers({})
     if (checklistRef.current) checklistRef.current.open = false
+    if (moreRef.current) moreRef.current.open = false
     if (entryRef.current) entryRef.current.open = false
     setAttempted(false)
     setDraftNotice(null)
@@ -548,14 +556,14 @@ function AddForm({
 
   return (
     <form className="card stack" aria-label="물건 담기" onSubmit={submit} noValidate ref={formRef}>
-      <details className="entry-disclosure" ref={entryRef}>
-      <summary className="entry-trigger">물건 담기</summary>
-      <div className="entry-content stack">
       {added ? (
         <p className="note" role="status" aria-label="담은 물건">
           {added.text}
         </p>
       ) : null}
+      <details className="entry-disclosure" ref={entryRef}>
+      <summary className="entry-trigger">물건 담기</summary>
+      <div className="entry-content stack">
       {draftNotice ? (
         <p className="note" role="status">
           {draftNotice}
@@ -612,6 +620,10 @@ function AddForm({
         error={shown.price}
         onChange={(e) => set('price', e.target.value)}
       />
+      {validDays ? <p className="note">{raw.reason.trim() ? `${days}일 뒤 다시 볼게요.` : `${days}일 뒤 다시 볼게요. 이유는 담은 뒤 적어도 돼요.`}</p> : null}
+      <details className="questions" ref={moreRef}>
+        <summary className="field-label">더 적기 (선택)</summary>
+        <div className="stack">
       <TextAreaField
         label="사고 싶은 이유"
         placeholder="지금 쓰는 제품이 고장 나서, 세일 중이라서…"
@@ -707,6 +719,8 @@ function AddForm({
           error={shown.url}
           onChange={(e) => changeUrl(e.target.value)}
         />
+      </details>
+        </div>
       </details>
       <Button variant="primary" block type="submit">
         담아 두기

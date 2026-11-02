@@ -12,7 +12,7 @@ const PHOTO: FormDraft = {
   value: { name: '농심 오징어짬뽕 소컵 6입', price: 3980, url: 'https://search.danawa.com/?query=x' },
 }
 
-const GUIDE = '가격표 사진에서 상품명과 가격을 가져왔어요. 사고 싶은 이유를 적고 담아 두세요.'
+const GUIDE = '가격표 사진에서 상품명과 가격을 가져왔어요. 이유는 나중에 적어도 돼요.'
 
 function screenWith(draft: FormDraft | null, onAdd = vi.fn()) {
   const props = { items: [], now: NOW, onAdd, onEdit: vi.fn(), onDecide: vi.fn(), onExtend: vi.fn(), onRemove: vi.fn() }
@@ -31,6 +31,7 @@ describe('사진 결과로 담기 폼 채우기 (F31)', () => {
     expect(wishForm().getByLabelText('가격')).toHaveValue('3980')
     expect(wishForm().getByLabelText('링크 (선택)')).toHaveValue('https://search.danawa.com/?query=x')
     expect(wishForm().getByLabelText('사고 싶은 이유')).toHaveValue('')
+    expect(wishForm().getByLabelText('사고 싶은 이유')).toBeVisible()
     expect(wishForm().getByLabelText('사고 싶은 이유')).toHaveFocus()
     expect(wishForm().getByText(GUIDE)).toBeInTheDocument()
     expect(wishForm().queryByText(/이미 적은 칸은 그대로 뒀어요/)).not.toBeInTheDocument()
@@ -85,14 +86,13 @@ describe('사진 결과로 담기 폼 채우기 (F31)', () => {
     expect(wishForm().getByLabelText('상품명')).toHaveValue('짬뽕 컵라면')
   })
 
-  it('AC54: 이유를 비운 채 담아 두면 "사고 싶은 이유를 적어 주세요"가 나오고 담기지 않는다', async () => {
+  it('AC54: 이유를 비운 채 담으면 빈 이유와 기본 3일로 저장한다', async () => {
     const user = userEvent.setup()
     const { onAdd } = screenWith(PHOTO)
 
     await user.click(wishForm().getByRole('button', { name: '담아 두기' }))
 
-    expect(wishForm().getByText('사고 싶은 이유를 적어 주세요')).toBeInTheDocument()
-    expect(onAdd).not.toHaveBeenCalled()
+    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ reason: '', days: 3 }))
   })
 
   it('AC54: 이유를 적고 담아 두면 채운 상품명·가격·링크로 담기고 안내는 사라진다', async () => {
