@@ -1,3 +1,4 @@
+import { ExamplePreview } from '../ui/ExamplePreview'
 import { nameInitial, type ItemCategory } from '../logic/itemCategory'
 import { CardCategoryIcon, CategoryPicker } from '../ui/CategoryPicker'
 import { IconBag } from '../ui/NavIcons'
@@ -235,6 +236,15 @@ export function WishlistScreen({
         <div className="empty card stack">
           <EmptyIllustration kind="wish" />
           <p>아직 담아 둔 물건이 없어요.</p>
+        </div>
+      ) : null}
+      {considering.length === 0 ? (
+        <div className="card">
+          <ExamplePreview label="고민 중인 물건 예시" rows={[
+            { category: 'digital', name: '(예시) 무선 이어폰', price: '129,000원', meta: '고민 중 · 2일 남음' },
+            { category: 'living', name: '(예시) 전기 포트', price: '32,000원', meta: '고민 끝 · 다시 볼 차례' },
+            { category: 'food', name: '(예시) 단백질 쉐이크 30개입', price: '45,900원', meta: '고민 중 · 5일 남음' },
+          ]} />
         </div>
       ) : (
         <section className="stack" aria-label="고민 중인 물건 목록">

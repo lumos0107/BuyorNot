@@ -1,3 +1,4 @@
+import { ExamplePreview } from '../ui/ExamplePreview'
 import { nameInitial } from '../logic/itemCategory'
 import { CardCategoryIcon } from '../ui/CategoryPicker'
 import { IconHistory } from '../ui/NavIcons'
@@ -59,6 +60,11 @@ export function HistoryScreen({ items, now, hourlyWage, onWageChange, onReview, 
         <div className="empty card">
           <p>아직 결정한 물건이 없어요.</p>
           <p className="note">고민 중인 물건에서 구매함·구매 포기를 고르면 여기에 쌓여요.</p>
+          <ExamplePreview label="결정 기록 예시" rows={[
+            { category: 'digital', name: '(예시) 무선 헤드폰', price: '129,000원', meta: '구매 포기 · 3일 고민' },
+            { category: 'fashion', name: '(예시) 러닝화', price: '89,000원', meta: '구매함 · 만족도 좋아요' },
+            { category: 'hobby', name: '(예시) 보드게임', price: '42,000원', meta: '구매 포기 · 7일 고민' },
+          ]} />
         </div>
       ) : (
         <>

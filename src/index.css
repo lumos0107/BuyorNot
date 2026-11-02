@@ -2518,3 +2518,51 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* 모으기 요약의 예시 칸: 실제 기록이 없는 칸은 흐리게 (2026-11-03) */
+.result-list li.is-example,
+.savings-demo .result-list li {
+  opacity: 0.6;
+}
+
+/* 빈 화면의 저장되지 않는 예시 미리보기 (2026-11-03) */
+.example-preview {
+  width: 100%;
+  text-align: left;
+  opacity: 0.75;
+}
+
+.example-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.example-preview-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.example-preview-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.example-preview-text strong {
+  font-size: 15px;
+}
+
+.example-preview-list .price {
+  font-weight: 700;
+  white-space: nowrap;
+}

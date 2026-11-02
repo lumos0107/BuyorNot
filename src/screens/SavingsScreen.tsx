@@ -67,6 +67,13 @@ type Props = {
   today: Date
 }
 
+// 저장되지 않는 예시 금액 (2026-11-03). 실제 기록이 없는 칸에만 쓴다
+const SAVINGS_EXAMPLES = [
+  { label: '줄어든 고정비 (예시) · 해지 1개', value: '월 13,500원' },
+  { label: '참은 구매 (예시) · 구매 포기 1건', value: '149,000원' },
+  { label: '옮긴 돈 (예시) · 기록 2건', value: '300,000원' },
+] as const
+
 export function SavingsScreen({ items, subscriptions, savings, pantry, spending, benefits, benefitsPanel, today }: Props) {
   // 저장 안내가 사라지면 포커스를 화면 제목으로 옮긴다
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -102,28 +109,41 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
           headingRef.current?.focus()
         }}
       />
-      {!hasOriginalNumbers && avoided.cookedCount + avoided.stockCount + smallSkipped.count + returned.count + resale.count + receivedSupport === 0 ? (
+      {!hasOriginalNumbers && avoided.cookedCount + avoided.stockCount + smallSkipped.count + returned.count + resale.count + receivedSupport === 0 ? (<>
         <p>{SAVINGS_EMPTY}</p>
-      ) : hasOriginalNumbers ? (
+        {/* 기록이 하나도 없을 때 저장되지 않는 예시 요약 (2026-11-03 제작자 "전체적으로 비어 있는 데에 기본으로 예시 좀") */}
+        <section className="card stack savings-demo" aria-label="모으기 요약 예시">
+          <div className="card-row">
+            <p className="card-title">지금까지 (예시)</p>
+            <span className="note">저장되지 않는 예시</span>
+          </div>
+          <ul className="result-list">
+            {SAVINGS_EXAMPLES.map((row) => <li key={row.label}><span>{row.label}</span><span className="price">{row.value}</span></li>)}
+          </ul>
+          <p className="note">시연용 예시 금액입니다. 저장되지 않으며 첫 기록을 적으면 사라져요.</p>
+        </section>
+      </>) : hasOriginalNumbers ? (
         <section className="card stack" aria-label="모으기 요약">
           <div className="card-row">
             <p className="card-title">지금까지</p>
             <span className="note">전체 기록 기준{n.includesExample ? ' · 예시 포함' : ''}</span>
           </div>
+          {/* 0원인 칸에는 저장되지 않는 예시 금액을 흐리게 보인다 (2026-11-03 제작자 "비어 있는 데에 기본으로 예시") */}
           <ul className="result-list">
-            <li>
-              <span>{reducedLabel(n)}</span>
-              <span className="price">{`월 ${formatWon(n.reducedMonthly)}`}</span>
+            <li className={n.reducedMonthly === 0 && n.reducedCount === 0 && n.loweredCount === 0 ? 'is-example' : undefined}>
+              <span>{n.reducedMonthly === 0 && n.reducedCount === 0 && n.loweredCount === 0 ? SAVINGS_EXAMPLES[0].label : reducedLabel(n)}</span>
+              <span className="price">{n.reducedMonthly === 0 && n.reducedCount === 0 && n.loweredCount === 0 ? SAVINGS_EXAMPLES[0].value : `월 ${formatWon(n.reducedMonthly)}`}</span>
             </li>
-            <li>
-              <span>{skippedLabel(n)}</span>
-              <span className="price">{formatWon(n.skippedTotal)}</span>
+            <li className={n.skippedCount === 0 ? 'is-example' : undefined}>
+              <span>{n.skippedCount === 0 ? SAVINGS_EXAMPLES[1].label : skippedLabel(n)}</span>
+              <span className="price">{n.skippedCount === 0 ? SAVINGS_EXAMPLES[1].value : formatWon(n.skippedTotal)}</span>
             </li>
-            <li>
-              <span>{movedLabel(n)}</span>
-              <span className="price">{formatWon(n.movedTotal)}</span>
+            <li className={n.transferCount === 0 ? 'is-example' : undefined}>
+              <span>{n.transferCount === 0 ? SAVINGS_EXAMPLES[2].label : movedLabel(n)}</span>
+              <span className="price">{n.transferCount === 0 ? SAVINGS_EXAMPLES[2].value : formatWon(n.movedTotal)}</span>
             </li>
           </ul>
+          {n.reducedMonthly === 0 && n.reducedCount === 0 && n.loweredCount === 0 || n.skippedCount === 0 || n.transferCount === 0 ? <p className="note">'(예시)' 칸은 아직 기록이 없어 보여 주는 저장되지 않는 예시 금액이에요. 기록을 적으면 실제 금액으로 바뀌어요.</p> : null}
         </section>
       ) : null}
       {avoided.cookedCount > 0 || avoided.stockCount > 0 ? <section className="card stack" aria-label="직접 적은 대체 금액">
