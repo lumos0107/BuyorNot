@@ -7,7 +7,7 @@ import { STORAGE_KEY } from './logic/storage'
 import { SUBS_KEY, type Subscription } from './logic/subscriptions'
 import type { WishItem } from './logic/wishlist'
 
-// PRD F86 주요 메뉴 네 개와 첫 화면 가계부 (AC217~AC223, 2026-11-03 제작자 요청 "탭은 4개로 가자", "3번은 가계부로 하자")
+// PRD F86 주요 메뉴 네 개와 첫 화면 가계부 (AC217~AC223, 2026-11-02 제작자 요청 "탭은 4개로 가자", "3번은 가계부로 하자")
 const now = new Date(2026, 10, 2, 9)
 const stamp = '2026-10-20T00:00:00.000Z'
 const wish = (id: string, over: Partial<WishItem> = {}): WishItem => ({ id, name: id, priceKrw: 59000, reason: '필요해서', url: null, createdAt: stamp, updatedAt: stamp, reviewAt: '2026-11-01T00:00:00.000Z', status: 'considering', decidedAt: null, ...over })

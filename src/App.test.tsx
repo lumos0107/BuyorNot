@@ -8,7 +8,7 @@ import App from './App'
 const tab = (name: string) => screen.getByRole('tab', { name })
 
 describe('메뉴와 탭 이동', () => {
-  // 2026-11-03 F86: 첫 화면은 가계부, 가격 비교 메뉴는 '장보기'(할인 비교부터)
+  // 2026-11-02 F86: 첫 화면은 가계부, 가격 비교 메뉴는 '장보기'(할인 비교부터)
   it('처음 열면 가계부 화면이 보인다', () => {
     render(<App />)
     expect(screen.getByRole('tab', { name: '가계부', selected: true })).toBeInTheDocument()

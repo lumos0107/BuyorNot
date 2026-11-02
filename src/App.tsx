@@ -36,7 +36,7 @@ import { BrandMark } from './ui/BrandMark'
 import { ResetConfirm } from './ui/ResetConfirm'
 import { TabPanel, Tabs, type TabItem } from './ui/Tabs'
 
-// 주요 메뉴 네 개 (F86, 2026-11-03 제작자 요청 "탭은 4개로 가자", "3번은 가계부로 하자").
+// 주요 메뉴 네 개 (F86, 2026-11-02 제작자 요청 "탭은 4개로 가자", "3번은 가계부로 하자").
 // id는 저장·테스트와 이어진 기존 값을 그대로 쓴다: 가계부 = subscriptions, 장보기 = compare
 type Screen = 'subscriptions' | 'wishlist' | 'compare' | 'savings'
 type WishView = 'wishing' | 'history'

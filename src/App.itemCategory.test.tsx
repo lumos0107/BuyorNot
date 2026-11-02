@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { STORAGE_KEY } from './logic/storage'
 
-// PRD F85 물건 분류 아이콘 (AC209·AC210, 2026-11-03 제작자 "취미·식비 이런 거 하나 선택해서 아이콘으로")
+// PRD F85 물건 분류 아이콘 (AC209·AC210, 2026-11-02 제작자 "취미·식비 이런 거 하나 선택해서 아이콘으로")
 const T0 = new Date(2026, 10, 3, 9)
 
 beforeEach(() => {

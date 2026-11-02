@@ -10,9 +10,9 @@ const dateLabel = (iso: string) => {
   return `${Number(month)}월 ${Number(day)}일`
 }
 
-// 결제·지출 달력 (F74 보강, 2026-11-03 제작자 "나갈 돈은 놔두고 지출 내역을 달력에 추가", "금액으로 표시").
+// 결제·지출 달력 (F74 보강, 2026-11-02 제작자 "나갈 돈은 놔두고 지출 내역을 달력에 추가", "금액으로 표시").
 // 이번 달 1일부터 오늘+29일까지 그린다. 결제 예정(고정비, 오늘부터)과 가계부에 적은 지출을 다른 색 금액으로 보인다
-// 가계부 지출 중 오늘까지는 '가계부 지출'(주황), 오늘 뒤 날짜는 '예상 지출'(보라)로 나눈다 (2026-11-03 제작자 "예상 지출 몇 가지 추가해 주고 쓴 금액도")
+// 가계부 지출 중 오늘까지는 '가계부 지출'(주황), 오늘 뒤 날짜는 '예상 지출'(보라)로 나눈다 (2026-11-02 제작자 "예상 지출 몇 가지 추가해 주고 쓴 금액도")
 export function PaymentCalendarSection({ subscriptions, expenses = [], expenseDemo = false, today }: { subscriptions: readonly Subscription[]; expenses?: readonly LedgerEntry[]; expenseDemo?: boolean; today: Date }) {
   const demo = subscriptions.length === 0
   const examples = [

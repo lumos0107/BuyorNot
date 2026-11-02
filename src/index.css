@@ -2294,7 +2294,7 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   border-top: 1px solid var(--line);
 }
 
-/* 다나와 상품 페이지 링크: 글자 링크 대신 버튼 모양(2026-11-03 제작자 요청) */
+/* 다나와 상품 페이지 링크: 글자 링크 대신 버튼 모양(2026-11-02 제작자 요청) */
 .danawa-row .danawa-link {
   min-height: 40px;
   padding: 0 14px;
@@ -2374,7 +2374,7 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   height: 34px;
 }
 
-/* 결제·지출 달력 (2026-11-03 제작자 "나갈 돈은 놔두고 지출 내역을 달력에", "금액으로 표시", "날 숫자를 위로, 아래에 금액")
+/* 결제·지출 달력 (2026-11-02 제작자 "나갈 돈은 놔두고 지출 내역을 달력에", "금액으로 표시", "날 숫자를 위로, 아래에 금액")
    날짜 숫자는 칸 위쪽, 그 아래에 결제 예정(파랑)·가계부 지출(주황) 금액 */
 .payment-calendar-day {
   justify-content: flex-start;
@@ -2441,7 +2441,7 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   color: #b53a0b;
 }
 
-/* 가계부 요약 네 칸: 수입·지출·차이·이번 달 모을 금액을 2×2로 (2026-11-03) */
+/* 가계부 요약 네 칸: 수입·지출·차이·이번 달 모을 금액을 2×2로 (2026-11-02) */
 .ledger-stats {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -2475,7 +2475,7 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   justify-content: flex-start;
 }
 
-/* 예상 지출(오늘 뒤 날짜로 적은 가계부 지출): 보라 (2026-11-03) */
+/* 예상 지출(오늘 뒤 날짜로 적은 가계부 지출): 보라 (2026-11-02) */
 .payment-calendar-amount.planned,
 .payment-calendar-legend .legend-planned::before { color: #7048e8; }
 
@@ -2519,13 +2519,13 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   }
 }
 
-/* 모으기 요약의 예시 칸: 실제 기록이 없는 칸은 흐리게 (2026-11-03) */
+/* 모으기 요약의 예시 칸: 실제 기록이 없는 칸은 흐리게 (2026-11-02) */
 .result-list li.is-example,
 .savings-demo .result-list li {
   opacity: 0.6;
 }
 
-/* 빈 화면의 저장되지 않는 예시 미리보기 (2026-11-03) */
+/* 빈 화면의 저장되지 않는 예시 미리보기 (2026-11-02) */
 .example-preview {
   width: 100%;
   text-align: left;
@@ -2567,7 +2567,7 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   white-space: nowrap;
 }
 
-/* 주요 메뉴 네 개 (F86, 2026-11-03): 가계부 안 접힌 '고정비·공과금' 묶음.
+/* 주요 메뉴 네 개 (F86, 2026-11-02): 가계부 안 접힌 '고정비·공과금' 묶음.
    묶음 이름이 이미 위에 있으므로 안쪽 '고정비' 제목은 작게 보인다 */
 .fixed-group .screen-title {
   font-size: 1.05rem;

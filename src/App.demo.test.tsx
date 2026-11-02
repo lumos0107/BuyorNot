@@ -10,7 +10,7 @@ it('공개 빌드의 예시 사진은 저장된 품목만 보여주고 AI 요청
   const user = userEvent.setup()
   const fetch = vi.spyOn(globalThis, 'fetch')
   render(<App />)
-  // 2026-11-03 F86: 가격표 사진 예시는 장보기의 마지막 비교 종류다
+  // 2026-11-02 F86: 가격표 사진 예시는 장보기의 마지막 비교 종류다
   await user.click(screen.getByRole('tab', { name: '장보기' }))
   await user.click(screen.getByRole('tab', { name: '가격표 사진 예시' }))
   expect(screen.getByText(/사진 버튼은 사진을 다시 분석하지 않고/)).toBeInTheDocument()
@@ -22,7 +22,7 @@ it('공개 빌드의 예시 사진은 저장된 품목만 보여주고 AI 요청
   const ramen = within(screen.getByRole('region', { name: '미리 읽은 품목과 가격 비교' }))
   expect(ramen.getByText('농심)신라면블랙')).toBeInTheDocument()
   expect(ramen.getByText('1,900원')).toBeInTheDocument()
-  // 라면은 다나와 낱개(1개) 상품 페이지에서 확인한 가격을 버튼 모양 링크와 함께 보여 준다(2026-11-03 제작자 요청)
+  // 라면은 다나와 낱개(1개) 상품 페이지에서 확인한 가격을 버튼 모양 링크와 함께 보여 준다(2026-11-02 제작자 요청)
   expect(ramen.getByRole('heading', { name: '다나와 표시 가격 비교' })).toBeInTheDocument()
   expect(ramen.getByText('사진 1,900원 → 다나와 1,480원')).toBeInTheDocument()
   const blackLink = ramen.getByRole('link', { name: '농심 신라면 블랙 134g (1개) 다나와 상품 보기(새 창)' })
@@ -53,7 +53,7 @@ it('가계부는 요약 뒤에 달력을 보여주고 저장되지 않은 예시
   const user = userEvent.setup()
   render(<App />)
   await user.click(screen.getByRole('tab', { name: '가계부' }))
-  // 2026-11-03 F86: 요약 → 접힌 수입·지출 적기 → 달력 순서(전: 달력이 맨 위)
+  // 2026-11-02 F86: 요약 → 접힌 수입·지출 적기 → 달력 순서(전: 달력이 맨 위)
   const summary = screen.getByRole('region', { name: '이달 가계부 요약' })
   const calendar = screen.getByRole('region', { name: '결제·지출 달력' })
   expect(summary.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()

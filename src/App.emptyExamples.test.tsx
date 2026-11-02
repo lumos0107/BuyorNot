@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
 import { STORAGE_KEY } from './logic/storage'
 
-// 빈 화면의 저장되지 않는 예시 (AC216, 2026-11-03 제작자 "전체적으로 비어 있는 데에 기본으로 예시 좀 채워 넣어 줘")
+// 빈 화면의 저장되지 않는 예시 (AC216, 2026-11-02 제작자 "전체적으로 비어 있는 데에 기본으로 예시 좀 채워 넣어 줘")
 beforeEach(() => { localStorage.clear(); vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 10, 3, 9)) })
 afterEach(() => vi.useRealTimers())
 

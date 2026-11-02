@@ -81,7 +81,7 @@ export function LedgerSection({ ledger, bills, spending, today, calendar }: Prop
         <p className="card-row ledger-stat ledger-stat-income"><span>{showDemo ? '수입 (예시)' : '직접 적은 수입'}</span><strong>{formatWon(summary.income)}</strong></p>
         <p className="card-row ledger-stat ledger-stat-expense"><span>{showDemo ? '지출 (예시)' : '직접 적은 지출'}</span><strong>{formatWon(summary.expense)}</strong></p>
         <p className="card-row ledger-stat ledger-stat-diff"><span>차이</span><strong>{formatWon(summary.income - summary.expense)}</strong></p>
-        {/* 이번 달 모을 금액 칸 (F84 보강, 2026-11-03 제작자 "저축/모으고 싶은 금액 하나 추가"). 값은 아래 이달 현황판에서 정한다.
+        {/* 이번 달 모을 금액 칸 (F84 보강, 2026-11-02 제작자 "저축/모으고 싶은 금액 하나 추가"). 값은 아래 이달 현황판에서 정한다.
             버튼을 이름 줄 오른쪽에 두어 네 칸의 높이를 맞춘다. 예시 화면에서는 저장되지 않는 예시 금액을 보인다 */}
         <div className="ledger-stat ledger-stat-target">
           <span className="ledger-stat-head"><span>{showDemo && saveTarget === null ? '모을 금액 (예시)' : '이번 달 모을 금액'}</span><button type="button" className="link-button" aria-label={saveTarget === null ? "이번 달 모을 금액 정하기" : "이번 달 모을 금액 바꾸기"} onClick={() => document.querySelector<HTMLInputElement>('[aria-label="이달 현황판"] input')?.focus()}>{saveTarget === null ? '정하기' : '바꾸기'}</button></span>

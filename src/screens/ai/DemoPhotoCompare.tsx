@@ -65,7 +65,7 @@ const danawaChecks: Record<string, { checkedOn: string; rows: readonly { name: s
     ],
   },
   ramen: {
-    checkedOn: '2026-11-03',
+    checkedOn: '2026-11-02',
     rows: [
       { name: '농심 신라면 120g (1개)', shelf: 1000, online: 630, pcode: '1238763' },
       { name: '농심 신라면 더 레드 125g (1개)', shelf: 1500, online: 1160, pcode: '27789860' },
@@ -73,7 +73,7 @@ const danawaChecks: Record<string, { checkedOn: string; rows: readonly { name: s
     ],
   },
   jelly: {
-    checkedOn: '2026-11-03',
+    checkedOn: '2026-11-02',
     rows: [
       { name: '오리온 리찌 알맹이 67g (1개)', shelf: 1200, online: 800, pcode: '117066478' },
       { name: '오리온 마이구미 포도 66g (1개)', shelf: 1000, online: 790, pcode: '72221399' },

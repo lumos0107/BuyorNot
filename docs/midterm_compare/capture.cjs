@@ -53,7 +53,7 @@ async function tab(page, name) {
 ;(async () => {
   const browser = await chromium.launch({ channel: 'chromium', args: ['--lang=ko-KR'] })
 
-  // 1차 제출본. 1차 사진(01·03)은 바뀌지 않으므로 SKIP_V1=1이면 v1 빌드 없이 개선본만 다시 찍는다 (2026-11-03)
+  // 1차 제출본. 1차 사진(01·03)은 바뀌지 않으므로 SKIP_V1=1이면 v1 빌드 없이 개선본만 다시 찍는다 (2026-11-02)
   if (!process.env.SKIP_V1) {
     const { context, page } = await open(browser, new URL('v1/', BASE).href)
     await viewAt(page, '01-home')
@@ -65,7 +65,7 @@ async function tab(page, name) {
 
   // 중간 과제 공개 빌드
   {
-    // 2026-11-03 F86: 첫 화면은 가계부. 가격표 사진 예시는 장보기의 마지막 비교 종류이고 주소 ?tab=photo로 바로 연다
+    // 2026-11-02 F86: 첫 화면은 가계부. 가격표 사진 예시는 장보기의 마지막 비교 종류이고 주소 ?tab=photo로 바로 연다
     const { context, page } = await open(browser, BASE)
     await viewAt(page, '02-home')
     await viewAt(page, '04-fixed-costs', page.getByRole('region', { name: '결제·지출 달력' }))

@@ -45,7 +45,7 @@ const KINDS: readonly TabItem<CompareKind>[] = [
 ]
 // 가격표 사진은 AI 서버가 연결된 빌드에서 비교 화면의 첫 탭이다.
 const KINDS_WITH_AI: readonly TabItem<CompareKind>[] = [{ id: 'photo', label: '가격표 사진' }, ...KINDS]
-// 공개 빌드의 저장된 사진 예시는 시연용이라 마지막 탭이다. README 링크는 주소 ?tab=photo로 바로 연다 (F86, 2026-11-03)
+// 공개 빌드의 저장된 사진 예시는 시연용이라 마지막 탭이다. README 링크는 주소 ?tab=photo로 바로 연다 (F86, 2026-11-02)
 const KINDS_WITH_DEMO: readonly TabItem<CompareKind>[] = [...KINDS, { id: 'photo', label: '가격표 사진 예시' }]
 
 export function CompareScreen({

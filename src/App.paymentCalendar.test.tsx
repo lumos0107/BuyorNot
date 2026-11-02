@@ -37,7 +37,7 @@ it('AC175: 적어 둔 고정비가 없으면 저장되지 않는 예시 결제�
   expect(localStorage.getItem(SUBS_KEY)).toBeNull()
 })
 
-// 결제·지출 달력 (F74 보강, AC212·AC213, 2026-11-03 제작자 "나갈 돈은 놔두고 지출 내역을 달력에 추가", "지출·나갈 것 금액으로 표시")
+// 결제·지출 달력 (F74 보강, AC212·AC213, 2026-11-02 제작자 "나갈 돈은 놔두고 지출 내역을 달력에 추가", "지출·나갈 것 금액으로 표시")
 const entry = (id: string, name: string, day: string, amountKrw: number, kind: 'expense' | 'income' = 'expense') => ({
   id, kind, category: 'food', name, amountKrw, day, createdAt: stamp,
 })

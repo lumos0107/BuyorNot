@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 
-// PRD F49 주요 메뉴 (AC97). 2026-11-03 F86로 다섯 개에서 네 개(가계부·물건·장보기·모으기)로 바뀌었다
+// PRD F49 주요 메뉴 (AC97). 2026-11-02 F86로 다섯 개에서 네 개(가계부·물건·장보기·모으기)로 바뀌었다
 const tab = (name: string) => screen.getByRole('tab', { name })
 
 beforeEach(() => {

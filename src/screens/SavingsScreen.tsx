@@ -67,7 +67,7 @@ type Props = {
   today: Date
 }
 
-// 저장되지 않는 예시 금액 (2026-11-03). 실제 기록이 없는 칸에만 쓴다
+// 저장되지 않는 예시 금액 (2026-11-02). 실제 기록이 없는 칸에만 쓴다
 const SAVINGS_EXAMPLES = [
   { label: '줄어든 고정비 (예시) · 해지 1개', value: '월 13,500원' },
   { label: '참은 구매 (예시) · 구매 포기 1건', value: '149,000원' },
@@ -111,7 +111,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
       />
       {!hasOriginalNumbers && avoided.cookedCount + avoided.stockCount + smallSkipped.count + returned.count + resale.count + receivedSupport === 0 ? (<>
         <p>{SAVINGS_EMPTY}</p>
-        {/* 기록이 하나도 없을 때 저장되지 않는 예시 요약 (2026-11-03 제작자 "전체적으로 비어 있는 데에 기본으로 예시 좀") */}
+        {/* 기록이 하나도 없을 때 저장되지 않는 예시 요약 (2026-11-02 제작자 "전체적으로 비어 있는 데에 기본으로 예시 좀") */}
         <section className="card stack savings-demo" aria-label="모으기 요약 예시">
           <div className="card-row">
             <p className="card-title">지금까지 (예시)</p>
@@ -128,7 +128,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
             <p className="card-title">지금까지</p>
             <span className="note">전체 기록 기준{n.includesExample ? ' · 예시 포함' : ''}</span>
           </div>
-          {/* 0원인 칸에는 저장되지 않는 예시 금액을 흐리게 보인다 (2026-11-03 제작자 "비어 있는 데에 기본으로 예시") */}
+          {/* 0원인 칸에는 저장되지 않는 예시 금액을 흐리게 보인다 (2026-11-02 제작자 "비어 있는 데에 기본으로 예시") */}
           <ul className="result-list">
             <li className={n.reducedMonthly === 0 && n.reducedCount === 0 && n.loweredCount === 0 ? 'is-example' : undefined}>
               <span>{n.reducedMonthly === 0 && n.reducedCount === 0 && n.loweredCount === 0 ? SAVINGS_EXAMPLES[0].label : reducedLabel(n)}</span>
@@ -169,7 +169,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
       <GoalCard goal={savings.store.goal} transfers={savings.store.transfers} today={today} onSet={savings.setGoal} onClear={savings.clearGoal} />
       <TransferForm today={today} transfers={savings.store.transfers} onAdd={savings.addTransfer} />
       <TransferLog transfers={savings.store.transfers} onRemove={removeTransfer} onLostFocus={() => headingRef.current?.focus()} />
-      {/* 받을 수 있는 돈은 가끔 보는 곳이라 옮긴 기록 아래에 접어 둔다 (F86, 2026-11-03) */}
+      {/* 받을 수 있는 돈은 가끔 보는 곳이라 옮긴 기록 아래에 접어 둔다 (F86, 2026-11-02) */}
       {benefitsPanel}
       {hasOriginalNumbers ? <section className="card stack" aria-label="모으기 계산 설명">
         <p className="card-title">숫자 계산 방법</p>
