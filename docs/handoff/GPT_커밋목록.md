@@ -1,6 +1,6 @@
 # Claude 인계 이후 GPT 커밋 목록
 
-- 기준: Claude 인계 당시 `saving` HEAD `dda8c0d` 다음부터 현재 `saving` HEAD `c9141ba`까지.
+- 기준: Claude 인계 당시 `saving` HEAD `dda8c0d` 다음부터 인계 문서 작성 직전 완료 개발 HEAD `c9141ba`까지.
 - 총 104개. 날짜와 제목은 `git log --reverse --format`의 실제 출력이다.
 - 이 목록은 커밋한 작업만 담는다. 중단된 29~31단계 UX 변경은 별도 인계 문서의 미커밋 절에 있다.
 
