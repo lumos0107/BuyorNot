@@ -46,7 +46,7 @@ const SCREENS: readonly TabItem<Screen>[] = [
 ]
 
 const LEDGER_JUMPS: readonly JumpTarget[] = [
-  { label: '결제 달력', selector: '[aria-label="앞으로 30일 결제 달력"]', open: true },
+  { label: '결제 달력', selector: '[aria-label="결제·지출 달력"]', open: true },
   { label: '수입·지출', selector: '[aria-label="이달 가계부 요약"]' },
   { label: '고정비 목록', selector: '#fixed-title' },
   { label: '공과금', selector: '#bills-section' },
@@ -186,7 +186,7 @@ export default function App() {
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
           <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconWallet /></span>가계부</h2>
           <JumpNav label="가계부 안에서 이동" targets={LEDGER_JUMPS} />
-          <PaymentCalendarSection subscriptions={subscriptions.items} today={wishlist.now} />
+          <PaymentCalendarSection subscriptions={subscriptions.items} expenses={ledger.store.entries} today={wishlist.now} />
           <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now} />
           <SubscriptionScreen
             items={subscriptions.items}

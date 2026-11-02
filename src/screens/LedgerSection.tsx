@@ -81,6 +81,12 @@ export function LedgerSection({ ledger, bills, spending, today }: Props) {
         <p className="card-row ledger-stat ledger-stat-income"><span>{showDemo ? '수입 (예시)' : '직접 적은 수입'}</span><strong>{formatWon(summary.income)}</strong></p>
         <p className="card-row ledger-stat ledger-stat-expense"><span>{showDemo ? '지출 (예시)' : '직접 적은 지출'}</span><strong>{formatWon(summary.expense)}</strong></p>
         <p className="card-row ledger-stat ledger-stat-diff"><span>차이</span><strong>{formatWon(summary.income - summary.expense)}</strong></p>
+        {/* 이번 달 모을 금액 칸 (F84 보강, 2026-11-03 제작자 "저축/모으고 싶은 금액 하나 추가"). 값은 아래 이달 현황판에서 정한다 */}
+        <div className="ledger-stat ledger-stat-target">
+          <span>이번 달 모을 금액</span>
+          <strong>{saveTarget === null ? '정하지 않음' : formatWon(saveTarget)}</strong>
+          <button type="button" className="link-button" aria-label={saveTarget === null ? "이번 달 모을 금액 정하기" : "이번 달 모을 금액 바꾸기"} onClick={() => document.querySelector<HTMLInputElement>('[aria-label="이달 현황판"] input')?.focus()}>{saveTarget === null ? '정하기' : '바꾸기'}</button>
+        </div>
       </div>
       {monthChange ? <p className="ledger-change">{monthChange}</p> : null}
       <p className="note">아래의 자잘한 지출 {formatWon(smallSpent)}·공과금 {formatWon(billsAmount)}은 중복 계산을 막기 위해 위 합계에 넣지 않았어요.</p>

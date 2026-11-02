@@ -53,7 +53,7 @@ it('가계부는 달력부터 보여주고 저장되지 않은 예시를 첫 입
   render(<App />)
   await user.click(screen.getByRole('tab', { name: '가계부' }))
   const panel = screen.getByRole('tabpanel', { name: '가계부' })
-  const calendar = screen.getByRole('region', { name: '앞으로 30일 결제 달력' })
+  const calendar = screen.getByRole('region', { name: '결제·지출 달력' })
   const ledger = screen.getByRole('region', { name: '가계부' })
   expect(panel.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(calendar.compareDocumentPosition(ledger) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()

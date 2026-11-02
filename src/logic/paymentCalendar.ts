@@ -30,3 +30,10 @@ export function paymentOccurrences(subscriptions: readonly Subscription[], today
 export function paymentTotal(rows: readonly PaymentOccurrence[]): number {
   return rows.reduce((total, row) => total + row.priceKrw, 0)
 }
+
+// 달력 칸 안의 짧은 금액. 10만 원부터는 '만' 단위로 줄인다(칸이 좁다). 정확한 금액은 아래 날짜별 목록에 있다
+export function shortWon(amount: number): string {
+  if (amount < 100_000) return amount.toLocaleString('ko-KR')
+  const man = amount / 10_000
+  return `${man >= 100 ? Math.round(man) : Math.round(man * 10) / 10}만`
+}

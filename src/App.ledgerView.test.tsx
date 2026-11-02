@@ -99,3 +99,17 @@ it('AC208: 지난달 지출과 비교한 한 줄, 지난달 기록이 없으면 
   await user.click(summary.getByRole('button', { name: '이전 달' }))
   expect(summary.queryByText(/지난달/)).not.toBeInTheDocument()
 })
+
+it('AC214: 요약에 이번 달 모을 금액 칸이 있고, 정하기를 누르면 현황판의 입력칸으로 가며 저장하면 칸에 금액이 보인다', async () => {
+  const user = await openLedger()
+  const summary = within(screen.getByRole('region', { name: '이달 가계부 요약' }))
+  expect(summary.getByText('이번 달 모을 금액')).toBeInTheDocument()
+  expect(summary.getByText('정하지 않음')).toBeInTheDocument()
+  await user.click(summary.getByRole('button', { name: '이번 달 모을 금액 정하기' }))
+  const board = within(screen.getByRole('region', { name: '이달 현황판' }))
+  expect(board.getByLabelText('이번 달 모을 금액')).toHaveFocus()
+  await user.type(board.getByLabelText('이번 달 모을 금액'), '100000')
+  await user.click(board.getByRole('button', { name: '저장' }))
+  expect(summary.getByText('100,000원')).toBeInTheDocument()
+  expect(summary.getByRole('button', { name: '이번 달 모을 금액 바꾸기' })).toBeInTheDocument()
+})
