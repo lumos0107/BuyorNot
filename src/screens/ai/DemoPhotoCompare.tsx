@@ -37,6 +37,15 @@ const samples = [
   },
 ] as const
 
+// 다나와 상품 페이지에서 2026-11-02 확인한 표시 최저가. 배송비와 쿠폰은 포함하지 않는다.
+// 사진의 흐린 포장 표기를 완전히 대조할 수 없어 온라인 상품과 동일 상품인지 구매 전에 확인해야 한다.
+const danawaChecks = [
+  { name: '순작 연근우엉차 40T', shelf: 7100, online: 3920, pcode: '4282090' },
+  { name: '순작 작두콩차 40T', shelf: 8300, online: 4770, pcode: '112191750' },
+  { name: '동서 루이보스 보리차 50T', shelf: 4500, online: 2880, pcode: '3731826' },
+  { name: '동서 한잔용 보리차 50T', shelf: 4550, online: 2260, pcode: '15463367' },
+] as const
+
 export function DemoPhotoCompare() {
   const [selected, setSelected] = useState(0)
   const [revealed, setRevealed] = useState(false)
@@ -60,6 +69,14 @@ export function DemoPhotoCompare() {
       <ul className="result-list demo-photo-results">{sample.items.map((item) => <li key={item.name}><span>{item.name}</span><strong>{formatWon(item.price)}{item.count ? ` · ${item.count}개입, 1개당 ${formatWon(Math.round(item.price / item.count))}` : ''}</strong></li>)}</ul>
       {cheapest ? <p><strong>개당 표시 가격이 가장 낮은 항목:</strong> {cheapest.name} · 약 {formatWon(Math.round(cheapest.price / cheapest.count!))}/개</p> : null}
       <p className="note">서로 다른 차 종류와 포장량을 한 사진에서 비교한 예시입니다. 같은 상품의 최저가나 실제 결제액을 뜻하지 않습니다.</p>
+      {sample.id === 'rt01' ? <section className="stack" aria-label="다나와 표시 최저가 비교">
+        <h4 className="card-title">다나와 표시 최저가 비교</h4>
+        <p className="note">2026-11-02에 확인한 저장된 가격입니다. 사진 가격표와 이름·입수가 비슷한 상품 페이지를 연결했습니다. 배송비·쿠폰은 빠진 표시 가격이며, 포장과 실제 결제액은 구매 전에 다시 확인하세요. 지금 실시간으로 조회하지 않습니다.</p>
+        <ul className="result-list demo-photo-results">{danawaChecks.map((item) => <li key={item.pcode}>
+          <span><a href={`https://prod.danawa.com/info/?pcode=${item.pcode}`} target="_blank" rel="noopener noreferrer">{item.name} · 다나와 상품 보기</a></span>
+          <strong>사진 {formatWon(item.shelf)} → 다나와 {formatWon(item.online)}</strong>
+        </li>)}</ul>
+      </section> : <p className="note">이 사진의 상품은 다나와에서 동일한 포장을 확인하지 못해 온라인 가격을 적지 않았습니다.</p>}
     </section> : null}
   </section>
 }

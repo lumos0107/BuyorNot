@@ -252,7 +252,7 @@ describe('가격표 사진 탭과 사진 고르기 (10장 앱 공통)', () => {
     goTo('가격 비교')
 
     const tabs = within(screen.getByRole('tablist', { name: '가격 비교 종류' })).getAllByRole('tab')
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['할인 비교', '묶음상품 비교', '배달', '가격표 사진 예시'])
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['가격표 사진 예시', '할인 비교', '묶음상품 비교', '배달'])
     expect(screen.queryByLabelText('가격표 사진 찍기')).not.toBeInTheDocument()
     expect(screen.queryByText(PHOTO_NOTICE)).not.toBeInTheDocument()
     expect(fetchSpy).not.toHaveBeenCalled()
