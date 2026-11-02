@@ -71,7 +71,7 @@ async function tab(page, name) {
     // 가격표 사진 예시: 첫 화면은 라면 진열대라, 다나와 조회값이 있는 차 진열대를 골라 저장된 결과와 다나와 조회값을 나눠 찍는다(한 장으로 찍으면 세로로 너무 길다).
     await page.getByRole('button', { name: '차 진열대', exact: true }).click()
     const result = page.getByRole('region', { name: '미리 읽은 품목과 가격 비교' })
-    const danawa = page.getByRole('region', { name: '다나와 표시 최저가 비교' })
+    const danawa = page.getByRole('region', { name: '다나와 표시 가격 비교' })
     await result.scrollIntoViewIfNeeded()
     const r = await result.boundingBox()
     const d = await danawa.boundingBox()

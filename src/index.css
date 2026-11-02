@@ -2293,3 +2293,12 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
 .today-action + .today-action {
   border-top: 1px solid var(--line);
 }
+
+/* 다나와 상품 페이지 링크: 글자 링크 대신 버튼 모양(2026-11-03 제작자 요청) */
+.danawa-row .danawa-link {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+  color: var(--accent);
+  border-color: var(--accent);
+}
