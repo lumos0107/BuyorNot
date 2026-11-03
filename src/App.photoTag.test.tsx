@@ -270,12 +270,33 @@ describe('가격표 사진 탭과 사진 고르기 (10장 앱 공통)', () => {
     const input = photoInput()
     expect(input).toHaveAttribute('type', 'file')
     expect(input).toHaveAttribute('accept', 'image/*')
-    // PRD F31 "갤러리에서 고르기도 됨" — capture가 있으면 폰에서 카메라만 열림(총괄 판정 R7)
-    expect(input).not.toHaveAttribute('capture')
+    // AC224 (2026-11-03): 찍기 버튼은 폰에서 바로 뒷면 카메라를 열고, 갤러리는 "앨범에서 고르기"로 따로 고른다(전: capture 없음, 판정 R7)
+    expect(input).toHaveAttribute('capture', 'environment')
     const label = input.closest('label')
     expect(label).toHaveTextContent('가격표 사진 찍기')
+    const album = panel().getByLabelText('앨범에서 고르기')
+    expect(album).toHaveAttribute('type', 'file')
+    expect(album).toHaveAttribute('accept', 'image/*')
+    expect(album).not.toHaveAttribute('capture')
     expect(panel().getAllByText(PHOTO_NOTICE).length).toBeGreaterThan(0)
     expect(s.server.calls).toHaveLength(0)
+  })
+
+  it('AC224: 앨범에서 고르기로 고른 사진도 같은 읽기 요청을 한 번 보내고 읽는 중을 보인다', async () => {
+    const s = setup()
+    const held = aiReply.hold()
+    s.server.on(READ, held)
+    openPhotoTab()
+
+    const file = new File(['photo-bytes'], 'album.jpg', { type: 'image/jpeg' })
+    fireEvent.change(panel().getByLabelText('앨범에서 고르기'), { target: { files: [file] } })
+    await sent(READ, 1)
+
+    expect(s.server.callsTo(READ)).toHaveLength(1)
+    expect(panel().getByRole('status')).toHaveTextContent(READING)
+    held.release(readTag(ITEM))
+    await settle()
+    expect(productsHeading()).toBeInTheDocument()
   })
 
   it('고른 사진을 줄인 JPEG로 /api/read-tag에 한 번 보내고, 읽는 동안 진행 문구(role=status)와 취소를 보인다', async () => {

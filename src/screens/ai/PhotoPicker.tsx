@@ -11,12 +11,15 @@ export function PhotoPicker({
   disabled,
   describedBy,
   inputRef,
+  capture,
 }: {
   label: string
   onPick: (file: File) => void
   disabled?: boolean
   describedBy?: string
   inputRef?: Ref<HTMLInputElement>
+  /** 'environment'면 폰에서 고르기 창 없이 뒷면 카메라를 바로 연다(PC 브라우저는 무시). 가격표 사진 찍기만 쓴다 (F31, AC224) */
+  capture?: 'environment'
 }) {
   const pick = (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget
@@ -27,7 +30,7 @@ export function PhotoPicker({
   return (
     <label className="btn photo-pick">
       {label}
-      <input ref={inputRef} type="file" accept="image/*" disabled={disabled} aria-describedby={describedBy} onChange={pick} />
+      <input ref={inputRef} type="file" accept="image/*" capture={capture} disabled={disabled} aria-describedby={describedBy} onChange={pick} />
     </label>
   )
 }

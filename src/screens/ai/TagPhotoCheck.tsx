@@ -315,7 +315,11 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
           <EmptyIllustration kind="photo" />
           <p>가격표를 찍고 상품명·매장 가격을 확인해 보세요.</p>
         </div> : null}
-        <PhotoPicker label="가격표 사진 찍기" inputRef={pickerInput} onPick={(file) => void pick(file)} />
+        {/* 찍기는 폰에서 카메라를 바로 열고, 이미 찍어 둔 사진은 앨범에서 고른다 (F31, AC224, 2026-11-03 제작자 "진짜 찍어도 작동하게") */}
+        <div className="btn-row photo-pick-row">
+          <PhotoPicker label="가격표 사진 찍기" capture="environment" inputRef={pickerInput} onPick={(file) => void pick(file)} />
+          <PhotoPicker label="앨범에서 고르기" onPick={(file) => void pick(file)} />
+        </div>
         {phase === 'idle' && products.length === 0 ? <p className="note">다나와 자동 조회는 꺼져 있을 수 있어요. 그때는 검색 링크를 보여 줘요.</p> : null}
         <p className="note">{PHOTO_NOTICE}</p>
         {photo ? <PhotoPreview file={photo} /> : null}
