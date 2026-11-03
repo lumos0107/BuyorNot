@@ -40,9 +40,12 @@ async function viewAt(page, name, locator) {
   await page.screenshot({ path: file(name) })
 }
 
+// 부분 사진에는 아래에 붙은 주요 메뉴가 겹치지 않게 잠시 숨긴다 (2026-11-03)
 async function part(page, name, locator) {
+  const hideNav = await page.addStyleTag({ content: '.tabs.tabs-main{visibility:hidden}' })
   await locator.scrollIntoViewIfNeeded()
   await locator.screenshot({ path: file(name) })
+  await hideNav.evaluate((el) => el.remove())
 }
 
 async function tab(page, name) {
@@ -65,7 +68,7 @@ async function tab(page, name) {
 
   // 중간 과제 공개 빌드
   {
-    // 2026-11-02 F86: 첫 화면은 가계부. 가격표 사진 예시는 장보기의 마지막 비교 종류이고 주소 ?tab=photo로 바로 연다
+    // 2026-11-02 F86: 첫 화면은 가계부(2026-11-03부터 결제·지출 달력이 맨 위)
     const { context, page } = await open(browser, BASE)
     await viewAt(page, '02-home')
     await viewAt(page, '04-fixed-costs', page.getByRole('region', { name: '결제·지출 달력' }))
@@ -74,9 +77,11 @@ async function tab(page, name) {
     await part(page, '15-ledger-dashboard', page.getByRole('region', { name: '이달 현황판' }))
 
     // 가격표 사진 예시: 처음 보이는 사진은 라면 진열대라, 다나와 조회값이 있는 차 진열대를 골라 저장된 결과와 다나와 조회값을 나눠 찍는다(한 장으로 찍으면 세로로 너무 길다).
+    // 2026-11-03부터 공개 빌드는 AI 서버에 연결돼 저장된 사진 예시 탭이 없다. 그 빌드에서는 12·14번을 다시 찍지 않는다('이전 기록' 사진으로 둠)
     await page.goto(new URL('?tab=photo', BASE).href)
     await page.waitForLoadState('networkidle')
     await page.addStyleTag({ content: '::-webkit-scrollbar{display:none} html{scrollbar-width:none}' })
+    if (await page.getByRole('button', { name: '차 진열대', exact: true }).count()) {
     await page.getByRole('button', { name: '차 진열대', exact: true }).click()
     const result = page.getByRole('region', { name: '미리 읽은 품목과 가격 비교' })
     const danawa = page.getByRole('region', { name: '다나와 표시 가격 비교' })
@@ -90,12 +95,19 @@ async function tab(page, name) {
     await page.screenshot({ path: file('12-photo-demo'), fullPage: true, clip: { x: r.x, y: r.y + y, width: r.width, height: split - r.y } })
     await page.screenshot({ path: file('14-danawa-prices'), fullPage: true, clip: { x: r.x, y: split + y, width: r.width, height: r.y + r.height - split } })
     await hideNav.evaluate((el) => el.remove())
+    }
 
     await tab(page, '물건')
     await viewAt(page, '05-wishlist')
     const entry = page.locator('#wish-entry')
     if (!(await entry.evaluate((el) => el.open))) await page.locator('#wish-entry-title').click()
-    await page.getByRole('button', { name: '예시 음성 결과 채우기' }).click()
+    // AI 서버가 없는 빌드는 준비한 문장으로 채우고, 공개 빌드(말로 담기)는 같은 값을 직접 적는다
+    const demoVoice = page.getByRole('button', { name: '예시 음성 결과 채우기' })
+    if (await demoVoice.count()) await demoVoice.click()
+    else {
+      await entry.getByLabel('상품명').fill('무선 헤드폰')
+      await entry.getByLabel('가격').fill('80000')
+    }
     await viewAt(page, '06-quick-add', entry)
 
     await tab(page, '모으기')
