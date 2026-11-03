@@ -1780,10 +1780,7 @@ article.card [role='group'] .btn-row .btn {
   height: 21px;
 }
 
-/* 비교 결론 상자: 단색 강조 바탕에 왼쪽 강조선 */
-section.card[aria-label$='비교 결과'] > .price-lg {
-  border-left: 4px solid var(--accent);
-}
+/* 비교 결론 상자: 단색 강조 바탕. 왼쪽 강조선은 2026-11-03 제작자 요청("왼쪽의 세로 장식선 제거")으로 뺌 */
 
 .status-muted {
   background: #eef0f5;
@@ -2519,11 +2516,7 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   }
 }
 
-/* 모으기 요약의 예시 칸: 실제 기록이 없는 칸은 흐리게 (2026-11-02) */
-.result-list li.is-example,
-.savings-demo .result-list li {
-  opacity: 0.6;
-}
+/* 모으기 요약의 예시 칸: 흐리게 두던 것(opacity 0.6)을 2026-11-03 제작자 "글씨가 너무 연해서 잘 안 보임"으로 뺌. 예시임은 '(예시)' 글자로 알린다 */
 
 /* 빈 화면의 저장되지 않는 예시 미리보기 (2026-11-02) */
 .example-preview {

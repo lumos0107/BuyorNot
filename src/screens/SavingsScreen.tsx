@@ -128,7 +128,7 @@ export function SavingsScreen({ items, subscriptions, savings, pantry, spending,
             <p className="card-title">지금까지</p>
             <span className="note">전체 기록 기준{n.includesExample ? ' · 예시 포함' : ''}</span>
           </div>
-          {/* 0원인 칸에는 저장되지 않는 예시 금액을 흐리게 보인다 (2026-11-02 제작자 "비어 있는 데에 기본으로 예시") */}
+          {/* 0원인 칸에는 저장되지 않는 예시 금액을 보인다(이름에 "(예시)"). 흐리게 하던 것은 2026-11-03에 뺌 (2026-11-02 제작자 "비어 있는 데에 기본으로 예시") */}
           <ul className="result-list">
             <li className={n.reducedMonthly === 0 && n.reducedCount === 0 && n.loweredCount === 0 ? 'is-example' : undefined}>
               <span>{n.reducedMonthly === 0 && n.reducedCount === 0 && n.loweredCount === 0 ? SAVINGS_EXAMPLES[0].label : reducedLabel(n)}</span>
