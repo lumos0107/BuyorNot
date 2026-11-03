@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent } from 'react'
 import { isDay } from '../logic/guards'
 import { LEDGER_CATEGORY_LABEL, ledgerByCategory, ledgerDashboard, ledgerDayGroups, ledgerDayLabel, ledgerMonth, ledgerMonthChange, parseSaveTarget, shiftMonth, type LedgerCategory, type LedgerEntry, type LedgerKind } from '../logic/ledger'
 import { formatWon } from '../logic/number'
@@ -10,6 +10,7 @@ import type { SpendingStore } from '../logic/spending'
 import type { useLedger } from '../store/useLedger'
 import { Button } from '../ui/Button'
 import { SelectField, TextField } from '../ui/Field'
+import { FinePrint } from '../ui/FinePrint'
 import { ResetConfirm } from '../ui/ResetConfirm'
 
 type Props = {
@@ -17,14 +18,12 @@ type Props = {
   bills: BillsStore
   spending: SpendingStore
   today: Date
-  /** 결제·지출 달력. 요약과 적기 다음, 내역 앞에 둔다 (F86) */
-  calendar?: ReactNode
 }
 
 const expenseCategories: LedgerCategory[] = ['food', 'daily', 'transport', 'housing', 'health', 'other']
 const incomeCategories: LedgerCategory[] = ['salary', 'other']
 
-export function LedgerSection({ ledger, bills, spending, today, calendar }: Props) {
+export function LedgerSection({ ledger, bills, spending, today }: Props) {
   const todayIso = toDayIso(today)
   const [month, setMonth] = useState(todayIso.slice(0, 7))
   const [kind, setKind] = useState<LedgerKind>('expense')
@@ -63,7 +62,6 @@ export function LedgerSection({ ledger, bills, spending, today, calendar }: Prop
   }
 
   return <section className="stack" aria-label="가계부">
-    <p className="note">실제로 들어오거나 나간 돈을 날짜별로 적어요. 계좌 사이에 옮긴 돈은 모으기에서 따로 기록해요.</p>
     {ledger.status.kind !== 'ok' ? <div className="banner stack" role="status" aria-label="가계부 저장 상태">
       <p>{ledger.status.kind === 'corrupt' ? '저장된 가계부를 읽을 수 없어요.' : ledger.status.kind === 'replaced' ? '다른 탭에서 저장한 가계부를 불러왔어요.' : ledger.status.kind === 'save-failed' ? '가계부를 저장하지 못했어요. 브라우저 저장 공간과 설정을 확인해 주세요.' : '이 브라우저에서는 가계부를 저장할 수 없어요.'}</p>
       {ledger.status.kind === 'save-failed' ? <Button onClick={ledger.retrySave}>다시 저장</Button> : null}
@@ -76,7 +74,6 @@ export function LedgerSection({ ledger, bills, spending, today, calendar }: Prop
         <TextField label="볼 달" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
         <button type="button" className="month-step" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}>›</button>
       </div>
-      {showDemo ? <p className="note">시연용 예시 금액입니다. 저장되지 않으며 첫 내역을 적으면 사라져요.</p> : null}
       <div className="ledger-stats">
         <p className="card-row ledger-stat ledger-stat-income"><span>{showDemo ? '수입 (예시)' : '직접 적은 수입'}</span><strong>{formatWon(summary.income)}</strong></p>
         <p className="card-row ledger-stat ledger-stat-expense"><span>{showDemo ? '지출 (예시)' : '직접 적은 지출'}</span><strong>{formatWon(summary.expense)}</strong></p>
@@ -89,7 +86,12 @@ export function LedgerSection({ ledger, bills, spending, today, calendar }: Prop
         </div>
       </div>
       {monthChange ? <p className="ledger-change">{monthChange}</p> : null}
-      {smallSpent > 0 || billsAmount > 0 ? <p className="note">아래의 자잘한 지출 {formatWon(smallSpent)}·공과금 {formatWon(billsAmount)}은 중복 계산을 막기 위해 위 합계에 넣지 않았어요.</p> : null}
+      {/* 자잘한 설명은 접어 둔다 (2026-11-03 제작자) */}
+      <FinePrint>
+        <p className="note">실제로 들어오거나 나간 돈을 날짜별로 적어요. 계좌 사이에 옮긴 돈은 모으기에서 따로 기록해요.</p>
+        {showDemo ? <p className="note">시연용 예시 금액입니다. 저장되지 않으며 첫 내역을 적으면 사라져요.</p> : null}
+        {smallSpent > 0 || billsAmount > 0 ? <p className="note">아래의 자잘한 지출 {formatWon(smallSpent)}·공과금 {formatWon(billsAmount)}은 중복 계산을 막기 위해 위 합계에 넣지 않았어요.</p> : null}
+      </FinePrint>
     </section>
     {/* 매일 쓰는 적기 폼은 접어 두고 한 번 눌러 연다 (F86) */}
     <details className="card guide" aria-label="수입·지출 적기">
@@ -113,7 +115,6 @@ export function LedgerSection({ ledger, bills, spending, today, calendar }: Prop
         {message ? <p role="status">{message}</p> : null}
       </div>
     </details>
-    {calendar}
     <section className="card stack" aria-label="가계부 내역">
       <p className="card-title">{month} 내역</p>
       {summary.entries.length === 0 ? <p className="note">이달에 직접 적은 내역이 없어요.</p> : dayGroups.map((group) => <div className="ledger-day" key={group.day}>

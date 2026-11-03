@@ -49,14 +49,14 @@ it('공개 빌드의 예시 사진은 저장된 품목만 보여주고 AI 요청
   fetch.mockRestore()
 })
 
-it('가계부는 요약 뒤에 달력을 보여주고 저장되지 않은 예시를 첫 입력 뒤 숨긴다', async () => {
+it('가계부는 달력을 요약보다 먼저 보여주고 저장되지 않은 예시를 첫 입력 뒤 숨긴다', async () => {
   const user = userEvent.setup()
   render(<App />)
   await user.click(screen.getByRole('tab', { name: '가계부' }))
-  // 2026-11-02 F86: 요약 → 접힌 수입·지출 적기 → 달력 순서(전: 달력이 맨 위)
+  // 2026-11-03 제작자 "시작하자마자 맨 위 달력부터": 달력 → 요약 → 접힌 수입·지출 적기 (2026-11-02 F86에서는 요약 다음이었음)
   const summary = screen.getByRole('region', { name: '이달 가계부 요약' })
   const calendar = screen.getByRole('region', { name: '결제·지출 달력' })
-  expect(summary.compareDocumentPosition(calendar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(calendar.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.getByText('시연용 예시 금액입니다. 저장되지 않으며 첫 내역을 적으면 사라져요.')).toBeInTheDocument()
   expect(localStorage.getItem(LEDGER_KEY)).toBeNull()
   const form = within(screen.getByRole('group', { name: '수입·지출 적기' }))

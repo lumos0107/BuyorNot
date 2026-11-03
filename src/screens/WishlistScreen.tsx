@@ -639,7 +639,7 @@ function AddForm({
         onChange={(e) => set('price', e.target.value)}
       />
       {validDays ? <p className="note">{raw.reason.trim() ? `${days}일 뒤 다시 볼게요.` : `${days}일 뒤 다시 볼게요. 이유는 담은 뒤 적어도 돼요.`}</p> : null}
-      <details className="questions" ref={moreRef}>
+      <details className="questions button-disclosure" ref={moreRef}>
         <summary className="field-label">더 적기 (선택)</summary>
         <div className="stack">
       <TextAreaField

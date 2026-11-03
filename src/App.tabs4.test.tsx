@@ -70,13 +70,14 @@ describe('주요 메뉴 네 개 (F86)', () => {
     expect(within(screen.getByRole('region', { name: '미리 읽은 품목과 가격 비교' })).getByText('농심)신라면블랙')).toBeInTheDocument()
   })
 
-  it('AC220: 가계부는 요약·적기(접힘)·달력·내역·현황판·분류별·고정비·공과금(접힘)·자잘한 지출(접힘) 순서다', async () => {
+  it('AC220: 가계부는 달력·요약·적기(접힘)·내역·현황판·분류별·고정비·공과금(접힘)·자잘한 지출(접힘) 순서다', async () => {
     const user = userEvent.setup()
     render(<App />)
+    // 2026-11-03 제작자 "시작하자마자 맨 위 달력부터 보이게 나머지는 아래로"
     const order = [
+      screen.getByRole('region', { name: '결제·지출 달력' }),
       screen.getByRole('region', { name: '이달 가계부 요약' }),
       screen.getByRole('group', { name: '수입·지출 적기' }),
-      screen.getByRole('region', { name: '결제·지출 달력' }),
       screen.getByRole('region', { name: '가계부 내역' }),
       screen.getByRole('region', { name: '이달 현황판' }),
       screen.getByRole('region', { name: '분류별 지출' }),
@@ -84,14 +85,14 @@ describe('주요 메뉴 네 개 (F86)', () => {
       screen.getByRole('group', { name: '자잘한 지출' }),
     ]
     for (let i = 1; i < order.length; i += 1) expect(before(order[i - 1], order[i])).toBe(true)
-    expect(order[1]).not.toHaveAttribute('open')
-    expect(order[2]).toHaveAttribute('open')
+    expect(order[2]).not.toHaveAttribute('open')
+    expect(order[0]).toHaveAttribute('open')
     expect(screen.getByText('날짜별 목록').closest('details')).not.toHaveAttribute('open')
     expect(order[6]).not.toHaveAttribute('open')
     expect(order[7]).not.toHaveAttribute('open')
     expect(screen.queryByText(/중복 계산을 막기 위해/)).not.toBeInTheDocument()
     await user.click(screen.getByText('수입·지출 적기'))
-    expect(order[1]).toHaveAttribute('open')
+    expect(order[2]).toHaveAttribute('open')
   })
 
   it('AC221: 달력 칸을 누르면 날짜별 목록이 펼쳐지고 그날로 포커스가 간다', async () => {

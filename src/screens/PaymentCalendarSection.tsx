@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { FinePrint } from '../ui/FinePrint'
 import { paymentOccurrences, paymentTotal, shortWon } from '../logic/paymentCalendar'
 import { formatWon } from '../logic/number'
 import { toDayIso, type Subscription } from '../logic/subscriptions'
@@ -53,18 +54,9 @@ export function PaymentCalendarSection({ subscriptions, expenses = [], expenseDe
   }
 
   return <details className="card guide payment-calendar" role="region" aria-label="결제·지출 달력" ref={rootRef} open>
-    <summary className="card-title">
-      <span className="payment-calendar-summary">
-        <span>결제·지출 달력</span>
-        <span className="note">{demo ? `예시 결제 ${rows.length}건 · ${formatWon(paymentTotal(rows))}` : `결제 예정 ${rows.length}건 · 적어 둔 요금 합계 ${formatWon(paymentTotal(rows))}`}</span>
-        {done.length > 0 ? <span className="note">{`${expenseDemo ? '예시 ' : ''}가계부 지출 ${done.length}건 · ${formatWon(doneTotal)}`}</span> : null}
-        {planned.length > 0 ? <span className="note">{`${expenseDemo ? '예시 ' : ''}예상 지출 ${planned.length}건 · ${formatWon(plannedTotal)}`}</span> : null}
-      </span>
-    </summary>
+    {/* 2026-11-03 제작자: 가계부를 열면 달력부터 보이게, 합계·안내 같은 자잘한 설명은 눌러서 보이게 */}
+    <summary className="card-title">{demo || expenseDemo ? '결제·지출 달력 (예시)' : '결제·지출 달력'}</summary>
     <div className="stack payment-calendar-body">
-      <p className="note">실제 청구일과 금액은 서비스에서 확인해 주세요.</p>
-      {demo ? <p className="note">달력의 예시 결제는 저장되지 않아요. 고정비를 등록하면 실제 입력한 요금으로 바뀝니다.</p> : null}
-      {expenseDemo && spent.length > 0 ? <p className="note">가계부의 예시 지출은 저장되지 않아요. 가계부에 첫 내역을 적으면 사라져요. 오늘 뒤 날짜로 적은 지출은 예상 지출로 보여요.</p> : null}
       <p className="payment-calendar-legend" aria-hidden="true"><span className="legend-pay">결제 예정</span><span className="legend-spent">가계부 지출</span><span className="legend-planned">예상 지출</span></p>
       {rows.length === 0 ? <p className="note">앞으로 30일에 적어 둔 결제 예정이 없어요.</p> : null}
       {rows.length === 0 && spent.length === 0 ? null : <>
@@ -103,6 +95,14 @@ export function PaymentCalendarSection({ subscriptions, expenses = [], expenseDe
         })}
         </details>
       </>}
+      <FinePrint label="합계·안내 보기">
+        <p className="note">{demo ? `예시 결제 ${rows.length}건 · ${formatWon(paymentTotal(rows))}` : `결제 예정 ${rows.length}건 · 적어 둔 요금 합계 ${formatWon(paymentTotal(rows))}`}</p>
+        {done.length > 0 ? <p className="note">{`${expenseDemo ? '예시 ' : ''}가계부 지출 ${done.length}건 · ${formatWon(doneTotal)}`}</p> : null}
+        {planned.length > 0 ? <p className="note">{`${expenseDemo ? '예시 ' : ''}예상 지출 ${planned.length}건 · ${formatWon(plannedTotal)}`}</p> : null}
+        <p className="note">실제 청구일과 금액은 서비스에서 확인해 주세요.</p>
+        {demo ? <p className="note">달력의 예시 결제는 저장되지 않아요. 고정비를 등록하면 실제 입력한 요금으로 바뀝니다.</p> : null}
+        {expenseDemo && spent.length > 0 ? <p className="note">가계부의 예시 지출은 저장되지 않아요. 가계부에 첫 내역을 적으면 사라져요. 오늘 뒤 날짜로 적은 지출은 예상 지출로 보여요.</p> : null}
+      </FinePrint>
     </div>
   </details>
 }

@@ -55,7 +55,6 @@ const WISH_VIEWS: readonly TabItem<WishView>[] = [
 
 const LEDGER_JUMPS: readonly JumpTarget[] = [
   { label: '수입·지출', selector: '[aria-label="이달 가계부 요약"]' },
-  { label: '달력', selector: '[aria-label="결제·지출 달력"]', open: true },
   { label: '내역', selector: '[aria-label="가계부 내역"]' },
   { label: '고정비·공과금', selector: '#fixed-group', open: true },
   { label: '자잘한 지출', selector: 'details[aria-label="자잘한 지출"]', open: true },
@@ -130,9 +129,10 @@ export default function App() {
       <main>
         <TabPanel id="subscriptions" hidden={screen !== 'subscriptions'}>
           <h2 className="screen-title"><span className="title-icon" aria-hidden="true"><IconWallet /></span>가계부</h2>
+          {/* 2026-11-03 제작자 "가계부는 시작하자마자 맨 위 달력부터 보이게 나머지는 아래로" */}
+          <PaymentCalendarSection subscriptions={subscriptions.items} expenses={ledger.store.entries.length === 0 ? ledgerDemoEntries(wishlist.now) : ledger.store.entries} expenseDemo={ledger.store.entries.length === 0} today={wishlist.now} />
           <JumpNav label="가계부 안에서 이동" targets={LEDGER_JUMPS} />
-          <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now}
-            calendar={<PaymentCalendarSection subscriptions={subscriptions.items} expenses={ledger.store.entries.length === 0 ? ledgerDemoEntries(wishlist.now) : ledger.store.entries} expenseDemo={ledger.store.entries.length === 0} today={wishlist.now} />} />
+          <LedgerSection ledger={ledger} bills={bills.store} spending={spending.store} today={wishlist.now} />
           <details className="card guide fixed-group" id="fixed-group" aria-label="고정비·공과금" ref={fixedRef}>
             <summary className="card-title">고정비·공과금</summary>
             <div className="stack">

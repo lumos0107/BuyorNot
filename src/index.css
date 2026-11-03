@@ -2577,3 +2577,45 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
 .fixed-group .screen-title .title-icon {
   display: none;
 }
+
+/* 접어 둔 자잘한 설명 (2026-11-03 제작자 "자잘한 설명은 눌러서 보이게 처음은 안보이게").
+   카드 안의 일반 접기보다 작고 옅게, 화살표는 글자 바로 옆에 */
+.card details.fine-print:not(.card):not(.entry-disclosure):not(.area-picker) > summary,
+.fine-print > summary {
+  display: inline-flex;
+  min-height: 32px;
+  padding: 4px 0;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.card details.fine-print:not(.card):not(.entry-disclosure):not(.area-picker) > summary::after {
+  margin-left: 2px;
+  width: 5px;
+  height: 5px;
+}
+
+/* 버튼처럼 보이는 접기 (2026-11-03 제작자 "더 적기 잘 안 보여, 그냥 버튼을 표시") */
+.card details.button-disclosure:not(.card):not(.entry-disclosure):not(.area-picker) > summary {
+  display: inline-flex;
+  justify-content: center;
+  width: fit-content;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.card details.button-disclosure:not(.card):not(.entry-disclosure):not(.area-picker) > summary:hover {
+  border-color: #b4bcc8;
+}
+.card details.button-disclosure:not(.card):not(.entry-disclosure):not(.area-picker) > summary::after {
+  margin-left: 4px;
+  margin-right: 0;
+}
+.card details.button-disclosure[open]:not(.card):not(.entry-disclosure):not(.area-picker) > summary {
+  margin-bottom: 8px;
+}
