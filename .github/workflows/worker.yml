@@ -1,0 +1,48 @@
+# AI 서버(Cloudflare Worker) 배포. 저장소 Settings → Secrets and variables → Actions에
+# CLOUDFLARE_API_TOKEN(Workers 편집 권한), CLOUDFLARE_ACCOUNT_ID, GEMINI_API_KEY가 있어야 한다.
+# 키는 로그에 찍지 않고 Cloudflare의 비밀 변수로만 넘긴다 (2026-11-03 제작자 요청 "진짜로 ai 작동하게 해보자")
+name: Deploy AI server
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/worker.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check secrets
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          missing=""
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -n "$GEMINI_API_KEY" ] || missing="$missing GEMINI_API_KEY"
+          if [ -n "$missing" ]; then echo "::error::저장소 비밀 값이 없어요:$missing"; exit 1; fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run worker
+      - run: npx wrangler deploy --config worker/wrangler.jsonc
+      - name: Set Gemini key
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: printf '%s' "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --config worker/wrangler.jsonc

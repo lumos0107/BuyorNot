@@ -2,9 +2,15 @@
   "name": "buyornot-ai",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  // Worker는 사용자와 가까운 Cloudflare 지점에서 돈다. 한국 접속이 Gemini를 쓸 수 없는 지역(홍콩 등)의 지점으로
+  // 갈 수 있어, Gemini를 부르는 Worker를 미국 GCP 지역에서 돌게 한다 (2026-11-03, 공개 사진 요청이 상위 서버 오류로 실패한 일)
+  "placement": { "mode": "targeted", "region": "gcp:us-central1" },
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false },
   "vars": {
     "ALLOWED_ORIGINS": "https://lumos0107.github.io",
-    "AI_ENABLED": "false",
-    "DANAWA_ENABLED": "false"
+    "AI_ENABLED": "true",
+    "DANAWA_ENABLED": "true"
   }
 }
