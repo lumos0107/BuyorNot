@@ -149,6 +149,12 @@ function validRow(name: string, packCount: number | null, price: number): boolea
   return name !== ''
 }
 
+// 다나와가 '"…"에 대한 검색결과가 없습니다.'를 보이면 검색은 됐고 결과만 0건이다.
+// 이 문장이 없는데 줄도 없으면 페이지 모양이 바뀐 것으로 보고 '가져오지 못함'으로 둔다 (2026-11-03)
+export function isDanawaEmpty(html: string): boolean {
+  return html.includes('검색결과가 없습니다')
+}
+
 export function parseDanawaRows(html: string): DanawaRow[] {
   const mainAt = html.indexOf('<main')
   if (mainAt < 0) return []

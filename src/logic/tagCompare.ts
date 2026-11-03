@@ -71,6 +71,9 @@ export const DANAWA_OFF_NOTE = '지금은 다나와 가격을 자동으로 가�
  * 결과 제목 바로 아래 줄. 다나와를 못 읽었으면(unavailable) 따로 없어서 null이고,
  * 화면의 "다나와 결과를 가져오지 못했어요."가 맨 위 줄이 된다.
  */
+/** 다나와 검색은 됐지만 결과가 0건일 때 (2026-11-03, 전: 접속 실패와 같은 '다나와 결과를 가져오지 못했어요.') */
+export const NO_RESULTS_LINE = '다나와에서 이 이름으로 찾은 상품이 없어요. 상품명을 줄여서 다시 확인해 보세요.'
+
 export function resultTopLine(status: LowestPriceResponse['status']): string | null {
   switch (status) {
     case 'found':
@@ -78,6 +81,7 @@ export function resultTopLine(status: LowestPriceResponse['status']): string | n
       return PRICE_GAP_NOTE
     case 'off':
       return DANAWA_OFF_NOTE
+    case 'no_results':
     case 'unavailable':
       return null
   }

@@ -454,7 +454,7 @@ describe('응답 모양 검사', () => {
   describe('isLowestPriceResponse', () => {
     it('서버가 돌려주는 모양을 받아들인다', () => {
       expect(isLowestPriceResponse(LOWEST_RESPONSE)).toBe(true)
-      for (const status of ['found', 'not_confirmed', 'unavailable', 'off']) {
+      for (const status of ['found', 'not_confirmed', 'no_results', 'unavailable', 'off']) {
         expect(isLowestPriceResponse({ ...LOWEST_RESPONSE, status, matches: [], candidates: [ROW] })).toBe(true)
       }
       expect(isLowestPriceResponse({ ...LOWEST_RESPONSE, matches: [{ ...ROW, packCount: null, unitPriceText: null }] })).toBe(true)

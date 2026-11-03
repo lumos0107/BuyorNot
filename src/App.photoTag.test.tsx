@@ -16,7 +16,8 @@ import { aiReply, mockAiServer, mockImagePipeline, mockObjectUrls, nextTask, typ
 // - 가정: 진행 문구는 PRD 흐름의 단계 이름 그대로, 사진을 읽는 동안 "읽는 중", 온라인 가격을 확인하는 동안 "확인 중"(role=status).
 // - 가정: 결과 영역의 제목은 계획 Interfaces의 영역 이름과 같은 "온라인 가격 확인 결과".
 // - 가정: 상품이 하나면 라디오 없이 그 상품을 고른 것으로 본다(PRD "하나면 자동 선택").
-// - 가정: 상품이 여러 개면 상품마다 묶음(fieldset)이고, 묶음 이름과 라디오 이름은 읽은 상품명.
+// - 상품이 여러 개면 '비교할 상품을 골라 주세요' 묶음 안의 '상품명 · 가격' 카드에서 고르고, 라디오 이름은 읽은 상품명이다.
+//   고른 상품의 칸만 펼친다(2026-11-03, 전: 상품마다 묶음과 칸 6개).
 // - 가정: 사진 미리보기는 alt가 빈 <img> 하나(읽은 값은 칸에 글로 따로 보인다).
 // - 가정: "가격을 읽지 못했어요"는 가격 칸의 안내 문장(접근 가능한 설명)이다.
 
@@ -325,7 +326,7 @@ describe('가격표 사진 탭과 사진 고르기 (10장 앱 공통)', () => {
 
 describe('읽은 상품 (AC51)', () => {
   // plan: AC51 일곱 경우
-  it('AC51: 상품 1개를 읽으면 칸을 채우고 정상가 4980을 보이며, 그 상품을 고른 채 "읽은 상품" 제목에 포커스를 둔다', async () => {
+  it('AC51: 상품 1개를 읽으면 칸을 채우고(정상가 칸은 없음), 그 상품을 고른 채 "읽은 상품" 제목에 포커스를 둔다', async () => {
     const s = setup()
     s.server.on(READ, readTag(ITEM))
     openPhotoTab()
@@ -335,7 +336,10 @@ describe('읽은 상품 (AC51)', () => {
     expect(field('상품명')).toHaveValue('농심 오징어짬뽕 소컵 6입')
     expect(field('가격')).toHaveValue('3980')
     expect(field('가격 조건')).toHaveValue('')
-    expect(field('정상가')).toHaveValue('4980')
+    // 2026-11-03: 비교에 쓰지 않는 정상가 칸은 뺐고, 포장 표기·개수·가격 조건은 '규격·조건 고치기' 안에 접혀 있다
+    expect(panel().queryByLabelText('정상가')).not.toBeInTheDocument()
+    expect(panel().getByText('규격·조건 고치기 · 포장 표기 67g×6 · 개수 6')).toBeInTheDocument()
+    expect(field('포장 표기')).not.toBeVisible()
     expect(field('포장 표기')).toHaveValue('67g×6')
     expect(field('개수')).toHaveValue('6')
     // 가정: 하나면 라디오 없이 고른 상태(자동 선택)라 바로 확인할 수 있다
@@ -355,14 +359,18 @@ describe('읽은 상품 (AC51)', () => {
     expect(radios).toHaveLength(2)
     expect(radios.filter((radio) => (radio as HTMLInputElement).checked)).toHaveLength(0)
     expect(checkButton()).toBeDisabled()
-    // 상품마다 고칠 수 있는 칸이 있다
-    expect(within(panel().getByRole('group', { name: ITEM.name })).getByLabelText('가격')).toHaveValue('3980')
-    expect(within(panel().getByRole('group', { name: ITEM_2.name })).getByLabelText('가격')).toHaveValue('1200')
+    // 카드마다 가격이 보이고, 고르기 전에는 칸이 없다 (2026-11-03)
+    expect(panel().getByRole('group', { name: '비교할 상품을 골라 주세요' })).toBeInTheDocument()
+    expect(panel().getByRole('radio', { name: ITEM.name })).toHaveAccessibleDescription('3,980원')
+    expect(panel().getByRole('radio', { name: ITEM_2.name })).toHaveAccessibleDescription('1,200원')
+    expect(panel().queryByLabelText('가격')).not.toBeInTheDocument()
     expect(productsHeading()).toHaveFocus()
 
     fireEvent.click(panel().getByRole('radio', { name: ITEM_2.name }))
 
     expect(panel().getByRole('radio', { name: ITEM_2.name })).toBeChecked()
+    expect(panel().getAllByLabelText('가격')).toHaveLength(1)
+    expect(field('가격')).toHaveValue('1200')
     expect(checkButton()).toBeEnabled()
   })
 
@@ -374,7 +382,7 @@ describe('읽은 상품 (AC51)', () => {
     await readPhoto()
 
     expect(panel().getByText(NOT_FOUND)).toBeInTheDocument()
-    for (const label of ['상품명', '가격', '가격 조건', '정상가', '포장 표기', '개수']) {
+    for (const label of ['상품명', '가격', '가격 조건', '포장 표기', '개수']) {
       expect(field(label), label).toHaveValue('')
     }
     expect(panel().getAllByLabelText('상품명')).toHaveLength(1)
@@ -667,6 +675,16 @@ describe('온라인 가격 확인 결과와 실패 (AC53)', () => {
     expect(rowButtons()).toHaveLength(0)
     expect(result().queryByText(FOUND_HEAD)).not.toBeInTheDocument()
     expect(result().queryByText(NOT_CONFIRMED_HEAD)).not.toBeInTheDocument()
+  })
+
+  // 2026-11-03: 검색은 됐지만 0건이면 접속 실패와 다른 문장으로 상품명을 줄여 보라고 알린다
+  it('AC225: 다나와 검색 결과가 0건이면(no_results) "찾은 상품이 없어요" 문장과 링크를 보이고 가져오지 못했다고 하지 않는다', async () => {
+    await readAndCheck([ITEM], lowest('no_results', []))
+
+    expect(result().getByText('다나와에서 이 이름으로 찾은 상품이 없어요. 상품명을 줄여서 다시 확인해 보세요.')).toBeInTheDocument()
+    expect(result().queryByText(DANAWA_FAILED)).not.toBeInTheDocument()
+    expect(result().getByRole('link', { name: DIRECT_LINK })).toHaveAttribute('href', SEARCH_URL)
+    expect(rowButtons()).toHaveLength(0)
   })
 
   it('AC53: 다나와 조회를 꺼 두었으면(off) 줄 없이 링크만 보인다', async () => {
@@ -1037,7 +1055,6 @@ describe('늦은 응답 (10장 앱 공통 · F31)', () => {
     ['상품명', '신라면 컵'],
     ['가격', '3500'],
     ['가격 조건', '카드 할인가'],
-    ['정상가', '5000'],
     ['개수', '12'],
   ])('확인 중에 %s 칸을 고치면 요청을 끊고, 늦은 응답은 버린다', async (label, value) => {
     const late = aiReply.hold()

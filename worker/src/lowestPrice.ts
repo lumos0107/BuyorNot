@@ -3,7 +3,7 @@ import type {
   LowestPriceRequest,
   LowestPriceResponse,
 } from '../../src/ai/types.ts'
-import { danawaSearchUrl, fetchDanawa, parseDanawaRows } from './danawa.ts'
+import { danawaSearchUrl, fetchDanawa, isDanawaEmpty, parseDanawaRows } from './danawa.ts'
 import type { Deps, Env, RequestContext } from './env.ts'
 import { callGemini } from './gemini.ts'
 import { json } from './http.ts'
@@ -55,11 +55,27 @@ function squash(text: string): string {
   return text.replace(/\s+/g, '').toLowerCase()
 }
 
+// 가격표 이름 앞의 매장 표시('MDS)', '농심)')를 뗀다. 떼고 남는 글이 없으면 그대로 둔다 (2026-11-03 라면 사진에서 'MDS)사천왕마라탕면컵'이 검색 0건)
+export function cleanName(name: string): string {
+  const stripped = name.replace(/^[^\s()]{1,12}\)\s*/, '').trim()
+  return stripped === '' ? name : stripped
+}
+
 // 브랜드가 상품명에 (공백·대소문자 무시) 이미 있으면 상품명만, 없으면 앞에 붙인다.
+// 매장 표시를 뗀 이름이면 브랜드를 붙이지 않는다: 읽은 브랜드가 그 매장 표시('MDS')일 수 있어 엉뚱한 상품이 나온다
 export function searchQuery(req: LowestPriceRequest): string {
+  const name = cleanName(req.name)
+  if (name !== req.name) return name
   const brand = req.brand ?? null
-  if (brand === null || brand.trim() === '') return req.name
-  return squash(req.name).includes(squash(brand)) ? req.name : `${brand} ${req.name}`
+  if (brand === null || brand.trim() === '') return name
+  return squash(name).includes(squash(brand)) ? name : `${brand} ${name}`
+}
+
+// 차례로 써 볼 검색어: 브랜드를 붙인 이름, 결과가 0건이면 이름만 (같으면 한 번)
+export function searchQueries(req: LowestPriceRequest): string[] {
+  const first = searchQuery(req)
+  const second = cleanName(req.name)
+  return first === second ? [first] : [first, second]
 }
 
 function unitLabel(unit: NonNullable<LowestPriceRequest['unit']>): string {
@@ -122,8 +138,7 @@ export async function lowestPrice(
   const req = normalizeRequest(body)
   if (req === null) return json(400, { error: 'bad_request' }, ctx)
 
-  const query = searchQuery(req)
-  const searchUrl = danawaSearchUrl(query)
+  let searchUrl = danawaSearchUrl(searchQuery(req))
   const reply = (
     status: LowestPriceResponse['status'],
     matches: DanawaRow[] = [],
@@ -132,10 +147,17 @@ export async function lowestPrice(
 
   if (env.DANAWA_ENABLED !== 'true') return reply('off')
 
-  const page = await fetchDanawa(query, deps, DANAWA_TIMEOUT_MS)
-  if (!page.ok) return reply('unavailable')
-  const rows = parseDanawaRows(page.html)
-  if (rows.length === 0) return reply('unavailable')
+  // 검색 결과가 0건이면 다음 검색어로 한 번 더. 접속 실패·모양이 바뀐 페이지면 바로 '가져오지 못함'
+  let rows: DanawaRow[] = []
+  for (const query of searchQueries(req)) {
+    searchUrl = danawaSearchUrl(query)
+    const page = await fetchDanawa(query, deps, DANAWA_TIMEOUT_MS)
+    if (!page.ok) return reply('unavailable')
+    rows = parseDanawaRows(page.html)
+    if (rows.length > 0) break
+    if (!isDanawaEmpty(page.html)) return reply('unavailable')
+  }
+  if (rows.length === 0) return reply('no_results')
 
   const front = rows.slice(0, MAX_SHOWN)
   const result = await callGemini({

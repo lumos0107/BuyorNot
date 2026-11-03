@@ -173,5 +173,6 @@ describe('결과 맨 위 줄', () => {
     expect(resultTopLine('off')).toBe('지금은 다나와 가격을 자동으로 가져오지 않아요. 가격은 다나와에서 직접 확인해 주세요.')
     // 못 읽었으면(unavailable) 맨 위 줄이 따로 없고, 화면의 "다나와 결과를 가져오지 못했어요."가 맨 위가 된다
     expect(resultTopLine('unavailable')).toBeNull()
+    expect(resultTopLine('no_results')).toBeNull()
   })
 })

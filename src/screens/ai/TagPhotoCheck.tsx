@@ -5,8 +5,8 @@ import { blobToBase64, shrinkImage } from '../../ai/image'
 import { aiFailureMessage, PHOTO_DECODE_FAILED, PHOTO_NOTICE } from '../../ai/messages'
 import type { DanawaRow, LowestPriceRequest, LowestPriceResponse, TagItem, TagUnit } from '../../ai/types'
 import type { PhotoDraft } from '../../logic/draft'
-import { MAX_WON, parseInteger } from '../../logic/number'
-import { compareLines, resultTopLine, rowLine, specCheck, unitPriceNotice, UNKNOWN_COUNT_NOTICE } from '../../logic/tagCompare'
+import { formatWon, MAX_WON, parseInteger } from '../../logic/number'
+import { compareLines, NO_RESULTS_LINE, resultTopLine, rowLine, specCheck, unitPriceNotice, UNKNOWN_COUNT_NOTICE } from '../../logic/tagCompare'
 import { Button } from '../../ui/Button'
 import { EmptyIllustration } from '../../ui/EmptyIllustration'
 import { TextField } from '../../ui/Field'
@@ -20,15 +20,20 @@ import { Progress } from './Progress'
 // 그래도 늦게 온 응답은 요청 번호가 마지막이 아니라서 버린다 (PRD 10장 앱 공통).
 type Phase = 'idle' | 'reading' | 'read' | 'checking' | 'result'
 
-type FieldKey = 'name' | 'price' | 'priceCondition' | 'regularPrice' | 'sizeText' | 'count'
+type FieldKey = 'name' | 'price' | 'priceCondition' | 'sizeText' | 'count'
 
-const FIELDS: readonly { key: FieldKey; label: string; numeric?: boolean }[] = [
+type FieldSpec = { key: FieldKey; label: string; numeric?: boolean }
+
+// 늘 보이는 칸. 정상가 칸은 비교에 쓰지 않아 뺐다 (2026-11-03 제작자 "자동입력 되지도 않는데 있어야 하나?")
+const MAIN_FIELDS: readonly FieldSpec[] = [
   { key: 'name', label: '상품명' },
   { key: 'price', label: '가격', numeric: true },
-  { key: 'priceCondition', label: '가격 조건' },
-  { key: 'regularPrice', label: '정상가', numeric: true },
+]
+// 가격표에 적혀 있을 때만 채워지는 칸은 '규격·조건 고치기' 안에 접어 둔다
+const MORE_FIELDS: readonly FieldSpec[] = [
   { key: 'sizeText', label: '포장 표기' },
   { key: 'count', label: '개수', numeric: true },
+  { key: 'priceCondition', label: '가격 조건' },
 ]
 
 // 읽은 상품 하나. form은 사용자가 고칠 수 있는 칸이고, 나머지는 칸으로 보이지 않는 읽은 값이다
@@ -57,7 +62,6 @@ function fromTag(item: TagItem): Product {
       name: item.name,
       price: asText(item.price),
       priceCondition: asText(item.priceCondition),
-      regularPrice: asText(item.regularPrice),
       sizeText: asText(item.sizeText),
       count: asText(item.count),
     },
@@ -73,7 +77,7 @@ function fromTag(item: TagItem): Product {
 
 // 상품을 하나도 못 찾았을 때 직접 적을 빈 칸 한 벌
 const BLANK: Product = {
-  form: { name: '', price: '', priceCondition: '', regularPrice: '', sizeText: '', count: '' },
+  form: { name: '', price: '', priceCondition: '', sizeText: '', count: '' },
   readName: '',
   brand: null,
   priceBasis: null,
@@ -337,21 +341,26 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
             읽은 상품
           </h4>
           {notFound ? <p>상품이나 가격표를 찾지 못했어요. 다시 찍거나 직접 입력해 주세요.</p> : null}
-          {products.length === 1 ? (
-            <ProductFields product={products[0]} onEdit={(key, value) => edit(0, key, value)} />
-          ) : (
-            products.map((product, index) => (
-              <fieldset key={index} className="card stack">
-                <legend>
-                  <label className="product-choice">
-                    <input type="radio" name={radioName} checked={selected === index} onChange={() => choose(index)} />
-                    {product.readName}
+          {/* 여러 개면 '상품명 · 가격' 카드에서 하나를 고르고, 고른 상품의 칸만 펼친다
+              (2026-11-03 제작자 "고르는게 직관적이지 못해 골라야되는지 한참 찾음", 전: 상품마다 칸 6개를 모두 펼침) */}
+          {products.length > 1 ? (
+            <fieldset className="product-choices">
+              <legend className="field-label">비교할 상품을 골라 주세요</legend>
+              {products.map((product, index) => {
+                const price = storePriceOf(product.form.price)
+                return (
+                  <label key={index} className={selected === index ? 'product-choice-card is-selected' : 'product-choice-card'}>
+                    <input type="radio" name={radioName} checked={selected === index} onChange={() => choose(index)} aria-labelledby={`${radioName}-name-${index}`} aria-describedby={`${radioName}-price-${index}`} />
+                    <span className="product-choice-name" id={`${radioName}-name-${index}`}>{product.readName}</span>
+                    <span className="product-choice-price" id={`${radioName}-price-${index}`}>
+                      {price === null ? '가격 없음' : formatWon(price)}
+                    </span>
                   </label>
-                </legend>
-                <ProductFields product={product} onEdit={(key, value) => edit(index, key, value)} />
-              </fieldset>
-            ))
-          )}
+                )
+              })}
+            </fieldset>
+          ) : null}
+          {current && selected !== null ? <ProductFields key={selected} product={current} onEdit={(key, value) => edit(selected, key, value)} /> : null}
           {current?.priceBasis ? (
             <p>{unitPriceNotice(current.priceBasis)}</p>
           ) : (
@@ -403,6 +412,7 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
             </>
           ) : null}
           {online.status === 'unavailable' ? <p>다나와 결과를 가져오지 못했어요.</p> : null}
+          {online.status === 'no_results' ? <p>{NO_RESULTS_LINE}</p> : null}
           {spec?.kind === 'mismatch' ? <p>{spec.line}</p> : null}
           {spec?.kind === 'confirm' ? (
             <div className="stack">
@@ -445,19 +455,26 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
 }
 
 function ProductFields({ product, onEdit }: { product: Product; onEdit: (key: FieldKey, value: string) => void }) {
+  const field = ({ key, label, numeric }: FieldSpec) => (
+    <TextField
+      key={key}
+      label={label}
+      inputMode={numeric ? 'numeric' : undefined}
+      maxLength={key === 'name' ? MAX_NAME : undefined}
+      hint={key === 'price' && product.priceUnread ? '가격을 읽지 못했어요' : undefined}
+      value={product.form[key]}
+      onChange={(event) => onEdit(key, event.target.value)}
+    />
+  )
+  // 접힌 칸에 적힌 값은 버튼 이름에 붙여 열지 않아도 보이게 한다
+  const filled = MORE_FIELDS.map(({ key, label }) => (product.form[key].trim() === '' ? null : `${label} ${product.form[key].trim()}`)).filter(Boolean)
   return (
     <>
-      {FIELDS.map(({ key, label, numeric }) => (
-        <TextField
-          key={key}
-          label={label}
-          inputMode={numeric ? 'numeric' : undefined}
-          maxLength={key === 'name' ? MAX_NAME : undefined}
-          hint={key === 'price' && product.priceUnread ? '가격을 읽지 못했어요' : undefined}
-          value={product.form[key]}
-          onChange={(event) => onEdit(key, event.target.value)}
-        />
-      ))}
+      {MAIN_FIELDS.map(field)}
+      <details className="button-disclosure">
+        <summary className="field-label">{filled.length > 0 ? `규격·조건 고치기 · ${filled.join(' · ')}` : '규격·조건 고치기 (선택)'}</summary>
+        <div className="stack">{MORE_FIELDS.map(field)}</div>
+      </details>
     </>
   )
 }

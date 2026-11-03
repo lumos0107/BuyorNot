@@ -13,6 +13,8 @@ import {
   PICK_PROMPT,
   PICK_SCHEMA,
   pickRows,
+  cleanName,
+  searchQueries,
   searchQuery,
 } from '../src/lowestPrice.ts'
 import { createRateLimiter } from '../src/rateLimit.ts'
@@ -140,6 +142,23 @@ describe('검색어와 찾는 상품 설명', () => {
   })
 
   // plan: describeWanted names the brand on its own line
+  // 2026-11-03 라면 진열대 사진: 'MDS)사천왕마라탕면컵'이 다나와에서 0건
+  it('AC225: 가격표 이름 앞의 매장 표시("MDS)")를 떼고, 뗐으면 브랜드도 붙이지 않고 검색해요', () => {
+    expect(cleanName('MDS)사천왕마라탕면컵')).toBe('사천왕마라탕면컵')
+    expect(cleanName('농심)신라면블랙')).toBe('신라면블랙')
+    expect(cleanName('신라면(5입)')).toBe('신라면(5입)')
+    expect(cleanName('MDS)')).toBe('MDS)')
+    expect(searchQuery({ name: '농심)신라면블랙', brand: '농심' })).toBe('신라면블랙')
+    expect(searchQuery({ name: 'MDS)사천왕마라탕면컵', brand: 'MDS' })).toBe('사천왕마라탕면컵')
+    expect(searchQueries({ name: 'MDS)사천왕마라탕면컵', brand: 'MDS' })).toEqual(['사천왕마라탕면컵'])
+  })
+
+  it('검색어는 브랜드를 붙인 이름, 그다음 이름만이고 같으면 하나예요', () => {
+    expect(searchQueries({ name: '진마이랑신통푸마라탕면', brand: '진마이랑' })).toEqual(['진마이랑신통푸마라탕면'])
+    expect(searchQueries({ name: '신통푸마라탕면', brand: '진마이랑' })).toEqual(['진마이랑 신통푸마라탕면', '신통푸마라탕면'])
+    expect(searchQueries({ name: '햇반', brand: null })).toEqual(['햇반'])
+  })
+
   it('찾는 상품을 브랜드·상품명·규격 세 줄로 적어요', () => {
     expect(describeWanted({ name: '오징어짬뽕 소컵', brand: '농심', sizeText: '67g×6' })).toBe(
       '브랜드: 농심\n상품명: 오징어짬뽕 소컵\n규격: 67g×6',
@@ -355,6 +374,38 @@ describe('온라인 가격 확인 요청', () => {
     fetchMock.mockRejectedValue(new Error('network'))
     const { body } = await run(REQUEST, deps)
     expect(body.status).toBe('unavailable')
+  })
+
+  it('AC225: 검색 결과가 0건이면 이름만으로 한 번 더 찾고, 그래도 없으면 no_results이며 Gemini는 부르지 않아요', async () => {
+    const empty = () => new Response('<html><main>"신통푸마라탕면"에 대한 검색결과가 없습니다.</main></html>', { status: 200 })
+    const { deps, fetchMock } = makeDeps()
+    fetchMock.mockImplementation(() => Promise.resolve(empty()))
+    const { body } = await run({ name: '신통푸마라탕면', brand: '진마이랑' }, deps)
+    expect(body.status).toBe('no_results')
+    expect(body.matches).toEqual([])
+    expect(body.candidates).toEqual([])
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+      danawaSearchUrl('진마이랑 신통푸마라탕면'),
+      danawaSearchUrl('신통푸마라탕면'),
+    ])
+    expect(body.searchUrl).toBe(danawaSearchUrl('신통푸마라탕면'))
+  })
+
+  it('AC225: 첫 검색어가 0건이고 이름만으로 찾으면 그 결과와 검색 주소를 써요', async () => {
+    const { deps, fetchMock } = makeDeps()
+    let danawaCalls = 0
+    fetchMock.mockImplementation((input) => {
+      const url = String(input)
+      if (url.startsWith('https://search.danawa.com/')) {
+        danawaCalls += 1
+        return Promise.resolve(danawaCalls === 1 ? new Response('<html><main>검색결과가 없습니다.</main></html>', { status: 200 }) : html200())
+      }
+      return Promise.resolve(geminiOk({ rows: [1], reason: '' }))
+    })
+    const { body } = await run({ ...REQUEST, name: '오징어짬뽕 소컵', brand: '팔도' }, deps)
+    expect(danawaCalls).toBe(2)
+    expect(body.status).toBe('found')
+    expect(body.searchUrl).toBe(danawaSearchUrl('오징어짬뽕 소컵'))
   })
 
   it('다나와는 10초 안에 답이 없으면 가져오지 못함이에요', async () => {

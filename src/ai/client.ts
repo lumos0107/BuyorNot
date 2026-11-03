@@ -137,7 +137,7 @@ function isDanawaRow(v: unknown): v is DanawaRow {
   )
 }
 
-const LOWEST_PRICE_STATUSES: readonly unknown[] = ['found', 'not_confirmed', 'unavailable', 'off']
+const LOWEST_PRICE_STATUSES: readonly unknown[] = ['found', 'not_confirmed', 'no_results', 'unavailable', 'off']
 
 export function isLowestPriceResponse(v: unknown): v is LowestPriceResponse {
   return (

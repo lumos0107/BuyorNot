@@ -42,7 +42,7 @@ export type LowestPriceRequest = {
 // found: 같은 상품으로 고른 줄(matches) · not_confirmed: 고르지 못해 앞쪽 줄(candidates)
 // unavailable: 다나와를 읽지 못함 · off: 다나와 조회를 꺼 둠. searchUrl은 늘 채운다.
 export type LowestPriceResponse = {
-  status: 'found' | 'not_confirmed' | 'unavailable' | 'off'
+  status: 'found' | 'not_confirmed' | 'no_results' | 'unavailable' | 'off'
   searchUrl: string
   matches: DanawaRow[]
   candidates: DanawaRow[]

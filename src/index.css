@@ -2619,3 +2619,49 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
 .card details.button-disclosure[open]:not(.card):not(.entry-disclosure):not(.area-picker) > summary {
   margin-bottom: 8px;
 }
+
+/* 가격표 사진: 비교할 상품 고르기 카드 (2026-11-03 제작자 "고르는게 직관적이지 못해") */
+.product-choices {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.product-choices > legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.product-choice-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+.product-choice-card input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.product-choice-card.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.product-choice-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.product-choice-price {
+  flex: none;
+  font-weight: 700;
+}
