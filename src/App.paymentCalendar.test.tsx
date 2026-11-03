@@ -27,7 +27,7 @@ it('AC175: 처음부터 열린 달력에 결제 건수·요금 합계를 보이�
   expect(calendar.getByText('실제 청구일과 금액은 서비스에서 확인해 주세요.')).toBeVisible()
   await user.click(calendar.getByRole('button', { name: '2026-11-03 결제 예정 1건' }))
   expect(calendar.getByRole('region', { name: '2026-11-03 결제 예정' })).toHaveFocus()
-  expect(calendar.getByText('11월 3일 · 인터넷 요금 · 30,000원')).toBeInTheDocument()
+  expect(within(calendar.getByRole('region', { name: '2026-11-03 결제 예정' })).getByText('인터넷 요금')).toBeInTheDocument()
 })
 
 it('AC175: 적어 둔 고정비가 없으면 저장되지 않는 예시 결제를 보인다', async () => {
@@ -72,7 +72,7 @@ it('AC212: 이번 달 1일부터 그리고, 가계부 지출은 결제 예정과
   expect(payDay.querySelector('.payment-calendar-date')!.compareDocumentPosition(payDay.querySelector('.payment-calendar-amount')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   await user.click(spentDay)
   expect(calendar.getByRole('region', { name: '2026-11-01 지출' })).toHaveFocus()
-  expect(calendar.getByText('11월 1일 · 지출 · 점심 · 12,000원')).toBeInTheDocument()
+  expect(within(calendar.getByRole('region', { name: '2026-11-01 지출' })).getByText('12,000원')).toBeInTheDocument()
   expect(calendar.queryByText(/지난달 장보기/)).not.toBeInTheDocument()
 })
 

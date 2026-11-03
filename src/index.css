@@ -2665,3 +2665,54 @@ section[aria-label='묶음상품 비교 결과'] > .result-list .price {
   flex: none;
   font-weight: 700;
 }
+
+/* 날짜별 목록: 날짜 제목 한 번, 줄은 종류 표식 · 이름 · 금액 (2026-11-03 제작자 "글자개선") */
+.payment-calendar-list-day .list-day-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.payment-calendar-list-day .list-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink);
+}
+.payment-calendar-list-day .list-kind {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.payment-calendar-list-day .list-spent .list-kind {
+  background: #fff0e8;
+  color: #b53a0b;
+}
+.payment-calendar-list-day .list-planned .list-kind {
+  background: #f3efff;
+  color: #5f3dc4;
+}
+.payment-calendar-list-day .list-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.payment-calendar-list-day .list-amount {
+  flex: none;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.payment-calendar-list-day .list-spent .list-amount {
+  color: #b53a0b;
+}
+.payment-calendar-list-day .list-planned .list-amount {
+  color: #5f3dc4;
+}
+
+/* 달력이 가계부 맨 위로 오며 바로가기 줄이 달력 카드에 겹치던 것 (2026-11-03 제작자 "겹침개선") */
+.payment-calendar + .jump-nav {
+  margin-top: 12px;
+}

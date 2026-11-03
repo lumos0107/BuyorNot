@@ -133,6 +133,6 @@ it('AC215: 가계부 기록이 없으면 저장되지 않는 예시(쓴 돈·예
   const future = calendar.getByRole('button', { name: '2026-11-06 예상 지출 1건' })
   expect(future.querySelector('.payment-calendar-amount.planned')).toHaveTextContent('30,000')
   await user.click(future)
-  expect(calendar.getByText('11월 6일 · 예상 지출 · (예시) 친구 생일 선물 · 30,000원')).toBeInTheDocument()
+  expect(within(calendar.getByRole('region', { name: '2026-11-06 예상 지출' })).getByText('(예시) 친구 생일 선물')).toBeInTheDocument()
   expect(localStorage.getItem(LEDGER_KEY)).toBeNull()
 })

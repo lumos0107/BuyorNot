@@ -88,9 +88,11 @@ export function PaymentCalendarSection({ subscriptions, expenses = [], expenseDe
           const spends = spentByDay.get(day) ?? []
           const spendWord = day > todayIso ? '예상 지출' : '지출'
           const name = pays.length && spends.length ? `${day} 결제 예정·${spendWord}` : pays.length ? `${day} 결제 예정` : `${day} ${spendWord}`
+          // 날짜는 한 번만 제목으로, 줄마다 종류 표식 · 이름 · 금액(오른쪽) (2026-11-03 제작자 "글자개선")
           return <section className="payment-calendar-list-day" role="region" aria-label={name} tabIndex={-1} id={`payment-day-${day}`} key={day}>
-            {pays.map((entry) => <p key={entry.subscriptionId} className="list-pay">{`${dateLabel(day)} · ${entry.name} · ${formatWon(entry.priceKrw)}`}</p>)}
-            {spends.map((entry) => <p key={entry.id} className={day > todayIso ? 'list-planned' : 'list-spent'}>{`${dateLabel(day)} · ${spendWord} · ${entry.name} · ${formatWon(entry.amountKrw)}`}</p>)}
+            <p className="list-day-head">{dateLabel(day)}</p>
+            {pays.map((entry) => <p key={entry.subscriptionId} className="list-row list-pay"><span className="list-kind">결제 예정</span><span className="list-name">{entry.name}</span><span className="list-amount">{formatWon(entry.priceKrw)}</span></p>)}
+            {spends.map((entry) => <p key={entry.id} className={day > todayIso ? 'list-row list-planned' : 'list-row list-spent'}><span className="list-kind">{spendWord}</span><span className="list-name">{entry.name}</span><span className="list-amount">{formatWon(entry.amountKrw)}</span></p>)}
           </section>
         })}
         </details>
