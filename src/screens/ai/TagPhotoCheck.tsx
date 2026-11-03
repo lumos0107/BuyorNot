@@ -6,7 +6,7 @@ import { aiFailureMessage, PHOTO_DECODE_FAILED, PHOTO_NOTICE } from '../../ai/me
 import type { DanawaRow, LowestPriceRequest, LowestPriceResponse, TagItem, TagUnit } from '../../ai/types'
 import type { PhotoDraft } from '../../logic/draft'
 import { formatWon, MAX_WON, parseInteger } from '../../logic/number'
-import { compareLines, NO_RESULTS_LINE, resultTopLine, rowLine, specCheck, unitPriceNotice, UNKNOWN_COUNT_NOTICE } from '../../logic/tagCompare'
+import { compareLines, NO_RESULTS_LINE, NOT_UNIT_PRICE, resultTopLine, rowLine, specCheck, unitPriceNotice, UNKNOWN_COUNT_NOTICE } from '../../logic/tagCompare'
 import { Button } from '../../ui/Button'
 import { EmptyIllustration } from '../../ui/EmptyIllustration'
 import { TextField } from '../../ui/Field'
@@ -148,6 +148,7 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
   const [error, setError] = useState<{ at: 'photo' | 'check'; message: string } | null>(null)
   // 읽기·확인이 끝난 뒤 옮길 포커스. 새 객체로 바꿔야 같은 곳으로 다시 옮긴다
   const [focusTo, setFocusTo] = useState<{ target: 'products' | 'result' } | null>(null)
+  const focusCheckNext = useRef(false)
 
   const productsTitleId = useId()
   const radioName = useId()
@@ -292,6 +293,18 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
     setSameSpec(false)
   }
 
+  // 단가 가격표가 아니라고 고르면 그 상품의 가격 기준을 지우고, 나타난 '온라인 가격 확인'으로 포커스를 옮긴다
+  const clearBasis = (index: number) => {
+    focusCheckNext.current = true
+    setProducts((list) => list.map((product, i) => (i === index ? { ...product, priceBasis: null } : product)))
+  }
+  // 버튼이 그려진 뒤에 포커스를 옮긴다
+  useEffect(() => {
+    if (!focusCheckNext.current) return
+    focusCheckNext.current = false
+    checkButton.current?.focus()
+  })
+
   const edit = (index: number, key: FieldKey, value: string) => {
     setProducts((list) => list.map((product, i) => (i === index ? { ...product, form: { ...product.form, [key]: value } } : product)))
     if (index === selected) resetCheck()
@@ -361,8 +374,15 @@ export function TagPhotoCheck({ onAdd }: { onAdd?: (draft: PhotoDraft) => void }
             </fieldset>
           ) : null}
           {current && selected !== null ? <ProductFields key={selected} product={current} onEdit={(key, value) => edit(selected, key, value)} /> : null}
-          {current?.priceBasis ? (
-            <p>{unitPriceNotice(current.priceBasis)}</p>
+          {current?.priceBasis && selected !== null ? (
+            <>
+              <p>{unitPriceNotice(current.priceBasis)}</p>
+              {/* AI가 판매가 아래 작은 단위가격 안내를 보고 잘못 고르는 일이 있어, 사용자가 되돌릴 수 있게 한다
+                  (2026-11-03 제작자 "온라인비교버튼이 없어졌는데?") */}
+              <div className="btn-row">
+                <Button onClick={() => clearBasis(selected)}>{NOT_UNIT_PRICE}</Button>
+              </div>
+            </>
           ) : (
             <>
               <div className="btn-row">

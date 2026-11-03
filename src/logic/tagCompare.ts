@@ -57,6 +57,9 @@ export function compareLines(storePrice: number, row: DanawaRow, priceCondition:
 }
 
 /** 단가 가격표(100g당 등)는 온라인 가격과 비교하지 않는다. basis 자리에는 읽은 값('100g')이 온다. */
+/** 단가 안내 아래 버튼: AI가 단가 가격표로 잘못 읽었을 때 되돌린다 (2026-11-03) */
+export const NOT_UNIT_PRICE = '상품 하나 가격이에요'
+
 export function unitPriceNotice(basis: string): string {
   return `${basis}당 가격처럼 단위 가격이라 온라인 가격과 비교하지 않아요.`
 }

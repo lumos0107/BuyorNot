@@ -757,6 +757,22 @@ describe('온라인 가격 확인 결과와 실패 (AC53)', () => {
     expect(s.server.callsTo(LOWEST)).toHaveLength(0)
   })
 
+  it('AC226: 단가 가격표로 읽었어도 "상품 하나 가격이에요"를 누르면 안내가 사라지고 "온라인 가격 확인"에 포커스가 가며 확인할 수 있다', async () => {
+    const s = setup()
+    s.server.on(READ, readTag(UNIT_PRICE_ITEM))
+    s.server.on(LOWEST, lowest('found', [ROW_FOUND]))
+    openPhotoTab()
+    await readPhoto()
+
+    fireEvent.click(panel().getByRole('button', { name: '상품 하나 가격이에요' }))
+
+    expect(panel().queryByText('100g당 가격처럼 단위 가격이라 온라인 가격과 비교하지 않아요.')).not.toBeInTheDocument()
+    expect(checkButton()).toHaveFocus()
+    await checkOnline()
+    expect(s.server.callsTo(LOWEST)).toHaveLength(1)
+    expect(s.server.callsTo(LOWEST)[0].body).toMatchObject({ name: '오징어짬뽕 컵' })
+  })
+
   it('AC53: 확인 중에 취소하면 요청을 끊고, 늦게 온 응답으로 결과가 생기지 않는다', async () => {
     const late = aiReply.hold()
     const s = await readAndCheck([ITEM], late)
